@@ -7,6 +7,148 @@ if (!isset($_SESSION['user_id'])) {
 require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$erro = '';
+$sucesso = '';
+
+// Variáveis default
+$tipo = 'despesa';
+$valor = 0.00;
+$data = date('Y-m-d');
+$descricao = '';
+$consolidada = 1;
+$id_categoria = '';
+$id_conta = '';
+$id_conta_destino = ''; // Apenas uso no front
+$notas = '';
+
+// Processamento POST
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $action = $_POST['action'] ?? 'save';
+
+    if ($action === 'delete' && $id > 0) {
+        // Deletar transação
+        $stmt = $mysqliFinancas->prepare("DELETE FROM transacoes WHERE (id = ? OR idpai = ?) AND iduser = ?");
+        $stmt->bind_param("iii", $id, $id, $user_id);
+        if ($stmt->execute()) {
+            header("Location: transacoes.php");
+            exit;
+        } else {
+            $erro = "Erro ao excluir: " . $mysqliFinancas->error;
+        }
+    } else {
+        // Salvar (Insert/Update)
+        $tipo = $_POST['tipo'] ?? 'despesa';
+        $valor = (float)($_POST['valor'] ?? 0);
+        $data = $_POST['data'] ?? date('Y-m-d');
+        $descricao = trim($_POST['descricao'] ?? '');
+        $consolidada = isset($_POST['consolidada']) ? 1 : 0;
+        $notas = trim($_POST['notas'] ?? '');
+        
+        $id_categoria = !empty($_POST['id_categoria']) ? (int)$_POST['id_categoria'] : NULL;
+        $id_conta = !empty($_POST['id_conta']) ? (int)$_POST['id_conta'] : NULL;
+        $id_conta_destino = !empty($_POST['id_conta_destino']) ? (int)$_POST['id_conta_destino'] : NULL;
+
+        if ($tipo === 'despesa') {
+            $valor = -abs($valor);
+        } elseif ($tipo === 'receita') {
+            $valor = abs($valor);
+        }
+
+        if ($descricao && $id_conta) {
+            if ($tipo === 'transferencia') {
+                if (!$id_conta_destino) {
+                    $erro = "Selecione a conta de destino.";
+                } else {
+                    $id_categoria = -1;
+                    $valor_origem = -abs($valor);
+                    $valor_destino = abs($valor);
+
+                    if ($id > 0) {
+                        // Edição de transferência (Atualiza apenas a perna atual por simplicidade)
+                        $stmt = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE id=? AND iduser=?");
+                        $stmt->bind_param("sdsiiisii", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $id, $user_id);
+                        $stmt->execute();
+                        $sucesso = "Transferência atualizada!";
+                    } else {
+                        // Nova transferência
+                        $mysqliFinancas->begin_transaction();
+                        try {
+                            $stmt1 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt1->bind_param("sdsiiiis", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas);
+                            $stmt1->execute();
+                            $id_pai = $mysqliFinancas->insert_id;
+                            
+                            $stmt2 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, idpai, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt2->bind_param("sdsiiiiis", $data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $user_id, $consolidada, $id_pai, $notas);
+                            $stmt2->execute();
+                            
+                            $mysqliFinancas->commit();
+                            $sucesso = "Transferência registrada com sucesso!";
+                            $id = $id_pai; // Para carregar os dados inseridos
+                        } catch (Exception $e) {
+                            $mysqliFinancas->rollback();
+                            $erro = "Erro ao transferir.";
+                        }
+                    }
+                }
+            } else {
+                // Despesa ou Receita
+                if ($id > 0) {
+                    $stmt = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE id=? AND iduser=?");
+                    $stmt->bind_param("sdsiiisii", $data, $valor, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $id, $user_id);
+                    if ($stmt->execute()) {
+                        $sucesso = "Transação atualizada!";
+                    } else {
+                        $erro = "Erro ao atualizar: " . $mysqliFinancas->error;
+                    }
+                } else {
+                    $stmt = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("sdsiiiis", $data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas);
+                    if ($stmt->execute()) {
+                        $sucesso = "Transação inserida com sucesso!";
+                        $id = $mysqliFinancas->insert_id;
+                    } else {
+                        $erro = "Erro ao inserir: " . $mysqliFinancas->error;
+                    }
+                }
+            }
+        } else {
+            $erro = "Preencha a descrição e selecione uma conta.";
+        }
+    }
+}
+
+// Carregar dados se edição (ou após INSERT)
+if ($id > 0) {
+    $stmt = $mysqliFinancas->prepare("SELECT data, valor, descricao, idcategoria, idconta, consolidada, notas FROM transacoes WHERE id = ? AND iduser = ?");
+    $stmt->bind_param("ii", $id, $user_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($transacao = $res->fetch_assoc()) {
+        $data = $transacao['data'];
+        $valor = $transacao['valor'];
+        $descricao = $transacao['descricao'];
+        $id_categoria = $transacao['idcategoria'];
+        $id_conta = $transacao['idconta'];
+        $consolidada = $transacao['consolidada'];
+        $notas = $transacao['notas'];
+        
+        if ($id_categoria == -1) {
+            $tipo = 'transferencia';
+        } elseif ($valor < 0) {
+            $tipo = 'despesa';
+        } else {
+            $tipo = 'receita';
+        }
+        $valor = abs($valor); // Remove o sinal para exibir no numpad
+    } else {
+        header("Location: transacoes.php");
+        exit;
+    }
+    $stmt->close();
+}
+
 // Buscar Categorias
 $stmt = $mysqliFinancas->prepare("SELECT id, nome, cor FROM categorias WHERE id_user = ? ORDER BY nome ASC");
 $stmt->bind_param("i", $user_id);
@@ -20,6 +162,16 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $contas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Auxiliar para obter nome na UI
+$nome_categoria = 'Selecionar';
+foreach ($categorias as $cat) {
+    if ($cat['id'] == $id_categoria) $nome_categoria = $cat['nome'];
+}
+$nome_conta = 'Selecionar';
+foreach ($contas as $conta) {
+    if ($conta['id'] == $id_conta) $nome_conta = $conta['nome'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -53,7 +205,6 @@ $stmt->close();
             100% { transform: translate(50px, -50px) scale(1.1); }
         }
 
-        /* Cores dinâmicas baseadas no tipo de transação */
         .theme-despesa .blob-1 { background: #ef4444; }
         .theme-despesa .blob-2 { background: #f43f5e; }
         .theme-despesa .blob-3 { background: #be123c; }
@@ -69,16 +220,14 @@ $stmt->close();
         .theme-transferencia .blob-3 { background: #3730a3; }
         .theme-transferencia .header-glass { background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(79, 70, 229, 0.2)); border-bottom-color: rgba(59, 130, 246, 0.3); }
 
-        /* Estilos do switch toggle */
         .toggle-checkbox:checked { right: 0; border-color: #10b981; }
         .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
 
-        /* Esconder barra de rolagem */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="min-h-screen relative theme-despesa" id="app-body">
+<body class="min-h-screen relative theme-<?php echo $tipo; ?>" id="app-body">
     
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
@@ -86,27 +235,68 @@ $stmt->close();
 
     <?php include 'menu.php'; ?>
 
+    <!-- Formulário Submetido via JS -->
+    <form id="transacao-form" method="POST" action="transacao.php<?php echo $id > 0 ? '?id='.$id : ''; ?>" class="hidden">
+        <input type="hidden" name="action" id="input-action" value="save">
+        <input type="hidden" name="tipo" id="input-tipo" value="<?php echo $tipo; ?>">
+        <input type="hidden" name="valor" id="input-valor" value="<?php echo number_format($valor, 2, '.', ''); ?>">
+        <input type="hidden" name="id_categoria" id="input-categoria" value="<?php echo $id_categoria; ?>">
+        <input type="hidden" name="id_conta" id="input-conta" value="<?php echo $id_conta; ?>">
+        <input type="hidden" name="id_conta_destino" id="input-conta-destino" value="<?php echo $id_conta_destino; ?>">
+        <!-- Valores abaixo serão populados via JS antes do submit -->
+        <input type="hidden" name="data" id="input-data">
+        <input type="hidden" name="descricao" id="input-descricao">
+        <input type="hidden" name="consolidada" id="input-consolidada">
+        <input type="hidden" name="notas" id="input-notas">
+    </form>
+
     <div class="max-w-md mx-auto relative h-[85vh] md:h-[80vh] flex flex-col mb-10 overflow-hidden">
         
+        <?php if ($erro): ?>
+            <div class="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-xl mb-4 mx-2 sm:mx-0 text-sm z-50 relative">
+                <?php echo $erro; ?>
+            </div>
+        <?php endif; ?>
+        <?php if ($sucesso): ?>
+            <div class="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 px-4 py-2 rounded-xl mb-4 mx-2 sm:mx-0 text-sm z-50 relative">
+                <?php echo $sucesso; ?>
+            </div>
+        <?php endif; ?>
+
         <!-- Formulário Principal -->
         <div id="main-view" class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.5rem] shadow-2xl h-full flex flex-col relative mx-2 sm:mx-0 z-10 transition-transform duration-300">
             
-            <!-- Cabeçalho (Header) dinâmico -->
+            <!-- Cabeçalho dinâmico -->
             <div id="header-area" class="header-glass p-6 transition-all duration-500 border-b relative shrink-0 rounded-t-[2.5rem] z-50">
                 <div class="flex justify-between items-center mb-6">
-                    <button class="text-white/80 hover:text-white font-medium">Cancelar</button>
-                    <span id="header-title" class="text-white font-semibold text-lg tracking-wide">Nova Despesa</span>
-                    <button class="text-white font-bold tracking-wide">Salvar</button>
+                    <a href="transacoes.php" class="text-white/80 hover:text-white font-medium">Cancelar</a>
+                    <span id="header-title" class="text-white font-semibold text-lg tracking-wide">
+                        <?php 
+                        if($tipo == 'despesa') echo 'Despesa'; 
+                        elseif($tipo == 'receita') echo 'Receita'; 
+                        else echo 'Transferência'; 
+                        ?>
+                    </span>
+                    <button type="button" onclick="submitForm()" class="text-white font-bold tracking-wide">Salvar</button>
                 </div>
 
                 <div class="flex items-center justify-between mb-2">
                     <button type="button" onclick="toggleTypeSelect()" class="w-12 h-12 rounded-2xl border border-white/40 flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors cursor-pointer z-20">
-                        <svg id="icon-seta" class="w-6 h-6 text-white transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        <svg id="icon-seta" class="w-6 h-6 text-white transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <?php if($tipo == 'despesa'): ?>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                            <?php elseif($tipo == 'receita'): ?>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                            <?php else: ?>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            <?php endif; ?>
+                        </svg>
                     </button>
                     
-                    <!-- Campo de Valor Clicável -->
                     <div class="flex-1 text-right ml-4 cursor-pointer relative z-10" onclick="toggleNumpad()">
-                        <span class="text-4xl md:text-5xl font-bold text-white tracking-tight" id="display-valor">R$ 0,00</span>
+                        <span class="text-4xl md:text-5xl font-bold text-white tracking-tight" id="display-valor">
+                            R$ <?php echo number_format($valor, 2, ',', '.'); ?>
+                        </span>
                     </div>
                 </div>
 
@@ -125,22 +315,20 @@ $stmt->close();
                         <span class="text-gray-800 font-medium">Transferência</span>
                     </button>
                 </div>
-                <!-- Overlay transparente para fechar seletor de tipo -->
                 <div id="type-selector-overlay" onclick="toggleTypeSelect()" class="fixed inset-0 z-40 hidden"></div>
             </div>
 
-            <!-- Formulário Lista -->
-            <div class="flex-1 overflow-y-auto no-scrollbar p-2">
+            <div class="flex-1 overflow-y-auto no-scrollbar p-2 relative">
                 <div class="bg-white/5 rounded-3xl p-2 space-y-1 my-4">
                     
                     <div class="flex items-center justify-between p-3 border-b border-white/5">
-                        <span class="text-gray-300 font-medium">Data da Transação</span>
-                        <input type="date" class="bg-transparent text-right text-white focus:outline-none w-32" id="data" value="<?php echo date('Y-m-d'); ?>">
+                        <span class="text-gray-300 font-medium">Data</span>
+                        <input type="date" class="bg-transparent text-right text-white focus:outline-none w-32" id="ui-data" value="<?php echo htmlspecialchars($data); ?>">
                     </div>
                     
                     <div class="flex items-center justify-between p-3 border-b border-white/5">
                         <span class="text-gray-300 font-medium whitespace-nowrap mr-4">Descrição</span>
-                        <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="descricao">
+                        <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>">
                     </div>
 
                     <div class="flex items-center justify-between p-3 border-b border-white/5">
@@ -149,33 +337,29 @@ $stmt->close();
                         </div>
                         <div class="flex items-center space-x-3">
                             <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="consolidada" id="consolidada" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-400 appearance-none cursor-pointer transition-all duration-300" checked/>
-                                <label for="consolidada" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-400 cursor-pointer transition-colors duration-300"></label>
+                                <input type="checkbox" id="ui-consolidada" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-400 appearance-none cursor-pointer transition-all duration-300" <?php echo $consolidada ? 'checked' : ''; ?>/>
+                                <label for="ui-consolidada" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-400 cursor-pointer transition-colors duration-300"></label>
                             </div>
-                            <button class="text-gray-400 hover:text-white rounded-full border border-gray-400 w-5 h-5 flex items-center justify-center text-xs font-bold transition-colors">i</button>
                         </div>
                     </div>
 
-                    <!-- Botão que abre a seleção de Categoria -->
-                    <div class="flex items-center justify-between p-3 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors" id="linha-categoria" onclick="openPanel('panel-categoria')">
+                    <div class="flex items-center justify-between p-3 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? 'hidden' : ''; ?>" id="linha-categoria" onclick="openPanel('panel-categoria')">
                         <span class="text-gray-300 font-medium">Categoria</span>
                         <div class="flex items-center text-white/70 space-x-2">
-                            <span id="display-categoria" class="text-white">Selecionar</span>
+                            <span id="display-categoria" class="text-white"><?php echo htmlspecialchars($nome_categoria); ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
 
-                    <!-- Botão que abre a seleção de Conta -->
                     <div class="flex items-center justify-between p-3 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors" onclick="openPanel('panel-conta')">
-                        <span class="text-gray-300 font-medium" id="label-conta-origem">Conta</span>
+                        <span class="text-gray-300 font-medium" id="label-conta-origem"><?php echo $tipo == 'transferencia' ? 'Conta Origem' : 'Conta'; ?></span>
                         <div class="flex items-center text-white/70 space-x-2">
-                            <span id="display-conta" class="text-white">Selecionar</span>
+                            <span id="display-conta" class="text-white"><?php echo htmlspecialchars($nome_conta); ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
                     
-                    <!-- Botão que abre a seleção de Conta Destino -->
-                    <div class="flex items-center justify-between p-3 border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors hidden" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
+                    <div class="flex items-center justify-between p-3 border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? '' : 'hidden'; ?>" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
                         <span class="text-gray-300 font-medium">Conta Destino</span>
                         <div class="flex items-center text-white/70 space-x-2">
                             <span id="display-conta-destino" class="text-white">Selecionar</span>
@@ -184,23 +368,19 @@ $stmt->close();
                     </div>
                 </div>
 
-                <!-- Botão Mais Opções -->
-                <div class="flex justify-center my-6">
+                <div class="flex justify-center my-6" id="container-btn-mais-opcoes">
                     <button type="button" onclick="toggleMaisOpcoes()" id="btn-mais-opcoes" class="px-6 py-2 rounded-full border border-white/30 text-white/60 hover:text-white hover:bg-white/5 hover:border-white/50 text-sm font-semibold tracking-wide transition-all uppercase">
                         Mais Opções
                     </button>
                 </div>
 
-                <!-- Sessão Mais Opções -->
                 <div id="mais-opcoes" class="hidden opacity-0 transition-opacity duration-500 pb-6">
                     <div class="bg-white/5 rounded-3xl p-2 space-y-1">
-                        <!-- Nota -->
                         <div class="flex items-center justify-between p-3 border-b border-white/5">
                             <span class="text-gray-300 font-medium">Nota</span>
-                            <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar >" id="notas">
+                            <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar >" id="ui-notas" value="<?php echo htmlspecialchars($notas); ?>">
                         </div>
 
-                        <!-- Recorrência Tabs -->
                         <div class="p-3">
                             <div class="flex rounded-xl bg-black/20 p-1">
                                 <button class="flex-1 py-2 text-sm font-medium rounded-lg text-white shadow bg-white/20 transition-all" id="tab-nenhuma">Nenhuma</button>
@@ -208,39 +388,26 @@ $stmt->close();
                             </div>
                         </div>
 
-                        <!-- Opções Avançadas -->
                         <div id="opcoes-avancadas-conteudo" class="p-2 space-y-1 hidden">
-                            <div class="flex items-center justify-between p-2 border-b border-white/5">
-                                <span class="text-gray-300 font-medium">Intervalo</span>
-                                <select class="bg-transparent text-right text-white focus:outline-none appearance-none pr-4 cursor-pointer" dir="rtl">
-                                    <option value="1" class="text-gray-900" selected>1 mês</option>
-                                    <option value="2" class="text-gray-900">1 semana</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between p-2 border-b border-white/5">
-                                <span class="text-gray-300 font-medium">Indefinidamente</span>
-                                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                    <input type="checkbox" id="indefinido" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-400 appearance-none cursor-pointer transition-all duration-300"/>
-                                    <label for="indefinido" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-400 cursor-pointer transition-colors duration-300"></label>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between p-2 border-b border-white/5">
-                                <span class="text-gray-300 font-medium">Ocorrências</span>
-                                <input type="number" class="bg-transparent text-right text-white focus:outline-none w-16" value="1" min="1">
-                            </div>
-                            <div class="flex items-center justify-between p-2">
-                                <span class="text-gray-300 font-medium">Totalizando</span>
-                                <span class="text-white/50">-</span>
-                            </div>
+                            <!-- Serão implementadas no futuro conforme plano -->
+                            <div class="text-center text-white/50 py-4 text-sm">Opções de recorrência em breve.</div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div> <!-- End Main View -->
+                
+                <?php if ($id > 0): ?>
+                <!-- Botão Excluir -->
+                <div class="pb-8 pt-4 px-4" id="btn-excluir-container">
+                    <button type="button" onclick="excluirTransacao()" class="w-full py-3 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl border border-red-500/30 transition-colors font-medium">
+                        Excluir Transação
+                    </button>
+                </div>
+                <?php endif; ?>
 
-        <!-- Side Panels para Categoria e Contas -->
-        
-        <!-- Panel Categoria -->
+            </div>
+        </div>
+
+        <!-- Panels Categoria e Contas -->
         <div id="panel-categoria" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col mx-2 sm:mx-0 shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <button onclick="closePanel('panel-categoria')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
@@ -248,25 +415,20 @@ $stmt->close();
                     <span>Voltar</span>
                 </button>
                 <span class="text-white font-semibold">Selecionar Categoria</span>
-                <div class="w-16"></div> <!-- Espaçador -->
+                <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <?php if(count($categorias) > 0): ?>
-                    <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
-                        <?php foreach($categorias as $cat): ?>
-                            <button onclick="selectItem('categoria', '<?php echo $cat['id']; ?>', '<?php echo addslashes($cat['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
-                                <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $cat['cor'] ?: '#ccc'; ?>"></div>
-                                <span class="text-white font-medium"><?php echo htmlspecialchars($cat['nome']); ?></span>
-                            </button>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="text-center text-white/50 mt-10">Nenhuma categoria encontrada.</div>
-                <?php endif; ?>
+                <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+                    <?php foreach($categorias as $cat): ?>
+                        <button onclick="selectItem('categoria', '<?php echo $cat['id']; ?>', '<?php echo addslashes($cat['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                            <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $cat['cor'] ?: '#ccc'; ?>"></div>
+                            <span class="text-white font-medium"><?php echo htmlspecialchars($cat['nome']); ?></span>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
 
-        <!-- Panel Conta Origem -->
         <div id="panel-conta" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col mx-2 sm:mx-0 shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <button onclick="closePanel('panel-conta')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
@@ -277,53 +439,43 @@ $stmt->close();
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <?php if(count($contas) > 0): ?>
-                    <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
-                        <?php foreach($contas as $conta): ?>
-                            <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
-                                <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
-                                <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
-                            </button>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="text-center text-white/50 mt-10">Nenhuma conta encontrada.</div>
-                <?php endif; ?>
+                <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+                    <?php foreach($contas as $conta): ?>
+                        <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                            <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                            <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
 
-        <!-- Panel Conta Destino -->
         <div id="panel-conta-destino" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col mx-2 sm:mx-0 shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <button onclick="closePanel('panel-conta-destino')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     <span>Voltar</span>
                 </button>
-                <span class="text-white font-semibold">Selecionar Conta Destino</span>
+                <span class="text-white font-semibold">Selecionar Destino</span>
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <?php if(count($contas) > 0): ?>
-                    <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
-                        <?php foreach($contas as $conta): ?>
-                            <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
-                                <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
-                                <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
-                            </button>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
-                    <div class="text-center text-white/50 mt-10">Nenhuma conta encontrada.</div>
-                <?php endif; ?>
+                <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+                    <?php foreach($contas as $conta): ?>
+                        <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                            <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                            <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
         
     </div>
 
-    <!-- Overlay do Numpad (para fechar ao clicar fora) -->
+    <!-- Overlay Numpad -->
     <div id="numpad-overlay" onclick="closeNumpad()" class="fixed inset-0 bg-transparent z-40 hidden"></div>
 
-    <!-- Teclado Numérico Customizado -->
     <div id="numpad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#e2e8f0]/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 transform translate-y-full transition-transform duration-300 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
         <div class="flex justify-between items-center mb-4">
             <span class="text-gray-800 font-semibold pl-2">Digite o valor</span>
@@ -333,21 +485,18 @@ $stmt->close();
         </div>
         <div class="grid grid-cols-4 gap-3">
             <div class="col-span-3 grid grid-cols-3 gap-3">
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('7')">7</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('8')">8</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('9')">9</button>
-                
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('4')">4</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('5')">5</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('6')">6</button>
-                
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('1')">1</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('2')">2</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('3')">3</button>
-                
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addComma()">,</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200 transition-colors" onclick="addNumber('0')">0</button>
-                <button class="bg-gray-500 rounded-full h-16 text-2xl font-medium text-white shadow-sm active:bg-gray-600 transition-colors flex items-center justify-center" onclick="backspace()">
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('7')">7</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('8')">8</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('9')">9</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('4')">4</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('5')">5</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('6')">6</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('1')">1</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('2')">2</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('3')">3</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addComma()">,</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('0')">0</button>
+                <button class="bg-gray-500 rounded-full h-16 text-2xl font-medium text-white shadow-sm active:bg-gray-600 flex items-center justify-center" onclick="backspace()">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path></svg>
                 </button>
             </div>
@@ -363,119 +512,16 @@ $stmt->close();
         </button>
     </div>
 
-    <!-- Hidden form values para enviar ao backend depois -->
-    <form id="transacao-form" method="POST" action="salvar_transacao.php" class="hidden">
-        <input type="hidden" name="tipo" id="input-tipo" value="despesa">
-        <input type="hidden" name="valor" id="input-valor" value="0.00">
-        <input type="hidden" name="id_categoria" id="input-categoria" value="">
-        <input type="hidden" name="id_conta" id="input-conta" value="">
-        <input type="hidden" name="id_conta_destino" id="input-conta-destino" value="">
-    </form>
-
     <script>
-        // Lógica de Seletor de Tipo (Despesa, Receita, Transferencia)
-        const typeSelector = document.getElementById('type-selector');
-        const typeSelectorOverlay = document.getElementById('type-selector-overlay');
-        const headerTitle = document.getElementById('header-title');
-        const body = document.getElementById('app-body');
-        const iconSeta = document.getElementById('icon-seta');
-        
-        function toggleTypeSelect() {
-            if (typeSelector.classList.contains('hidden')) {
-                typeSelector.classList.remove('hidden');
-                typeSelectorOverlay.classList.remove('hidden');
-                setTimeout(() => typeSelector.classList.remove('opacity-0'), 10);
-            } else {
-                typeSelector.classList.add('opacity-0');
-                typeSelectorOverlay.classList.add('hidden');
-                setTimeout(() => typeSelector.classList.add('hidden'), 200);
-            }
-        }
+        // Inicializar Numpad com valor atual
+        let valorAtual = "<?php echo number_format($valor * 100, 0, '', ''); ?>";
+        if(valorAtual === "0") valorAtual = "000";
 
-        function setTipo(tipo) {
-            document.getElementById('input-tipo').value = tipo;
-            body.classList.remove('theme-despesa', 'theme-receita', 'theme-transferencia');
-            body.classList.add(`theme-${tipo}`);
-            
-            const linhaCat = document.getElementById('linha-categoria');
-            const linhaContaDest = document.getElementById('linha-conta-destino');
-            const labelContaOri = document.getElementById('label-conta-origem');
-            const titleContaOri = document.getElementById('title-panel-conta');
-
-            if(tipo === 'despesa') {
-                headerTitle.textContent = "Nova Despesa";
-                iconSeta.setAttribute('d', 'M19 14l-7 7m0 0l-7-7m7 7V3'); // Seta baixo
-                linhaCat.classList.remove('hidden');
-                linhaContaDest.classList.add('hidden');
-                labelContaOri.textContent = "Conta";
-                titleContaOri.textContent = "Selecionar Conta";
-            } else if(tipo === 'receita') {
-                headerTitle.textContent = "Nova Receita";
-                iconSeta.setAttribute('d', 'M5 10l7-7m0 0l7 7m-7-7v18'); // Seta cima
-                linhaCat.classList.remove('hidden');
-                linhaContaDest.classList.add('hidden');
-                labelContaOri.textContent = "Conta";
-                titleContaOri.textContent = "Selecionar Conta";
-            } else if(tipo === 'transferencia') {
-                headerTitle.textContent = "Transferência";
-                iconSeta.setAttribute('d', 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'); // Duas setas
-                linhaCat.classList.add('hidden');
-                linhaContaDest.classList.remove('hidden');
-                labelContaOri.textContent = "Conta Origem";
-                titleContaOri.textContent = "Selecionar Conta Origem";
-            }
-            toggleTypeSelect(); // fecha o menu
-        }
-
-        // Lógica de "Mais Opções"
-        let maisOpcoesAberto = false;
-        function toggleMaisOpcoes() {
-            const container = document.getElementById('mais-opcoes');
-            const btn = document.getElementById('btn-mais-opcoes');
-            maisOpcoesAberto = !maisOpcoesAberto;
-
-            if (maisOpcoesAberto) {
-                container.classList.remove('hidden');
-                setTimeout(() => container.classList.remove('opacity-0'), 10);
-                btn.classList.add('bg-white/10', 'border-white/50', 'text-white');
-            } else {
-                container.classList.add('opacity-0');
-                btn.classList.remove('bg-white/10', 'border-white/50', 'text-white');
-                setTimeout(() => container.classList.add('hidden'), 500);
-            }
-        }
-
-        // Tabs Recorrência
-        const tabs = ['nenhuma', 'avancada'];
-        tabs.forEach(tab => {
-            document.getElementById(`tab-${tab}`).addEventListener('click', function() {
-                tabs.forEach(t => {
-                    document.getElementById(`tab-${t}`).classList.remove('bg-white/20', 'text-white', 'shadow');
-                    document.getElementById(`tab-${t}`).classList.add('text-white/60', 'bg-transparent');
-                });
-                this.classList.add('bg-white/20', 'text-white', 'shadow');
-                this.classList.remove('text-white/60', 'bg-transparent');
-                
-                const conteudo = document.getElementById('opcoes-avancadas-conteudo');
-                if (tab === 'nenhuma') {
-                    conteudo.classList.add('hidden');
-                } else {
-                    conteudo.classList.remove('hidden');
-                }
-            });
-        });
-
-        // Numpad Lógica
-        let valorAtual = "000"; 
-        
         function updateDisplay() {
             const display = document.getElementById('display-valor');
             let num = parseInt(valorAtual, 10);
             if (isNaN(num)) num = 0;
-            
-            // Para o input hidden do backend
             document.getElementById('input-valor').value = (num / 100).toFixed(2);
-            
             let formatado = (num / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             display.textContent = formatado;
         }
@@ -487,9 +533,7 @@ $stmt->close();
                 updateDisplay();
             }
         }
-
         function addComma() {}
-
         function backspace() {
             if (valorAtual.length > 1) {
                 valorAtual = valorAtual.slice(0, -1);
@@ -498,36 +542,129 @@ $stmt->close();
             }
             updateDisplay();
         }
-
         function toggleNumpad() {
-            const numpad = document.getElementById('numpad');
-            const overlay = document.getElementById('numpad-overlay');
-            numpad.classList.remove('translate-y-full');
-            overlay.classList.remove('hidden');
+            document.getElementById('numpad').classList.remove('translate-y-full');
+            document.getElementById('numpad-overlay').classList.remove('hidden');
         }
-
         function closeNumpad() {
-            const numpad = document.getElementById('numpad');
-            const overlay = document.getElementById('numpad-overlay');
-            numpad.classList.add('translate-y-full');
-            overlay.classList.add('hidden');
+            document.getElementById('numpad').classList.add('translate-y-full');
+            document.getElementById('numpad-overlay').classList.add('hidden');
         }
 
-        // Lógica dos Painéis Deslizantes (Side Panels)
-        function openPanel(panelId) {
-            document.getElementById(panelId).classList.remove('translate-x-full');
+        // Seletor de Tipo
+        function toggleTypeSelect() {
+            const sel = document.getElementById('type-selector');
+            const overlay = document.getElementById('type-selector-overlay');
+            if (sel.classList.contains('hidden')) {
+                sel.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+                setTimeout(() => sel.classList.remove('opacity-0'), 10);
+            } else {
+                sel.classList.add('opacity-0');
+                overlay.classList.add('hidden');
+                setTimeout(() => sel.classList.add('hidden'), 200);
+            }
+        }
+
+        function setTipo(tipo) {
+            document.getElementById('input-tipo').value = tipo;
+            const body = document.getElementById('app-body');
+            body.classList.remove('theme-despesa', 'theme-receita', 'theme-transferencia');
+            body.classList.add(`theme-${tipo}`);
+            
+            const title = document.getElementById('header-title');
+            const seta = document.getElementById('icon-seta');
+            const linhaCat = document.getElementById('linha-categoria');
+            const linhaDest = document.getElementById('linha-conta-destino');
+            
+            if(tipo === 'despesa') {
+                title.textContent = "Despesa";
+                seta.setAttribute('d', 'M19 14l-7 7m0 0l-7-7m7 7V3');
+                linhaCat.classList.remove('hidden');
+                linhaDest.classList.add('hidden');
+                document.getElementById('label-conta-origem').textContent = "Conta";
+            } else if(tipo === 'receita') {
+                title.textContent = "Receita";
+                seta.setAttribute('d', 'M5 10l7-7m0 0l7 7m-7-7v18');
+                linhaCat.classList.remove('hidden');
+                linhaDest.classList.add('hidden');
+                document.getElementById('label-conta-origem').textContent = "Conta";
+            } else {
+                title.textContent = "Transferência";
+                seta.setAttribute('d', 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4');
+                linhaCat.classList.add('hidden');
+                linhaDest.classList.remove('hidden');
+                document.getElementById('label-conta-origem').textContent = "Conta Origem";
+            }
+            toggleTypeSelect();
+        }
+
+        // Mais Opções
+        let maisOpcoesAberto = false;
+        function toggleMaisOpcoes() {
+            const container = document.getElementById('mais-opcoes');
+            const btn = document.getElementById('btn-mais-opcoes');
+            const excluir = document.getElementById('btn-excluir-container');
+            maisOpcoesAberto = !maisOpcoesAberto;
+
+            if (maisOpcoesAberto) {
+                container.classList.remove('hidden');
+                setTimeout(() => container.classList.remove('opacity-0'), 10);
+                btn.classList.add('bg-white/10', 'border-white/50', 'text-white');
+                if (excluir) excluir.classList.add('hidden');
+            } else {
+                container.classList.add('opacity-0');
+                btn.classList.remove('bg-white/10', 'border-white/50', 'text-white');
+                setTimeout(() => container.classList.add('hidden'), 500);
+                if (excluir) setTimeout(() => excluir.classList.remove('hidden'), 500);
+            }
+        }
+
+        const tabs = ['nenhuma', 'avancada'];
+        tabs.forEach(tab => {
+            document.getElementById(`tab-${tab}`).addEventListener('click', function() {
+                tabs.forEach(t => {
+                    document.getElementById(`tab-${t}`).classList.remove('bg-white/20', 'text-white', 'shadow');
+                    document.getElementById(`tab-${t}`).classList.add('text-white/60', 'bg-transparent');
+                });
+                this.classList.add('bg-white/20', 'text-white', 'shadow');
+                this.classList.remove('text-white/60', 'bg-transparent');
+                
+                const cont = document.getElementById('opcoes-avancadas-conteudo');
+                if (tab === 'nenhuma') cont.classList.add('hidden');
+                else cont.classList.remove('hidden');
+            });
+        });
+
+        function openPanel(id) {
+            document.getElementById(id).classList.remove('translate-x-full');
             document.getElementById('main-view').classList.add('-translate-x-8', 'opacity-50', 'scale-95');
         }
-
-        function closePanel(panelId) {
-            document.getElementById(panelId).classList.add('translate-x-full');
+        function closePanel(id) {
+            document.getElementById(id).classList.add('translate-x-full');
             document.getElementById('main-view').classList.remove('-translate-x-8', 'opacity-50', 'scale-95');
         }
-
         function selectItem(tipo, id, nome) {
             document.getElementById(`display-${tipo}`).textContent = nome;
             document.getElementById(`input-${tipo}`).value = id;
             closePanel(`panel-${tipo}`);
+        }
+
+        function submitForm() {
+            // Sincronizar UI com Form oculto
+            document.getElementById('input-data').value = document.getElementById('ui-data').value;
+            document.getElementById('input-descricao').value = document.getElementById('ui-descricao').value;
+            document.getElementById('input-consolidada').value = document.getElementById('ui-consolidada').checked ? '1' : '';
+            document.getElementById('input-notas').value = document.getElementById('ui-notas').value;
+            
+            document.getElementById('transacao-form').submit();
+        }
+
+        function excluirTransacao() {
+            if(confirm("Deseja realmente excluir esta transação?")) {
+                document.getElementById('input-action').value = 'delete';
+                document.getElementById('transacao-form').submit();
+            }
         }
     </script>
 </body>
