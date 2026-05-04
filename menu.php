@@ -9,6 +9,7 @@
             </div>
             <div class="hidden md:block">
                 <div class="ml-10 flex items-baseline space-x-4">
+                    <a href="transacao.php" class="text-white bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-4 py-2 rounded-xl text-sm font-bold shadow-lg transition-all transform hover:scale-105">Nova Transação</a>
                     <a href="categorias.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Categorias</a>
                     <a href="contas.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Contas</a>
                     <a href="transacoes.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Transações</a>
@@ -20,9 +21,10 @@
         </div>
     </div>
     <!-- Mobile Menu - Simplificado para este exemplo -->
-    <div class="md:hidden flex flex-wrap justify-center pb-3 space-x-2 px-2">
-        <a href="categorias.php" class="text-gray-300 hover:text-white px-2 py-1 text-sm font-medium">Categorias</a>
-        <a href="contas.php" class="text-gray-300 hover:text-white px-2 py-1 text-sm font-medium">Contas</a>
-        <a href="transacoes.php" class="text-gray-300 hover:text-white px-2 py-1 text-sm font-medium">Transações</a>
+    <div class="md:hidden flex flex-wrap justify-center pb-3 space-x-2 px-2 items-center">
+        <a href="transacao.php" class="text-white bg-gradient-to-r from-cyan-500 to-blue-600 px-3 py-1.5 mb-2 rounded-lg text-xs font-bold shadow-md">Nova Transação</a>
+        <a href="categorias.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Categorias</a>
+        <a href="contas.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Contas</a>
+        <a href="transacoes.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Transações</a>
     </div>
 </nav>
