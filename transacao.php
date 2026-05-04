@@ -92,7 +92,7 @@ $stmt->close();
         <div id="main-view" class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.5rem] shadow-2xl h-full flex flex-col relative mx-2 sm:mx-0 z-10 transition-transform duration-300">
             
             <!-- Cabeçalho (Header) dinâmico -->
-            <div id="header-area" class="header-glass p-6 transition-all duration-500 border-b relative shrink-0">
+            <div id="header-area" class="header-glass p-6 transition-all duration-500 border-b relative shrink-0 rounded-t-[2.5rem] z-50">
                 <div class="flex justify-between items-center mb-6">
                     <button class="text-white/80 hover:text-white font-medium">Cancelar</button>
                     <span id="header-title" class="text-white font-semibold text-lg tracking-wide">Nova Despesa</span>
@@ -204,7 +204,6 @@ $stmt->close();
                         <div class="p-3">
                             <div class="flex rounded-xl bg-black/20 p-1">
                                 <button class="flex-1 py-2 text-sm font-medium rounded-lg text-white shadow bg-white/20 transition-all" id="tab-nenhuma">Nenhuma</button>
-                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-white/60 hover:text-white transition-all bg-transparent" id="tab-parcelamento">Parcelamento</button>
                                 <button class="flex-1 py-2 text-sm font-medium rounded-lg text-white/60 hover:text-white transition-all bg-transparent" id="tab-avancada">Avançada</button>
                             </div>
                         </div>
@@ -322,7 +321,7 @@ $stmt->close();
     </div>
 
     <!-- Overlay do Numpad (para fechar ao clicar fora) -->
-    <div id="numpad-overlay" onclick="closeNumpad()" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+    <div id="numpad-overlay" onclick="closeNumpad()" class="fixed inset-0 bg-transparent z-40 hidden"></div>
 
     <!-- Teclado Numérico Customizado -->
     <div id="numpad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#e2e8f0]/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 transform translate-y-full transition-transform duration-300 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
@@ -447,7 +446,7 @@ $stmt->close();
         }
 
         // Tabs Recorrência
-        const tabs = ['nenhuma', 'parcelamento', 'avancada'];
+        const tabs = ['nenhuma', 'avancada'];
         tabs.forEach(tab => {
             document.getElementById(`tab-${tab}`).addEventListener('click', function() {
                 tabs.forEach(t => {
@@ -505,15 +504,13 @@ $stmt->close();
             const overlay = document.getElementById('numpad-overlay');
             numpad.classList.remove('translate-y-full');
             overlay.classList.remove('hidden');
-            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
         }
 
         function closeNumpad() {
             const numpad = document.getElementById('numpad');
             const overlay = document.getElementById('numpad-overlay');
             numpad.classList.add('translate-y-full');
-            overlay.classList.add('opacity-0');
-            setTimeout(() => overlay.classList.add('hidden'), 300);
+            overlay.classList.add('hidden');
         }
 
         // Lógica dos Painéis Deslizantes (Side Panels)
