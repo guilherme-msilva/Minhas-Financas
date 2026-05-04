@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $valor = (float)($_POST['valor'] ?? 0);
         $data = $_POST['data'] ?? date('Y-m-d');
         $descricao = trim($_POST['descricao'] ?? '');
-        $consolidada = isset($_POST['consolidada']) ? 1 : 0;
+        $consolidada = !empty($_POST['consolidada']) ? 1 : 0;
         $notas = trim($_POST['notas'] ?? '');
         
         $id_categoria = !empty($_POST['id_categoria']) ? (int)$_POST['id_categoria'] : NULL;

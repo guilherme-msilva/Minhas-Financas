@@ -34,9 +34,32 @@ if ($id > 0 && $_SERVER['REQUEST_METHOD'] != 'POST') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nome = trim($_POST['nome'] ?? '');
-    $id_pai = !empty($_POST['id_pai']) ? (int)$_POST['id_pai'] : NULL;
-    $cor = trim($_POST['cor'] ?? '');
+    $action = $_POST['action'] ?? 'save';
+
+    if ($action === 'delete' && $id > 0) {
+        $stmt_check = $mysqliFinancas->prepare("SELECT COUNT(*) as qtd FROM transacoes WHERE idcategoria = ? AND iduser = ?");
+        $stmt_check->bind_param("ii", $id, $user_id);
+        $stmt_check->execute();
+        $qtd = $stmt_check->get_result()->fetch_assoc()['qtd'];
+        $stmt_check->close();
+
+        if ($qtd > 0) {
+            $erro = "Não é possível excluir. Existem transações vinculadas a esta categoria.";
+        } else {
+            $stmt = $mysqliFinancas->prepare("DELETE FROM categorias WHERE id = ? AND id_user = ?");
+            $stmt->bind_param("ii", $id, $user_id);
+            if ($stmt->execute()) {
+                header("Location: categorias.php");
+                exit;
+            } else {
+                $erro = "Erro ao excluir: " . $mysqliFinancas->error;
+            }
+            $stmt->close();
+        }
+    } else {
+        $nome = trim($_POST['nome'] ?? '');
+        $id_pai = !empty($_POST['id_pai']) ? (int)$_POST['id_pai'] : NULL;
+        $cor = trim($_POST['cor'] ?? '');
 
     if ($nome) {
         if ($id > 0) {
@@ -62,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (isset($stmt)) $stmt->close();
     } else {
         $erro = "O campo nome é obrigatório.";
+    }
     }
 }
 
@@ -171,6 +195,17 @@ $stmt_pais->close();
                     </button>
                 </div>
             </form>
+
+            <?php if ($id > 0): ?>
+            <div class="mt-4 pt-4 border-t border-white/10">
+                <form method="POST" action="categoria.php?id=<?php echo $id; ?>" onsubmit="return confirm('Deseja realmente excluir esta categoria?');">
+                    <input type="hidden" name="action" value="delete">
+                    <button type="submit" class="w-full py-3 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl border border-red-500/30 transition-colors font-medium">
+                        Excluir Categoria
+                    </button>
+                </form>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 
