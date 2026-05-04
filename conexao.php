@@ -1,3 +1,3 @@
 <?php
-    $mysqliFinancas = new mysqli("200.145.119.97","financas","123456","financas") or die ("Não foi possível conectar ao Banco de Dados");
+    $mysqliFinancas = new mysqli("127.0.0.1","dbuser","123456","dbname") or die ("Não foi possível conectar ao Banco de Dados");
 ?>
