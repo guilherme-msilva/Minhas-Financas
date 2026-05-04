@@ -56,7 +56,7 @@ function renderTreeHtml($nodes, $level = 0) {
         
         // Ícone de expandir/recolher
         if ($hasChildren) {
-            echo "<svg id='icon-$id' class='w-4 h-4 text-white/50 transition-transform duration-200 transform -rotate-90' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d=".'M19 9l-7 7-7-7'."></path></svg>";
+            echo "<svg id='icon-$id' class='w-4 h-4 text-white/50 transition-transform duration-200 transform -rotate-90' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
         } else {
             echo "<div class='w-4 h-4'></div>"; // Espaçador
         }
@@ -66,8 +66,9 @@ function renderTreeHtml($nodes, $level = 0) {
         echo "</div>"; // fim flex interno
         
         // Botão editar
-        echo "<a href='categoria.php?id=$id' class='p-2 text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded-lg transition-colors' title='Editar'>";
-        echo "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d=".'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'."></path></svg>";
+        echo "<a href='categoria.php?id=$id' class='p-2 text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded-lg transition-colors flex items-center space-x-1' title='Editar'>";
+        echo "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'></path></svg>";
+        echo "<span class='text-sm hidden sm:inline'>Editar</span>";
         echo "</a>";
         
         echo "</div>"; // fim item linha
