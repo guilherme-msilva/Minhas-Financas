@@ -65,11 +65,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $valor_destino = abs($valor);
 
                     if ($id > 0) {
-                        // Edição de transferência (Atualiza apenas a perna atual por simplicidade)
-                        $stmt = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE id=? AND iduser=?");
-                        $stmt->bind_param("sdsiiisii", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $id, $user_id);
-                        $stmt->execute();
-                        $sucesso = "Transferência atualizada!";
+                        // Edição de transferência (Atualiza as duas pernas baseadas no id pai)
+                        $mysqliFinancas->begin_transaction();
+                        try {
+                            // Atualiza a Origem (Registro Pai)
+                            $stmt1 = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE id=? AND iduser=?");
+                            $stmt1->bind_param("sdsiiisii", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $id, $user_id);
+                            $stmt1->execute();
+                            
+                            // Atualiza o Destino (Registro Filho que aponta para o Pai)
+                            $stmt2 = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE idpai=? AND iduser=?");
+                            $stmt2->bind_param("sdsiiisii", $data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $consolidada, $notas, $id, $user_id);
+                            $stmt2->execute();
+                            
+                            $mysqliFinancas->commit();
+                            $sucesso = "Transferência atualizada!";
+                        } catch (Exception $e) {
+                            $mysqliFinancas->rollback();
+                            $erro = "Erro ao atualizar transferência.";
+                        }
                     } else {
                         // Nova transferência
                         $mysqliFinancas->begin_transaction();
@@ -121,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 // Carregar dados se edição (ou após INSERT)
 if ($id > 0) {
-    $stmt = $mysqliFinancas->prepare("SELECT data, valor, descricao, idcategoria, idconta, consolidada, notas FROM transacoes WHERE id = ? AND iduser = ?");
+    $stmt = $mysqliFinancas->prepare("SELECT data, valor, descricao, idcategoria, idconta, consolidada, idpai, notas FROM transacoes WHERE id = ? AND iduser = ?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -132,10 +146,31 @@ if ($id > 0) {
         $id_categoria = $transacao['idcategoria'];
         $id_conta = $transacao['idconta'];
         $consolidada = $transacao['consolidada'];
+        $id_pai = $transacao['idpai'];
         $notas = $transacao['notas'];
         
         if ($id_categoria == -1) {
             $tipo = 'transferencia';
+            
+            // Lógica para carregar as DUAS pernas da transferência e exibir corretamente na interface
+            $parent_id = $id_pai ? $id_pai : $id;
+            
+            $stmt2 = $mysqliFinancas->prepare("SELECT idconta, valor FROM transacoes WHERE (id = ? OR idpai = ?) AND iduser = ?");
+            $stmt2->bind_param("iii", $parent_id, $parent_id, $user_id);
+            $stmt2->execute();
+            $res2 = $stmt2->get_result();
+            while ($leg = $res2->fetch_assoc()) {
+                if ($leg['valor'] < 0) {
+                    $id_conta = $leg['idconta']; // Conta Origem (Despesa)
+                } else {
+                    $id_conta_destino = $leg['idconta']; // Conta Destino (Receita)
+                }
+            }
+            $stmt2->close();
+            
+            // Forçamos o ID atual a ser o ID PAI. Assim, ao salvar a edição (POST), atualizamos o pai e o filho.
+            $id = $parent_id; 
+            
         } elseif ($valor < 0) {
             $tipo = 'despesa';
         } else {
@@ -231,6 +266,10 @@ foreach ($categorias as $cat) {
 $nome_conta = 'Selecionar';
 foreach ($contas as $conta) {
     if ($conta['id'] == $id_conta) $nome_conta = $conta['nome'];
+}
+$nome_conta_destino = 'Selecionar';
+foreach ($contas as $conta) {
+    if ($conta['id'] == $id_conta_destino) $nome_conta_destino = $conta['nome'];
 }
 ?>
 <!DOCTYPE html>
@@ -422,7 +461,7 @@ foreach ($contas as $conta) {
                     <div class="flex items-center justify-between p-3 border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? '' : 'hidden'; ?>" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
                         <span class="text-gray-300 font-medium">Conta Destino</span>
                         <div class="flex items-center text-white/70 space-x-2">
-                            <span id="display-conta-destino" class="text-white">Selecionar</span>
+                            <span id="display-conta-destino" class="text-white"><?php echo htmlspecialchars($nome_conta_destino); ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
