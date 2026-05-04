@@ -150,11 +150,71 @@ if ($id > 0) {
 }
 
 // Buscar Categorias
-$stmt = $mysqliFinancas->prepare("SELECT id, nome, cor FROM categorias WHERE id_user = ? ORDER BY nome ASC");
+$stmt = $mysqliFinancas->prepare("SELECT id, nome, cor, id_pai FROM categorias WHERE id_user = ? ORDER BY nome ASC");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+function buildCategoryTree(array $elements, $parentId = null) {
+    $branch = array();
+    foreach ($elements as $element) {
+        if ($element['id_pai'] == $parentId) {
+            $children = buildCategoryTree($elements, $element['id']);
+            if ($children) {
+                $element['children'] = $children;
+            } else {
+                $element['children'] = [];
+            }
+            $branch[] = $element;
+        }
+    }
+    return $branch;
+}
+
+$arvore_categorias = buildCategoryTree($categorias);
+
+function renderCategoryPanelHtml($nodes, $level = 0) {
+    if (count($nodes) === 0) return;
+    $marginLeft = $level > 0 ? 'ml-6 border-l border-white/10 pl-2' : '';
+    echo "<div class='space-y-1 $marginLeft'>";
+    foreach ($nodes as $cat) {
+        $hasChildren = count($cat['children']) > 0;
+        $cor = htmlspecialchars($cat['cor'] ?: '#ccc');
+        $nome = htmlspecialchars($cat['nome']);
+        $nomeJs = addslashes($cat['nome']);
+        $id = $cat['id'];
+        
+        echo "<div class='flex flex-col'>";
+        echo "<div class='flex items-center justify-between p-2 border-b border-white/5 hover:bg-white/10 transition-colors rounded-xl'>";
+        
+        // Área clicável para SELECIONAR a categoria (Opção B)
+        echo "<div class='flex items-center space-x-3 flex-1 cursor-pointer py-2' onclick=\"selectItem('categoria', '$id', '$nomeJs')\">";
+        echo "<div class='w-4 h-4 rounded-full border border-white/20 shadow-inner' style='background-color: $cor'></div>";
+        echo "<span class='text-white font-medium'>$nome</span>";
+        echo "</div>";
+        
+        // Botão para EXPANDIR filhos (apenas se tiver filhos)
+        if ($hasChildren) {
+            echo "<button type='button' onclick='togglePanelChildren($id)' class='p-2 text-white/50 hover:text-white transition-colors bg-white/5 rounded-lg'>";
+            echo "<svg id='panel-icon-$id' class='w-5 h-5 transform -rotate-90 transition-transform duration-200' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
+            echo "</button>";
+        } else {
+            echo "<div class='w-9 h-9'></div>"; // Espaçador
+        }
+        
+        echo "</div>";
+        
+        if ($hasChildren) {
+            echo "<div id='panel-children-$id' class='hidden mt-1'>";
+            renderCategoryPanelHtml($cat['children'], $level + 1);
+            echo "</div>";
+        }
+        
+        echo "</div>";
+    }
+    echo "</div>";
+}
 
 // Buscar Contas
 $stmt = $mysqliFinancas->prepare("SELECT id, nome, cor FROM contas WHERE id_user = ? AND status = 1 ORDER BY nome ASC");
@@ -418,13 +478,12 @@ foreach ($contas as $conta) {
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
-                    <?php foreach($categorias as $cat): ?>
-                        <button onclick="selectItem('categoria', '<?php echo $cat['id']; ?>', '<?php echo addslashes($cat['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
-                            <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $cat['cor'] ?: '#ccc'; ?>"></div>
-                            <span class="text-white font-medium"><?php echo htmlspecialchars($cat['nome']); ?></span>
-                        </button>
-                    <?php endforeach; ?>
+                <div class="bg-white/5 rounded-3xl p-2 border border-white/10">
+                    <?php if (count($arvore_categorias) > 0): ?>
+                        <?php renderCategoryPanelHtml($arvore_categorias); ?>
+                    <?php else: ?>
+                        <div class="p-4 text-center text-white/50">Nenhuma categoria encontrada.</div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -648,6 +707,21 @@ foreach ($contas as $conta) {
             document.getElementById(`display-${tipo}`).textContent = nome;
             document.getElementById(`input-${tipo}`).value = id;
             closePanel(`panel-${tipo}`);
+        }
+
+        function togglePanelChildren(id) {
+            const container = document.getElementById('panel-children-' + id);
+            const icon = document.getElementById('panel-icon-' + id);
+            
+            if (container) {
+                if (container.classList.contains('hidden')) {
+                    container.classList.remove('hidden');
+                    icon.classList.remove('-rotate-90');
+                } else {
+                    container.classList.add('hidden');
+                    icon.classList.add('-rotate-90');
+                }
+            }
         }
 
         function submitForm() {
