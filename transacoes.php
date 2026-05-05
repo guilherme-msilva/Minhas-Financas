@@ -38,10 +38,18 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
     exit;
 }
 
-// Filtro de Mês/Ano e Ordenação
+// Filtro de Mês/Ano e Ordenação e Conta
 $mes_atual = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
 $ano_atual = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
 $ordem_atual = isset($_GET['ordem']) && strtoupper($_GET['ordem']) == 'ASC' ? 'ASC' : 'DESC';
+$conta_atual = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
+
+// Busca contas do usuário para popular o select de filtro
+$stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? ORDER BY nome");
+$stmt_contas_filtro->bind_param("i", $user_id);
+$stmt_contas_filtro->execute();
+$contas_filtro = $stmt_contas_filtro->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt_contas_filtro->close();
 
 if ($mes_atual == 0) {
     $sql = "
@@ -49,22 +57,30 @@ if ($mes_atual == 0) {
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
-        WHERE t.iduser = ? AND YEAR(t.data) = ?
+        WHERE t.iduser = ? AND YEAR(t.data) = ? " . ($conta_atual > 0 ? "AND t.idconta = ?" : "") . "
         ORDER BY t.data $ordem_atual, t.id $ordem_atual
     ";
     $stmt = $mysqliFinancas->prepare($sql);
-    $stmt->bind_param("ii", $user_id, $ano_atual);
+    if ($conta_atual > 0) {
+        $stmt->bind_param("iii", $user_id, $ano_atual, $conta_atual);
+    } else {
+        $stmt->bind_param("ii", $user_id, $ano_atual);
+    }
 } else {
     $sql = "
         SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
-        WHERE t.iduser = ? AND MONTH(t.data) = ? AND YEAR(t.data) = ?
+        WHERE t.iduser = ? AND MONTH(t.data) = ? AND YEAR(t.data) = ? " . ($conta_atual > 0 ? "AND t.idconta = ?" : "") . "
         ORDER BY t.data $ordem_atual, t.id $ordem_atual
     ";
     $stmt = $mysqliFinancas->prepare($sql);
-    $stmt->bind_param("iii", $user_id, $mes_atual, $ano_atual);
+    if ($conta_atual > 0) {
+        $stmt->bind_param("iiii", $user_id, $mes_atual, $ano_atual, $conta_atual);
+    } else {
+        $stmt->bind_param("iii", $user_id, $mes_atual, $ano_atual);
+    }
 }
 
 $stmt->execute();
@@ -175,6 +191,13 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
             <form method="GET" class="flex items-center space-x-3">
                 <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
                 
+                <select name="conta" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                    <option class="text-gray-900" value="0">Todas as Contas</option>
+                    <?php foreach($contas_filtro as $c): ?>
+                        <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
+                    <?php endforeach; ?>
+                </select>
+
                 <select name="mes" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0" <?php echo $mes_atual == 0 ? 'selected' : ''; ?>>Todos os Meses</option>
                     <?php foreach($meses as $num => $nome): ?>
