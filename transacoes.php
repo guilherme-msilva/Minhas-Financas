@@ -45,7 +45,7 @@ $ordem_atual = isset($_GET['ordem']) && strtoupper($_GET['ordem']) == 'ASC' ? 'A
 $conta_atual = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
 
 // Busca contas do usuário para popular o select de filtro
-$stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? ORDER BY nome");
+$stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? and status = 1 ORDER BY nome");
 $stmt_contas_filtro->bind_param("i", $user_id);
 $stmt_contas_filtro->execute();
 $contas_filtro = $stmt_contas_filtro->get_result()->fetch_all(MYSQLI_ASSOC);
