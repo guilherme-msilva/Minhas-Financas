@@ -7,12 +7,43 @@ if (!isset($_SESSION['user_id'])) {
 require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
+// Ação Rápida: Consolidar
+if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['id'])) {
+    $id_cons = (int)$_GET['id'];
+    
+    // Busca status atual e idpai
+    $stmt = $mysqliFinancas->prepare("SELECT consolidada, idcategoria, idpai FROM transacoes WHERE id = ? AND iduser = ?");
+    $stmt->bind_param("ii", $id_cons, $user_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($t = $res->fetch_assoc()) {
+        $novo_status = $t['consolidada'] ? 0 : 1;
+        
+        if ($t['idcategoria'] == -1) {
+            $parent_id = $t['idpai'] ? $t['idpai'] : $id_cons;
+            $stmt_up = $mysqliFinancas->prepare("UPDATE transacoes SET consolidada = ? WHERE (id = ? OR idpai = ?) AND iduser = ?");
+            $stmt_up->bind_param("iiii", $novo_status, $parent_id, $parent_id, $user_id);
+            $stmt_up->execute();
+        } else {
+            $stmt_up = $mysqliFinancas->prepare("UPDATE transacoes SET consolidada = ? WHERE id = ? AND iduser = ?");
+            $stmt_up->bind_param("iii", $novo_status, $id_cons, $user_id);
+            $stmt_up->execute();
+        }
+    }
+    
+    // Redireciona para remover a querystring action=
+    $mes_redir = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
+    $ano_redir = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
+    header("Location: transacoes.php?mes=$mes_redir&ano=$ano_redir");
+    exit;
+}
+
 // Filtro de Mês/Ano
 $mes_atual = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
 $ano_atual = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
 
 $sql = "
-    SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
+    SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
     FROM transacoes t
     LEFT JOIN categorias c ON t.idcategoria = c.id
     LEFT JOIN contas co ON t.idconta = co.id
@@ -24,6 +55,34 @@ $stmt->bind_param("iii", $user_id, $mes_atual, $ano_atual);
 $stmt->execute();
 $transacoes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+// Agrupamento das Transferências (Para não mostrar 2 linhas separadas)
+$transacoes_agrupadas = [];
+$transferencias_filhas = [];
+
+// Primeira passagem: mapear filhas
+foreach ($transacoes as $t) {
+    if ($t['idcategoria'] == -1 && $t['idpai']) {
+        $transferencias_filhas[$t['idpai']] = $t;
+    }
+}
+
+// Segunda passagem: agrupar
+foreach ($transacoes as $t) {
+    if ($t['idcategoria'] == -1) {
+        if ($t['idpai']) {
+            // É a perna filha (Entrada), pula para não duplicar na lista
+            continue;
+        } else {
+            // É a perna pai (Saída)
+            $filha = $transferencias_filhas[$t['id']] ?? null;
+            $t['conta_destino_nome'] = $filha ? $filha['conta_nome'] : 'Desconhecida';
+            $transacoes_agrupadas[] = $t;
+        }
+    } else {
+        $transacoes_agrupadas[] = $t;
+    }
+}
 
 $meses = [
     1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril', 
@@ -98,8 +157,8 @@ $meses = [
         <div class="space-y-4">
             <?php 
             $data_atual = '';
-            if (count($transacoes) > 0): 
-                foreach ($transacoes as $t): 
+            if (count($transacoes_agrupadas) > 0): 
+                foreach ($transacoes_agrupadas as $t): 
                     // Separador de Data
                     if ($data_atual != $t['data']): 
                         $data_atual = $t['data'];
@@ -127,26 +186,53 @@ $meses = [
                             <div>
                                 <h3 class="text-white font-medium text-lg leading-tight"><?php echo htmlspecialchars($t['descricao']); ?></h3>
                                 <p class="text-white/50 text-xs mt-1">
-                                    <?php echo htmlspecialchars($t['conta_nome'] ?? 'Transferência'); ?>
-                                    <?php if($t['idcategoria'] != -1 && $t['categoria_nome']): ?>
-                                        • <?php echo htmlspecialchars($t['categoria_nome']); ?>
+                                    <?php echo htmlspecialchars($t['conta_nome'] ?? 'Conta Desconhecida'); ?>
+                                    
+                                    <?php if($t['idcategoria'] == -1 && isset($t['conta_destino_nome'])): ?>
+                                        <span class="mx-1">➔</span> <?php echo htmlspecialchars($t['conta_destino_nome']); ?>
+                                    <?php elseif($t['idcategoria'] != -1 && $t['categoria_nome']): ?>
+                                        <span class="mx-1">•</span> <?php echo htmlspecialchars($t['categoria_nome']); ?>
                                     <?php endif; ?>
+                                    
                                     <?php if(!$t['consolidada']): ?>
-                                        <span class="ml-2 text-yellow-400 font-medium">Pendente</span>
+                                        <span class="ml-2 text-yellow-400 font-medium bg-yellow-400/10 px-2 py-0.5 rounded-full">Pendente</span>
                                     <?php endif; ?>
                                 </p>
                             </div>
                         </div>
                         
-                        <!-- Valor e Ação -->
+                        <!-- Valor e Ações -->
                         <div class="flex items-center space-x-4">
-                            <span class="font-bold text-lg <?php echo $t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'; ?>">
-                                <?php echo $t['valor'] < 0 ? '-' : '+'; ?> R$ <?php echo number_format(abs($t['valor']), 2, ',', '.'); ?>
+                            <span class="font-bold text-lg <?php echo $t['idcategoria'] == -1 ? 'text-blue-400' : ($t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'); ?>">
+                                <?php 
+                                    if($t['idcategoria'] == -1) {
+                                        echo 'R$ ' . number_format(abs($t['valor']), 2, ',', '.');
+                                    } else {
+                                        echo $t['valor'] < 0 ? '-' : '+';
+                                        echo ' R$ ' . number_format(abs($t['valor']), 2, ',', '.');
+                                    }
+                                ?>
                             </span>
                             
-                            <a href="transacao.php?id=<?php echo $t['id']; ?>" class="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded-lg transition-colors">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            </a>
+                            <div class="flex space-x-1">
+                                <!-- Botão Consolidar Rapido -->
+                                <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
+                                   class="p-2 rounded-lg transition-colors <?php echo $t['consolidada'] ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10' : 'text-gray-400 hover:text-white hover:bg-white/10'; ?>"
+                                   title="<?php echo $t['consolidada'] ? 'Marcar como pendente' : 'Consolidar'; ?>">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <?php if($t['consolidada']): ?>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        <?php else: ?>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                        <?php endif; ?>
+                                    </svg>
+                                </a>
+
+                                <!-- Botão Editar -->
+                                <a href="transacao.php?id=<?php echo $t['id']; ?>" class="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded-lg transition-colors" title="Editar">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
