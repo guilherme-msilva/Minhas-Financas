@@ -104,6 +104,27 @@ $meses = [
     5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto', 
     9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro'
 ];
+
+// Busca anos que possuem transações
+$sql_anos = "SELECT DISTINCT YEAR(data) as ano FROM transacoes WHERE iduser = ? ORDER BY ano DESC";
+$stmt_anos = $mysqliFinancas->prepare($sql_anos);
+$stmt_anos->bind_param("i", $user_id);
+$stmt_anos->execute();
+$res_anos = $stmt_anos->get_result();
+$anos_disponiveis = [];
+while($row = $res_anos->fetch_assoc()) {
+    if ($row['ano']) {
+        $anos_disponiveis[] = (int)$row['ano'];
+    }
+}
+$stmt_anos->close();
+
+// Garante que o ano atual sempre esteja na lista, para permitir inserções futuras
+$ano_vigente = (int)date('Y');
+if (!in_array($ano_vigente, $anos_disponiveis)) {
+    $anos_disponiveis[] = $ano_vigente;
+    rsort($anos_disponiveis);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -161,9 +182,9 @@ $meses = [
                     <?php endforeach; ?>
                 </select>
                 <select name="ano" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <?php for($i = date('Y') - 5; $i <= date('Y') + 1; $i++): ?>
-                        <option class="text-gray-900" value="<?php echo $i; ?>" <?php echo $ano_atual == $i ? 'selected' : ''; ?>><?php echo $i; ?></option>
-                    <?php endfor; ?>
+                    <?php foreach($anos_disponiveis as $ano_opt): ?>
+                        <option class="text-gray-900" value="<?php echo $ano_opt; ?>" <?php echo $ano_atual == $ano_opt ? 'selected' : ''; ?>><?php echo $ano_opt; ?></option>
+                    <?php endforeach; ?>
                 </select>
                 
                 <button type="button" onclick="document.getElementById('ordem-input').value = '<?php echo $ordem_atual == 'DESC' ? 'ASC' : 'DESC'; ?>'; this.form.submit();" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white" title="Inverter Ordem">
