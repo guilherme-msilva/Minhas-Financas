@@ -38,20 +38,35 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
     exit;
 }
 
-// Filtro de Mês/Ano
+// Filtro de Mês/Ano e Ordenação
 $mes_atual = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
 $ano_atual = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
+$ordem_atual = isset($_GET['ordem']) && strtoupper($_GET['ordem']) == 'ASC' ? 'ASC' : 'DESC';
 
-$sql = "
-    SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
-    FROM transacoes t
-    LEFT JOIN categorias c ON t.idcategoria = c.id
-    LEFT JOIN contas co ON t.idconta = co.id
-    WHERE t.iduser = ? AND MONTH(t.data) = ? AND YEAR(t.data) = ?
-    ORDER BY t.data DESC, t.id DESC
-";
-$stmt = $mysqliFinancas->prepare($sql);
-$stmt->bind_param("iii", $user_id, $mes_atual, $ano_atual);
+if ($mes_atual == 0) {
+    $sql = "
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
+        FROM transacoes t
+        LEFT JOIN categorias c ON t.idcategoria = c.id
+        LEFT JOIN contas co ON t.idconta = co.id
+        WHERE t.iduser = ? AND YEAR(t.data) = ?
+        ORDER BY t.data $ordem_atual, t.id $ordem_atual
+    ";
+    $stmt = $mysqliFinancas->prepare($sql);
+    $stmt->bind_param("ii", $user_id, $ano_atual);
+} else {
+    $sql = "
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
+        FROM transacoes t
+        LEFT JOIN categorias c ON t.idcategoria = c.id
+        LEFT JOIN contas co ON t.idconta = co.id
+        WHERE t.iduser = ? AND MONTH(t.data) = ? AND YEAR(t.data) = ?
+        ORDER BY t.data $ordem_atual, t.id $ordem_atual
+    ";
+    $stmt = $mysqliFinancas->prepare($sql);
+    $stmt->bind_param("iii", $user_id, $mes_atual, $ano_atual);
+}
+
 $stmt->execute();
 $transacoes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
@@ -137,7 +152,10 @@ $meses = [
             <h1 class="text-2xl font-bold text-white tracking-wide mb-4 md:mb-0">Transações</h1>
             
             <form method="GET" class="flex items-center space-x-3">
+                <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
+                
                 <select name="mes" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                    <option class="text-gray-900" value="0" <?php echo $mes_atual == 0 ? 'selected' : ''; ?>>Todos os Meses</option>
                     <?php foreach($meses as $num => $nome): ?>
                         <option class="text-gray-900" value="<?php echo $num; ?>" <?php echo $mes_atual == $num ? 'selected' : ''; ?>><?php echo $nome; ?></option>
                     <?php endforeach; ?>
@@ -147,7 +165,16 @@ $meses = [
                         <option class="text-gray-900" value="<?php echo $i; ?>" <?php echo $ano_atual == $i ? 'selected' : ''; ?>><?php echo $i; ?></option>
                     <?php endfor; ?>
                 </select>
-                <button type="submit" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white">
+                
+                <button type="button" onclick="document.getElementById('ordem-input').value = '<?php echo $ordem_atual == 'DESC' ? 'ASC' : 'DESC'; ?>'; this.form.submit();" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white" title="Inverter Ordem">
+                    <?php if($ordem_atual == 'DESC'): ?>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+                    <?php else: ?>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path></svg>
+                    <?php endif; ?>
+                </button>
+                
+                <button type="submit" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white" title="Filtrar">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </button>
             </form>
@@ -164,9 +191,11 @@ $meses = [
                         $data_atual = $t['data'];
                         $dia = date('d', strtotime($data_atual));
                         $dia_semana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][date('w', strtotime($data_atual))];
+                        $mes_extenso = $meses[(int)date('m', strtotime($data_atual))];
+                        $ano_extenso = date('Y', strtotime($data_atual));
             ?>
                         <div class="pt-4 pb-2 border-b border-white/10">
-                            <span class="text-white/60 font-medium text-sm"><?php echo $dia_semana . ', ' . $dia . ' de ' . $meses[(int)date('m', strtotime($data_atual))]; ?></span>
+                            <span class="text-white/60 font-medium text-sm"><?php echo $dia_semana . ', ' . $dia . ' de ' . $mes_extenso . ($mes_atual == 0 ? ' de ' . $ano_extenso : ''); ?></span>
                         </div>
             <?php   endif; ?>
                     
