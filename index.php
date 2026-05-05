@@ -53,6 +53,22 @@ $saidas_mes = $row['saidas'] ?? 0;
 $resultado_mes = $entradas_mes - $saidas_mes;
 $stmt->close();
 
+// 3. Saldo por Contas Ativas
+$sql_contas = "
+    SELECT 
+        c.nome, 
+        c.cor, 
+        c.saldo_inicial + COALESCE((SELECT SUM(t.valor) FROM transacoes t WHERE t.idconta = c.id AND t.data <= ?), 0) AS saldo_atual
+    FROM contas c
+    WHERE c.id_user = ? AND c.status = 1
+    ORDER BY saldo_atual DESC
+";
+$stmt_contas = $mysqliFinancas->prepare($sql_contas);
+$stmt_contas->bind_param("si", $data_limite, $user_id);
+$stmt_contas->execute();
+$contas_ativas = $stmt_contas->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt_contas->close();
+
 // Buscar nome do usuário
 $stmt = $mysqliFinancas->prepare("SELECT nome FROM usuarios WHERE id = ?");
 $stmt->bind_param("i", $user_id);
@@ -198,6 +214,26 @@ $stmt->close();
             </div>
 
         </div>
+
+        <!-- Saldos das Contas -->
+        <?php if(count($contas_ativas) > 0): ?>
+            <h3 class="text-white/80 font-medium text-xl mt-12 mb-4 ml-2">Saldos por Conta</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <?php foreach($contas_ativas as $conta): ?>
+                    <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/10 transition-all flex items-center space-x-4">
+                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner" style="background-color: <?php echo $conta['cor']; ?>30;">
+                            <svg class="w-6 h-6" style="color: <?php echo $conta['cor']; ?>;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                        </div>
+                        <div>
+                            <h4 class="text-white/70 text-sm font-medium mb-1"><?php echo htmlspecialchars($conta['nome']); ?></h4>
+                            <div class="text-white text-xl font-bold">
+                                R$ <?php echo number_format($conta['saldo_atual'], 2, ',', '.'); ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
 
     </div>
 
