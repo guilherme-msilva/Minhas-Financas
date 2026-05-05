@@ -13,6 +13,7 @@
                     <a href="categorias.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Categorias</a>
                     <a href="contas.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Contas</a>
                     <a href="transacoes.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Transações</a>
+                    <a href="importacoes.php" class="text-gray-300 hover:text-white hover:bg-white/10 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Importar</a>
                 </div>
             </div>
             <div>
@@ -26,5 +27,6 @@
         <a href="categorias.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Categorias</a>
         <a href="contas.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Contas</a>
         <a href="transacoes.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Transações</a>
+        <a href="importacoes.php" class="text-gray-300 hover:text-white px-2 py-1 mb-2 text-sm font-medium">Importar</a>
     </div>
 </nav>
