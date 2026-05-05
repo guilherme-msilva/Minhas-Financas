@@ -332,7 +332,9 @@ foreach ($contas as $conta) {
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
 
-    <?php include 'menu.php'; ?>
+    <div class="hidden md:block">
+        <?php include 'menu.php'; ?>
+    </div>
 
     <!-- Formulário Submetido via JS -->
     <form id="transacao-form" method="POST" action="transacao.php<?php echo $id > 0 ? '?id='.$id : ''; ?>" class="hidden">
@@ -507,7 +509,7 @@ foreach ($contas as $conta) {
         </div>
 
         <!-- Panels Categoria e Contas -->
-        <div id="panel-categoria" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col mx-2 sm:mx-0 shadow-2xl">
+        <div id="panel-categoria" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <button onclick="closePanel('panel-categoria')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -527,7 +529,7 @@ foreach ($contas as $conta) {
             </div>
         </div>
 
-        <div id="panel-conta" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col mx-2 sm:mx-0 shadow-2xl">
+        <div id="panel-conta" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <button onclick="closePanel('panel-conta')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -548,7 +550,7 @@ foreach ($contas as $conta) {
             </div>
         </div>
 
-        <div id="panel-conta-destino" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col mx-2 sm:mx-0 shadow-2xl">
+        <div id="panel-conta-destino" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
             <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
                 <button onclick="closePanel('panel-conta-destino')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -572,9 +574,9 @@ foreach ($contas as $conta) {
     </div>
 
     <!-- Overlay Numpad -->
-    <div id="numpad-overlay" onclick="closeNumpad()" class="fixed inset-0 bg-transparent z-40 hidden"></div>
+    <div id="numpad-overlay" onclick="closeNumpad()" class="fixed inset-0 bg-transparent z-40 hidden md:hidden"></div>
 
-    <div id="numpad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#e2e8f0]/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 transform translate-y-full transition-transform duration-300 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+    <div id="numpad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#e2e8f0]/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 transform translate-y-full transition-transform duration-300 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] md:hidden">
         <div class="flex justify-between items-center mb-4">
             <span class="text-gray-800 font-semibold pl-2">Digite o valor</span>
             <button onclick="closeNumpad()" class="text-gray-500 hover:text-gray-800 p-2">
@@ -592,20 +594,20 @@ foreach ($contas as $conta) {
                 <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('1')">1</button>
                 <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('2')">2</button>
                 <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('3')">3</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addComma()">,</button>
+                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addDoubleZero()">,00</button>
                 <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('0')">0</button>
                 <button class="bg-gray-500 rounded-full h-16 text-2xl font-medium text-white shadow-sm active:bg-gray-600 flex items-center justify-center" onclick="backspace()">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path></svg>
                 </button>
             </div>
             <div class="col-span-1 grid grid-rows-4 gap-3 bg-white rounded-[2rem] p-2 shadow-sm">
-                <button class="text-2xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full">÷</button>
-                <button class="text-2xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full">×</button>
-                <button class="text-3xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full">-</button>
-                <button class="text-3xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full">+</button>
+                <button class="text-2xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('÷')">÷</button>
+                <button class="text-2xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('×')">×</button>
+                <button class="text-3xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('-')">-</button>
+                <button class="text-3xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('+')">+</button>
             </div>
         </div>
-        <button class="w-full mt-3 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full h-14 text-white text-2xl font-bold shadow-lg hover:from-orange-500 hover:to-orange-600 transition-all active:scale-95" onclick="closeNumpad()">
+        <button id="btn-ok-numpad" class="w-full mt-3 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full h-14 text-white text-2xl font-bold shadow-lg hover:from-orange-500 hover:to-orange-600 transition-all active:scale-95" onclick="handleOkButton()">
             OK
         </button>
     </div>
@@ -614,6 +616,11 @@ foreach ($contas as $conta) {
         // Inicializar Numpad com valor atual
         let valorAtual = "<?php echo number_format($valor * 100, 0, '', ''); ?>";
         if(valorAtual === "0") valorAtual = "000";
+        
+        // Variaveis da Calculadora
+        let storedValue = 0;
+        let pendingOp = null;
+        let isNewInput = false;
 
         function updateDisplay() {
             const display = document.getElementById('display-valor');
@@ -625,13 +632,27 @@ foreach ($contas as $conta) {
         }
 
         function addNumber(n) {
+            if (isNewInput) {
+                valorAtual = "000";
+                isNewInput = false;
+            }
             if (valorAtual === "000") valorAtual = "";
             if (valorAtual.length < 12) {
                 valorAtual += n;
                 updateDisplay();
             }
         }
-        function addComma() {}
+        function addDoubleZero() {
+            if (isNewInput) {
+                valorAtual = "000";
+                isNewInput = false;
+            }
+            if (valorAtual === "000") valorAtual = "";
+            if (valorAtual.length < 11) {
+                valorAtual += "00";
+                updateDisplay();
+            }
+        }
         function backspace() {
             if (valorAtual.length > 1) {
                 valorAtual = valorAtual.slice(0, -1);
@@ -639,6 +660,41 @@ foreach ($contas as $conta) {
                 valorAtual = "000";
             }
             updateDisplay();
+        }
+        
+        function setOperation(op) {
+            if (pendingOp && !isNewInput) calculateResult();
+            storedValue = parseInt(valorAtual, 10) / 100;
+            pendingOp = op;
+            isNewInput = true;
+            document.getElementById('btn-ok-numpad').innerText = "=";
+        }
+
+        function calculateResult() {
+            if (!pendingOp) return;
+            let currentVal = parseInt(valorAtual, 10) / 100;
+            let res = 0;
+            if (pendingOp === '+') res = storedValue + currentVal;
+            else if (pendingOp === '-') res = storedValue - currentVal;
+            else if (pendingOp === '×') res = storedValue * currentVal;
+            else if (pendingOp === '÷') res = currentVal !== 0 ? storedValue / currentVal : 0;
+            
+            res = Math.abs(res);
+            valorAtual = Math.round(res * 100).toString();
+            if(valorAtual === "0") valorAtual = "000";
+            updateDisplay();
+            
+            pendingOp = null;
+            isNewInput = true;
+            document.getElementById('btn-ok-numpad').innerText = "OK";
+        }
+        
+        function handleOkButton() {
+            if (pendingOp) {
+                calculateResult();
+            } else {
+                closeNumpad();
+            }
         }
         function toggleNumpad() {
             document.getElementById('numpad').classList.remove('translate-y-full');
@@ -779,6 +835,27 @@ foreach ($contas as $conta) {
                 document.getElementById('transacao-form').submit();
             }
         }
+
+        // Teclado Físico no Desktop
+        document.addEventListener('keydown', function(e) {
+            // Ignorar se o usuário estiver digitando em um campo de texto real
+            if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+            if (e.key >= '0' && e.key <= '9') {
+                addNumber(e.key);
+            } else if (e.key === 'Backspace') {
+                backspace();
+            } else if (e.key === 'Enter') {
+                handleOkButton();
+            } else if (['+', '-', '*', '/'].includes(e.key)) {
+                let op = e.key;
+                if(op === '*') op = '×';
+                if(op === '/') op = '÷';
+                setOperation(op);
+            } else if (e.key === ',' || e.key === '.') {
+                addDoubleZero();
+            }
+        });
     </script>
 </body>
 </html>
