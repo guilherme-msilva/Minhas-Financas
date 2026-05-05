@@ -208,6 +208,8 @@ if (!isset($_SESSION['user_id'])) {
         let parsedTransactions = [];
         let missingCategories = [];
         let missingAccounts = [];
+        let approvedMissingCategories = [];
+        let approvedMissingAccounts = [];
         let willCreateCategories = false;
         let willCreateAccounts = false;
 
@@ -277,6 +279,10 @@ if (!isset($_SESSION['user_id'])) {
             parsedTransactions = [];
             missingCategories = [];
             missingAccounts = [];
+            approvedMissingCategories = [];
+            approvedMissingAccounts = [];
+            willCreateCategories = false;
+            willCreateAccounts = false;
             fileInput.value = '';
             setStep(1);
         }
@@ -428,12 +434,14 @@ if (!isset($_SESSION['user_id'])) {
 
         function approveCategories() {
             willCreateCategories = true;
+            approvedMissingCategories = [...missingCategories];
             missingCategories = []; // Cleared so nextWizardStep skips step 2
             nextWizardStep();
         }
 
         function approveAccounts() {
             willCreateAccounts = true;
+            approvedMissingAccounts = [...missingAccounts];
             missingAccounts = []; // Cleared so nextWizardStep skips step 3
             nextWizardStep();
         }
@@ -450,8 +458,8 @@ if (!isset($_SESSION['user_id'])) {
                     transactions: parsedTransactions,
                     create_categories: willCreateCategories,
                     create_accounts: willCreateAccounts,
-                    missing_categories: willCreateCategories ? document.getElementById('list-missing-categories').innerText.split('\n') : [],
-                    missing_accounts: willCreateAccounts ? document.getElementById('list-missing-accounts').innerText.split('\n') : []
+                    missing_categories: willCreateCategories ? approvedMissingCategories : [],
+                    missing_accounts: willCreateAccounts ? approvedMissingAccounts : []
                 })
             })
             .then(res => res.json())
