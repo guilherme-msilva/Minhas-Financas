@@ -287,7 +287,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                 <?php else: ?>
                                     <?php if(!empty($t['categoria_icone_resolvido'])): ?>
-                                        <i class="ph <?php echo htmlspecialchars($t['categoria_icone_resolvido']); ?> text-white text-xl"></i>
+                                        <i class="ph-fill <?php echo htmlspecialchars($t['categoria_icone_resolvido']); ?> text-white text-xl"></i>
                                     <?php else: ?>
                                         <?php if($t['valor'] > 0): ?>
                                             <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
