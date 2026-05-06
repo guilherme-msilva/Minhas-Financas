@@ -100,15 +100,7 @@ $stmt_pais->execute();
 $categorias_pai = $stmt_pais->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_pais->close();
 
-$icones_catalogo = [
-    'ph-house', 'ph-car', 'ph-shopping-cart', 'ph-fork-knife', 'ph-heart-beat', 
-    'ph-graduation-cap', 'ph-airplane-tilt', 'ph-paw-print', 'ph-t-shirt', 
-    'ph-monitor', 'ph-game-controller', 'ph-gift', 'ph-trend-up', 'ph-money', 
-    'ph-piggy-bank', 'ph-lightning', 'ph-wrench', 'ph-book', 'ph-coffee', 
-    'ph-film-strip', 'ph-basketball', 'ph-music-notes', 'ph-train', 'ph-bus', 
-    'ph-bicycle', 'ph-gas-pump', 'ph-baby', 'ph-briefcase', 'ph-credit-card', 
-    'ph-invoice', 'ph-chart-line-up', 'ph-dots-three-circle'
-];
+require_once 'lista_icones.php';
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">

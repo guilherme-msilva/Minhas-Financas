@@ -51,6 +51,29 @@ $stmt_contas_filtro->execute();
 $contas_filtro = $stmt_contas_filtro->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_contas_filtro->close();
 
+// Mapear categorias para resolução hierárquica de ícones
+$stmt_cats = $mysqliFinancas->prepare("SELECT id, id_pai, icone FROM categorias WHERE id_user = ?");
+$stmt_cats->bind_param("i", $user_id);
+$stmt_cats->execute();
+$all_cats = $stmt_cats->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt_cats->close();
+
+$cats_map = [];
+foreach ($all_cats as $c) {
+    $cats_map[$c['id']] = $c;
+}
+
+function resolveIconeCategoria($id_categoria, $cats_map) {
+    $atual = $id_categoria;
+    while ($atual && isset($cats_map[$atual])) {
+        if (!empty($cats_map[$atual]['icone'])) {
+            return $cats_map[$atual]['icone'];
+        }
+        $atual = $cats_map[$atual]['id_pai'];
+    }
+    return '';
+}
+
 if ($mes_atual == 0) {
     $sql = "
         SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
@@ -111,6 +134,7 @@ foreach ($transacoes as $t) {
             $transacoes_agrupadas[] = $t;
         }
     } else {
+        $t['categoria_icone_resolvido'] = resolveIconeCategoria($t['idcategoria'], $cats_map);
         $transacoes_agrupadas[] = $t;
     }
 }
@@ -249,8 +273,8 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                                 <?php if($t['idcategoria'] == -1): ?>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                 <?php else: ?>
-                                    <?php if(!empty($t['categoria_icone'])): ?>
-                                        <i class="ph <?php echo htmlspecialchars($t['categoria_icone']); ?> text-white text-xl"></i>
+                                    <?php if(!empty($t['categoria_icone_resolvido'])): ?>
+                                        <i class="ph <?php echo htmlspecialchars($t['categoria_icone_resolvido']); ?> text-white text-xl"></i>
                                     <?php else: ?>
                                         <?php if($t['valor'] > 0): ?>
                                             <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
