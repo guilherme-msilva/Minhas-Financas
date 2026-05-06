@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (password_verify($senha, $usuario['senha'])) {
                 $_SESSION['user_id'] = $usuario['id'];
                 $_SESSION['user_nome'] = $usuario['nome'];
-                header("Location: categorias.php");
+                header("Location: index.php");
                 exit;
             } else {
                 $erro = "E-mail ou senha incorretos.";
