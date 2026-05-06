@@ -9,7 +9,7 @@ require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
 // Buscar categorias
-$sql = "SELECT id, nome, cor, icone, id_pai FROM categorias WHERE id_user = ? and id > 0ORDER BY nome ASC";
+$sql = "SELECT id, nome, cor, icone, id_pai FROM categorias WHERE id_user = ? and id > 0 ORDER BY nome ASC";
 $stmt = $mysqliFinancas->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
