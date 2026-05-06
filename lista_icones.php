@@ -6,6 +6,6 @@ $icones_catalogo = [
     'ph-piggy-bank', 'ph-lightning', 'ph-wrench', 'ph-book', 'ph-coffee', 
     'ph-film-strip', 'ph-basketball', 'ph-music-notes', 'ph-train', 'ph-bus', 
     'ph-bicycle', 'ph-gas-pump', 'ph-baby', 'ph-briefcase', 'ph-credit-card', 
-    'ph-invoice', 'ph-chart-line-up', 'ph-dots-three-circle', 'ph-empty'
+    'ph-invoice', 'ph-chart-line-up', 'ph-dots-three-circle', 'ph-empty', 'ph-swap'
 ];
 ?>

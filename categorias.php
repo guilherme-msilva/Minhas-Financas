@@ -9,13 +9,47 @@ require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
 // Buscar categorias
-$sql = "SELECT id, nome, cor, icone, id_pai FROM categorias WHERE id_user = ? ORDER BY nome ASC";
+$sql = "SELECT id, nome, cor, icone, id_pai FROM categorias WHERE id_user = ? and id > 0ORDER BY nome ASC";
 $stmt = $mysqliFinancas->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $resultado = $stmt->get_result();
 $todas_categorias = $resultado->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+
+$cats_map = [];
+foreach ($todas_categorias as $c) {
+    $cats_map[$c['id']] = $c;
+}
+
+function resolveAtributosCategoria($id_categoria, $cats_map) {
+    $atual = $id_categoria;
+    $icone = '';
+    $cor = '';
+    
+    while ($atual && isset($cats_map[$atual])) {
+        if (empty($icone) && !empty($cats_map[$atual]['icone'])) {
+            $icone = $cats_map[$atual]['icone'];
+        }
+        if (empty($cor) && !empty($cats_map[$atual]['cor'])) {
+            $cor = $cats_map[$atual]['cor'];
+        }
+        
+        if (!empty($icone) && !empty($cor)) break;
+        $atual = $cats_map[$atual]['id_pai'];
+    }
+    
+    if (empty($cor)) $cor = '#ccc';
+    
+    return ['icone' => $icone, 'cor' => $cor];
+}
+
+foreach ($todas_categorias as &$cat) {
+    $atributos = resolveAtributosCategoria($cat['id'], $cats_map);
+    $cat['icone_resolvido'] = $atributos['icone'];
+    $cat['cor_resolvida'] = $atributos['cor'];
+}
+unset($cat);
 
 // Construir a árvore
 function buildTree(array $elements, $parentId = null) {
@@ -45,9 +79,9 @@ function renderTreeHtml($nodes, $level = 0) {
     echo "<div class='space-y-1 $marginLeft'>";
     foreach ($nodes as $cat) {
         $hasChildren = count($cat['children']) > 0;
-        $cor = htmlspecialchars($cat['cor'] ?: '#ccc');
+        $cor = htmlspecialchars($cat['cor_resolvida']);
         $nome = htmlspecialchars($cat['nome']);
-        $icone = htmlspecialchars($cat['icone'] ?? '');
+        $icone = htmlspecialchars($cat['icone_resolvido']);
         $id = $cat['id'];
         
         echo "<div class='flex flex-col'>";

@@ -51,8 +51,8 @@ $stmt_contas_filtro->execute();
 $contas_filtro = $stmt_contas_filtro->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_contas_filtro->close();
 
-// Mapear categorias para resolução hierárquica de ícones
-$stmt_cats = $mysqliFinancas->prepare("SELECT id, id_pai, icone FROM categorias WHERE id_user = ?");
+// Mapear categorias para resolução hierárquica de ícones e cores
+$stmt_cats = $mysqliFinancas->prepare("SELECT id, id_pai, icone, cor FROM categorias WHERE id_user = ?");
 $stmt_cats->bind_param("i", $user_id);
 $stmt_cats->execute();
 $all_cats = $stmt_cats->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -63,15 +63,26 @@ foreach ($all_cats as $c) {
     $cats_map[$c['id']] = $c;
 }
 
-function resolveIconeCategoria($id_categoria, $cats_map) {
+function resolveAtributosCategoria($id_categoria, $cats_map) {
     $atual = $id_categoria;
+    $icone = '';
+    $cor = '';
+    
     while ($atual && isset($cats_map[$atual])) {
-        if (!empty($cats_map[$atual]['icone'])) {
-            return $cats_map[$atual]['icone'];
+        if (empty($icone) && !empty($cats_map[$atual]['icone'])) {
+            $icone = $cats_map[$atual]['icone'];
         }
+        if (empty($cor) && !empty($cats_map[$atual]['cor'])) {
+            $cor = $cats_map[$atual]['cor'];
+        }
+        
+        if (!empty($icone) && !empty($cor)) break;
         $atual = $cats_map[$atual]['id_pai'];
     }
-    return '';
+    
+    if (empty($cor)) $cor = '#ccc';
+    
+    return ['icone' => $icone, 'cor' => $cor];
 }
 
 if ($mes_atual == 0) {
@@ -134,7 +145,9 @@ foreach ($transacoes as $t) {
             $transacoes_agrupadas[] = $t;
         }
     } else {
-        $t['categoria_icone_resolvido'] = resolveIconeCategoria($t['idcategoria'], $cats_map);
+        $atributos = resolveAtributosCategoria($t['idcategoria'], $cats_map);
+        $t['categoria_icone_resolvido'] = $atributos['icone'];
+        $t['categoria_cor_resolvida'] = $atributos['cor'];
         $transacoes_agrupadas[] = $t;
     }
 }
@@ -269,7 +282,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                     <div class="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/20 transition-all <?php echo !$t['consolidada'] ? 'opacity-50 border-dashed' : ''; ?>">
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <!-- Ícone/Cor -->
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo $t['idcategoria'] == -1 ? '#3b82f6' : ($t['categoria_cor'] ?: '#ccc'); ?>">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo $t['idcategoria'] == -1 ? '#3b82f6' : ($t['categoria_cor_resolvida']); ?>">
                                 <?php if($t['idcategoria'] == -1): ?>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                 <?php else: ?>

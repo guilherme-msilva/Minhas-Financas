@@ -26,7 +26,7 @@ if ($id > 0 && $_SERVER['REQUEST_METHOD'] != 'POST') {
     if ($cat = $res->fetch_assoc()) {
         $nome = $cat['nome'];
         $id_pai = $cat['id_pai'];
-        $cor = $cat['cor'] ?: '#3b82f6';
+        $cor = $cat['cor'];
         $icone = $cat['icone'] ?? '';
     } else {
         header("Location: categorias.php");
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $nome = trim($_POST['nome'] ?? '');
         $id_pai = !empty($_POST['id_pai']) ? (int)$_POST['id_pai'] : NULL;
-        $cor = trim($_POST['cor'] ?? '');
+        $cor = isset($_POST['usar_cor']) ? trim($_POST['cor'] ?? '') : '';
         $icone = trim($_POST['icone'] ?? '');
 
     if ($nome) {
@@ -187,11 +187,20 @@ require_once 'lista_icones.php';
                 </div>
 
                 <div>
-                    <label for="cor" class="block text-sm font-medium text-gray-300 mb-2">Cor de Identificação</label>
-                    <div class="flex items-center space-x-4">
-                        <input type="color" id="cor" name="cor" value="<?php echo htmlspecialchars($cor); ?>" 
-                            class="w-14 h-14 rounded-xl border-0 bg-transparent cursor-pointer">
-                        <span class="text-gray-400 text-sm">Escolha uma cor para diferenciar.</span>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Cor de Identificação</label>
+                    <div class="flex flex-col space-y-3">
+                        <label class="flex items-center space-x-3 cursor-pointer">
+                            <input type="checkbox" name="usar_cor" id="usar_cor" value="1" <?php echo $cor ? 'checked' : ''; ?> 
+                                class="w-5 h-5 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500 focus:ring-offset-slate-900"
+                                onchange="document.getElementById('cor_container').classList.toggle('opacity-50', !this.checked); document.getElementById('cor').disabled = !this.checked;">
+                            <span class="text-white">Definir cor específica (se desmarcado, herdará do pai)</span>
+                        </label>
+                        
+                        <div id="cor_container" class="flex items-center space-x-4 <?php echo $cor ? '' : 'opacity-50'; ?>">
+                            <input type="color" id="cor" name="cor" value="<?php echo htmlspecialchars($cor ?: '#3b82f6'); ?>" <?php echo $cor ? '' : 'disabled'; ?>
+                                class="w-14 h-14 rounded-xl border-0 bg-transparent cursor-pointer">
+                            <span class="text-gray-400 text-sm">Escolha uma cor.</span>
+                        </div>
                     </div>
                 </div>
 
