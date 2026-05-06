@@ -32,6 +32,7 @@ CREATE TABLE `transacoes` (
   `recorrencias` int(11) DEFAULT NULL,
   `idpai` int(11) DEFAULT NULL,
   `notas` varchar(255) DEFAULT NULL,
+  `id_grupo_recorrencia` varchar(255) DEFAULT NULL, 
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=26822 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

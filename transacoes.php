@@ -29,6 +29,45 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
             $stmt_up->bind_param("iii", $novo_status, $id_cons, $user_id);
             $stmt_up->execute();
         }
+        
+        // Se consolidou, verifica se é recorrente para "spawnar" a próxima
+        if ($novo_status == 1) {
+            $id_to_fetch = $t['idcategoria'] == -1 ? ($t['idpai'] ? $t['idpai'] : $id_cons) : $id_cons;
+            $stmt_full = $mysqliFinancas->prepare("SELECT * FROM transacoes WHERE id = ? AND iduser = ?");
+            $stmt_full->bind_param("ii", $id_to_fetch, $user_id);
+            $stmt_full->execute();
+            if ($t_full = $stmt_full->get_result()->fetch_assoc()) {
+                if (!empty($t_full['id_grupo_recorrencia']) && $t_full['recorrencias'] != 0) {
+                    // Verifica se já existe uma futura pendente
+                    $stmt_check = $mysqliFinancas->prepare("SELECT id FROM transacoes WHERE id_grupo_recorrencia = ? AND consolidada = 0 AND iduser = ?");
+                    $stmt_check->bind_param("si", $t_full['id_grupo_recorrencia'], $user_id);
+                    $stmt_check->execute();
+                    if ($stmt_check->get_result()->num_rows == 0) {
+                        // Spawna a próxima
+                        $prox_data = date('Y-m-d', strtotime('+1 month', strtotime($t_full['data'])));
+                        $prox_rec = $t_full['recorrencias'] > 0 ? $t_full['recorrencias'] - 1 : -1;
+                        
+                        if ($prox_rec != 0) {
+                            $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)");
+                            $stmt_spawn->bind_param("sdsiiiisis", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $prox_rec, $t_full['id_grupo_recorrencia']);
+                            $stmt_spawn->execute();
+                            $new_id = $mysqliFinancas->insert_id;
+                            
+                            if ($t_full['idcategoria'] == -1) {
+                                $stmt_in = $mysqliFinancas->prepare("SELECT * FROM transacoes WHERE idpai = ? AND iduser = ?");
+                                $stmt_in->bind_param("ii", $t_full['id'], $user_id);
+                                $stmt_in->execute();
+                                if ($t_in = $stmt_in->get_result()->fetch_assoc()) {
+                                    $stmt_spawn_in = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, idpai, notas) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)");
+                                    $stmt_spawn_in->bind_param("sdsiiiiis", $prox_data, $t_in['valor'], $t_in['descricao'], $t_in['idcategoria'], $t_in['idconta'], $user_id, $new_id, $t_in['notas']);
+                                    $stmt_spawn_in->execute();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // Redireciona para remover a querystring action=

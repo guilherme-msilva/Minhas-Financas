@@ -21,6 +21,8 @@ $id_categoria = '';
 $id_conta = '';
 $id_conta_destino = ''; // Apenas uso no front
 $notas = '';
+$recorrencias = 0;
+$id_grupo_recorrencia = NULL;
 
 // Processamento POST
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -48,6 +50,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $id_categoria = !empty($_POST['id_categoria']) ? (int)$_POST['id_categoria'] : NULL;
         $id_conta = !empty($_POST['id_conta']) ? (int)$_POST['id_conta'] : NULL;
         $id_conta_destino = !empty($_POST['id_conta_destino']) ? (int)$_POST['id_conta_destino'] : NULL;
+        
+        $recorrencias = 0;
+        if (isset($_POST['indefinidamente'])) {
+            $recorrencias = -1;
+        } elseif (!empty($_POST['recorrencias'])) {
+            $recorrencias = (int)$_POST['recorrencias'];
+        }
+        
+        $modo_edicao = $_POST['modo_edicao'] ?? 'todas_futuras'; // 'somente_esta' ou 'todas_futuras'
+        $id_grupo_recorrencia = $_POST['id_grupo_recorrencia'] ?? NULL;
+        if (empty($id_grupo_recorrencia) && $recorrencias != 0) {
+            $id_grupo_recorrencia = 'REC-' . uniqid();
+        }
 
         if ($tipo === 'despesa') {
             $valor = -abs($valor);
@@ -56,6 +71,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         if ($descricao && $id_conta) {
+            // Antes de qualquer UPDATE, verificamos se precisamos manipular a cadeia de recorrência
+            $old_transacao = null;
+            if ($id > 0) {
+                $stmt_old = $mysqliFinancas->prepare("SELECT * FROM transacoes WHERE id=? AND iduser=?");
+                $stmt_old->bind_param("ii", $id, $user_id);
+                $stmt_old->execute();
+                $old_transacao = $stmt_old->get_result()->fetch_assoc();
+            }
+
+            if ($old_transacao && $modo_edicao === 'somente_esta' && !empty($old_transacao['id_grupo_recorrencia']) && $old_transacao['recorrencias'] != 0) {
+                // Clonar a transação antiga para a próxima data (continua a cadeia)
+                $prox_data = date('Y-m-d', strtotime('+1 month', strtotime($old_transacao['data'])));
+                $prox_rec = $old_transacao['recorrencias'] > 0 ? $old_transacao['recorrencias'] - 1 : -1;
+                
+                if ($prox_rec != 0) {
+                    $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)");
+                    $stmt_spawn->bind_param("sdsiiiisis", $prox_data, $old_transacao['valor'], $old_transacao['descricao'], $old_transacao['idcategoria'], $old_transacao['idconta'], $user_id, $old_transacao['notas'], $prox_rec, $old_transacao['id_grupo_recorrencia']);
+                    $stmt_spawn->execute();
+                    $new_id = $mysqliFinancas->insert_id;
+                    
+                    // Se era transferencia, clonar a perna de entrada antiga também
+                    if ($old_transacao['idcategoria'] == -1) {
+                        $stmt_old_in = $mysqliFinancas->prepare("SELECT * FROM transacoes WHERE idpai=? AND iduser=?");
+                        $stmt_old_in->bind_param("ii", $id, $user_id);
+                        $stmt_old_in->execute();
+                        if ($old_in = $stmt_old_in->get_result()->fetch_assoc()) {
+                            $stmt_spawn_in = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, idpai, notas) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)");
+                            $stmt_spawn_in->bind_param("sdsiiiiis", $prox_data, $old_in['valor'], $old_in['descricao'], $old_in['idcategoria'], $old_in['idconta'], $user_id, $new_id, $old_in['notas']);
+                            $stmt_spawn_in->execute();
+                        }
+                    }
+                }
+                // A transação que o usuário está editando agora vira "filha única", isolada
+                $recorrencias = 0;
+            }
+
             if ($tipo === 'transferencia') {
                 if (!$id_conta_destino) {
                     $erro = "Selecione a conta de destino.";
@@ -65,15 +116,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $valor_destino = abs($valor);
 
                     if ($id > 0) {
-                        // Edição de transferência (Atualiza as duas pernas baseadas no id pai)
                         $mysqliFinancas->begin_transaction();
                         try {
-                            // Atualiza a Origem (Registro Pai)
-                            $stmt1 = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE id=? AND iduser=?");
-                            $stmt1->bind_param("sdsiiisii", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $id, $user_id);
+                            $stmt1 = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=?, recorrencias=?, id_grupo_recorrencia=? WHERE id=? AND iduser=?");
+                            $stmt1->bind_param("sdsiiisissi", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia, $id, $user_id);
                             $stmt1->execute();
                             
-                            // Atualiza o Destino (Registro Filho que aponta para o Pai)
                             $stmt2 = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE idpai=? AND iduser=?");
                             $stmt2->bind_param("sdsiiisii", $data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $consolidada, $notas, $id, $user_id);
                             $stmt2->execute();
@@ -85,11 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $erro = "Erro ao atualizar transferência.";
                         }
                     } else {
-                        // Nova transferência
                         $mysqliFinancas->begin_transaction();
                         try {
-                            $stmt1 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                            $stmt1->bind_param("sdsiiiis", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas);
+                            $stmt1 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt1->bind_param("sdsiiiisis", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia);
                             $stmt1->execute();
                             $id_pai = $mysqliFinancas->insert_id;
                             
@@ -99,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             
                             $mysqliFinancas->commit();
                             $sucesso = "Transferência registrada com sucesso!";
-                            $id = $id_pai; // Para carregar os dados inseridos
+                            $id = $id_pai;
                         } catch (Exception $e) {
                             $mysqliFinancas->rollback();
                             $erro = "Erro ao transferir.";
@@ -107,23 +154,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                 }
             } else {
-                // Despesa ou Receita
                 if ($id > 0) {
-                    $stmt = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=? WHERE id=? AND iduser=?");
-                    $stmt->bind_param("sdsiiisii", $data, $valor, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $id, $user_id);
+                    $stmt = $mysqliFinancas->prepare("UPDATE transacoes SET data=?, valor=?, descricao=?, idcategoria=?, idconta=?, consolidada=?, notas=?, recorrencias=?, id_grupo_recorrencia=? WHERE id=? AND iduser=?");
+                    $stmt->bind_param("sdsiiisissi", $data, $valor, $descricao, $id_categoria, $id_conta, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia, $id, $user_id);
                     if ($stmt->execute()) {
                         $sucesso = "Transação atualizada!";
                     } else {
                         $erro = "Erro ao atualizar: " . $mysqliFinancas->error;
                     }
                 } else {
-                    $stmt = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sdsiiiis", $data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas);
+                    $stmt = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("sdsiiiisis", $data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia);
                     if ($stmt->execute()) {
                         $sucesso = "Transação inserida com sucesso!";
                         $id = $mysqliFinancas->insert_id;
                     } else {
                         $erro = "Erro ao inserir: " . $mysqliFinancas->error;
+                    }
+                }
+            }
+            
+            // Lógica de "todas_futuras" - atualiza as transações vinculadas que ainda não ocorreram (consolidada = 0)
+            if ($id > 0 && $modo_edicao === 'todas_futuras' && !empty($id_grupo_recorrencia) && empty($erro)) {
+                $stmt_futuras = $mysqliFinancas->prepare("SELECT id FROM transacoes WHERE id_grupo_recorrencia=? AND consolidada=0 AND id!=? AND iduser=?");
+                $stmt_futuras->bind_param("sii", $id_grupo_recorrencia, $id, $user_id);
+                $stmt_futuras->execute();
+                $futuras = $stmt_futuras->get_result()->fetch_all(MYSQLI_ASSOC);
+                
+                foreach ($futuras as $fut) {
+                    $id_fut = $fut['id'];
+                    $valor_out = ($tipo === 'transferencia') ? -abs($valor) : $valor;
+                    $stmt_upd = $mysqliFinancas->prepare("UPDATE transacoes SET valor=?, descricao=?, idcategoria=?, idconta=?, notas=?, recorrencias=? WHERE id=? AND iduser=?");
+                    $stmt_upd->bind_param("dsiisiii", $valor_out, $descricao, $id_categoria, $id_conta, $notas, $recorrencias, $id_fut, $user_id);
+                    $stmt_upd->execute();
+                    
+                    if ($tipo === 'transferencia') {
+                        $valor_in = abs($valor);
+                        $stmt_upd_in = $mysqliFinancas->prepare("UPDATE transacoes SET valor=?, descricao=?, idcategoria=?, idconta=?, notas=? WHERE idpai=? AND iduser=?");
+                        $stmt_upd_in->bind_param("dsiisii", $valor_in, $descricao, $id_categoria, $id_conta_destino, $notas, $id_fut, $user_id);
+                        $stmt_upd_in->execute();
                     }
                 }
             }
@@ -135,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 // Carregar dados se edição (ou após INSERT)
 if ($id > 0) {
-    $stmt = $mysqliFinancas->prepare("SELECT data, valor, descricao, idcategoria, idconta, consolidada, idpai, notas FROM transacoes WHERE id = ? AND iduser = ?");
+    $stmt = $mysqliFinancas->prepare("SELECT data, valor, descricao, idcategoria, idconta, consolidada, idpai, notas, recorrencias, id_grupo_recorrencia FROM transacoes WHERE id = ? AND iduser = ?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -148,6 +217,8 @@ if ($id > 0) {
         $consolidada = $transacao['consolidada'];
         $id_pai = $transacao['idpai'];
         $notas = $transacao['notas'];
+        $recorrencias = $transacao['recorrencias'] ?? 0;
+        $id_grupo_recorrencia = $transacao['id_grupo_recorrencia'];
         
         if ($id_categoria == -1) {
             $tipo = 'transferencia';
@@ -349,6 +420,10 @@ foreach ($contas as $conta) {
         <input type="hidden" name="descricao" id="input-descricao">
         <input type="hidden" name="consolidada" id="input-consolidada">
         <input type="hidden" name="notas" id="input-notas">
+        <input type="hidden" name="recorrencias" id="input-recorrencias">
+        <input type="hidden" name="indefinidamente" id="input-indefinidamente">
+        <input type="hidden" name="id_grupo_recorrencia" id="input-id-grupo-recorrencia" value="<?php echo htmlspecialchars($id_grupo_recorrencia ?? ''); ?>">
+        <input type="hidden" name="modo_edicao" id="input-modo-edicao" value="todas_futuras">
     </form>
 
     <div class="max-w-md mx-auto relative h-[85vh] md:h-[80vh] flex flex-col mb-10 overflow-hidden">
@@ -489,9 +564,24 @@ foreach ($contas as $conta) {
                             </div>
                         </div>
 
-                        <div id="opcoes-avancadas-conteudo" class="p-2 space-y-1 hidden">
-                            <!-- Serão implementadas no futuro conforme plano -->
-                            <div class="text-center text-white/50 py-4 text-sm">Opções de recorrência em breve.</div>
+                        <div id="opcoes-avancadas-conteudo" class="p-2 space-y-3 hidden">
+                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
+                                <span class="text-gray-300 font-medium text-sm">Intervalo</span>
+                                <span class="text-white font-medium text-sm bg-black/20 px-3 py-1 rounded-lg">Mensal (1 Mês)</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
+                                <span class="text-gray-300 font-medium text-sm">Indefinidamente</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                  <input type="checkbox" id="ui-indefinidamente" onchange="toggleIndefinidamente()" class="sr-only peer" <?php echo ($recorrencias == -1) ? 'checked' : ''; ?>>
+                                  <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
+                                <span class="text-gray-300 font-medium text-sm">Nº de Ocorrências</span>
+                                <input type="number" id="ui-ocorrencias" min="1" value="<?php echo ($recorrencias > 0) ? $recorrencias : ''; ?>" class="bg-black/20 text-right text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24 disabled:opacity-50" <?php echo ($recorrencias == -1) ? 'disabled' : ''; ?> placeholder="Ex: 12">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -611,6 +701,26 @@ foreach ($contas as $conta) {
             OK
         </button>
     </div>
+
+        <!-- Modal Edição Recorrência -->
+        <div id="modal-edicao-recorrencia" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-800 border border-white/10 rounded-3xl p-6 shadow-2xl max-w-sm w-full">
+                <h3 class="text-white font-medium text-lg mb-2">Editar Transação Recorrente</h3>
+                <p class="text-white/60 text-sm mb-6">Esta é uma transação recorrente. Você deseja alterar apenas esta ocorrência ou todas as futuras também?</p>
+                
+                <div class="space-y-3">
+                    <button type="button" onclick="confirmarEdicaoRecorrencia('somente_esta')" class="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium border border-white/5">
+                        Apenas esta transação
+                    </button>
+                    <button type="button" onclick="confirmarEdicaoRecorrencia('todas_futuras')" class="w-full py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl transition-colors font-medium shadow-lg shadow-cyan-500/20">
+                        Esta e as futuras
+                    </button>
+                    <button type="button" onclick="document.getElementById('modal-edicao-recorrencia').classList.add('hidden')" class="w-full py-3 text-white/50 hover:text-white transition-colors font-medium text-sm mt-2">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
 
     <script>
         // Inicializar Numpad com valor atual
@@ -819,6 +929,18 @@ foreach ($contas as $conta) {
             }
         }
 
+        function toggleIndefinidamente() {
+            const check = document.getElementById('ui-indefinidamente');
+            const inputNum = document.getElementById('ui-ocorrencias');
+            if (check.checked) {
+                inputNum.disabled = true;
+                inputNum.value = '';
+            } else {
+                inputNum.disabled = false;
+                inputNum.focus();
+            }
+        }
+
         function submitForm() {
             // Sincronizar UI com Form oculto
             document.getElementById('input-data').value = document.getElementById('ui-data').value;
@@ -826,6 +948,25 @@ foreach ($contas as $conta) {
             document.getElementById('input-consolidada').value = document.getElementById('ui-consolidada').checked ? '1' : '';
             document.getElementById('input-notas').value = document.getElementById('ui-notas').value;
             
+            const recorrenciasInput = document.getElementById('ui-ocorrencias');
+            const indefinidamenteInput = document.getElementById('ui-indefinidamente');
+            
+            document.getElementById('input-recorrencias').value = recorrenciasInput.value;
+            document.getElementById('input-indefinidamente').value = indefinidamenteInput.checked ? '1' : '';
+            
+            const id_grupo_recorrencia = document.getElementById('input-id-grupo-recorrencia').value;
+            const isEditing = <?php echo $id > 0 ? 'true' : 'false'; ?>;
+            
+            if (isEditing && id_grupo_recorrencia) {
+                document.getElementById('modal-edicao-recorrencia').classList.remove('hidden');
+            } else {
+                document.getElementById('transacao-form').submit();
+            }
+        }
+        
+        function confirmarEdicaoRecorrencia(modo) {
+            document.getElementById('input-modo-edicao').value = modo;
+            document.getElementById('modal-edicao-recorrencia').classList.add('hidden');
             document.getElementById('transacao-form').submit();
         }
 
