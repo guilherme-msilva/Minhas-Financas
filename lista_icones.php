@@ -1,6 +1,6 @@
 <?php
 $icones_catalogo = [
-    'ph-house', 'ph-car', 'ph-shopping-cart', 'ph-fork-knife', 'ph-heart-beat', 
+    'ph-house', 'ph-car', 'ph-shopping-cart', 'ph-fork-knife', 'ph-hamburger','ph-heart-beat', 
     'ph-graduation-cap', 'ph-airplane-tilt', 'ph-paw-print', 'ph-t-shirt', 
     'ph-monitor', 'ph-game-controller', 'ph-gift', 'ph-trend-up', 'ph-money', 
     'ph-piggy-bank', 'ph-lightning', 'ph-wrench', 'ph-book', 'ph-coffee', 
