@@ -61,13 +61,106 @@ $sql_contas = "
         c.saldo_inicial + COALESCE((SELECT SUM(t.valor) FROM transacoes t WHERE t.idconta = c.id AND t.data <= ?), 0) AS saldo_atual
     FROM contas c
     WHERE c.id_user = ? AND c.status = 1
-    ORDER BY saldo_atual DESC
+    ORDER BY nome ASC
 ";
 $stmt_contas = $mysqliFinancas->prepare($sql_contas);
 $stmt_contas->bind_param("si", $data_limite, $user_id);
 $stmt_contas->execute();
 $contas_ativas = $stmt_contas->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_contas->close();
+
+// 4. Despesas do mês atual por categoria (para o gráfico)
+$sql_despesas = "
+    SELECT t.idcategoria, SUM(t.valor) as total
+    FROM transacoes t
+    WHERE t.iduser = ? 
+      AND t.idcategoria != -1
+      AND t.data >= ? 
+      AND t.data <= ?
+      AND t.valor < 0
+    GROUP BY t.idcategoria
+";
+$stmt_despesas = $mysqliFinancas->prepare($sql_despesas);
+$stmt_despesas->bind_param("iss", $user_id, $data_inicio_mes, $data_limite);
+$stmt_despesas->execute();
+$res_despesas = $stmt_despesas->get_result();
+$despesas_agrupadas = [];
+while ($row = $res_despesas->fetch_assoc()) {
+    $despesas_agrupadas[$row['idcategoria']] = abs($row['total']);
+}
+$stmt_despesas->close();
+
+// Buscar todas as categorias para construir a hierarquia do gráfico
+$sql_cats_grafico = "SELECT id, id_pai, nome, cor FROM categorias WHERE id_user = ?";
+$stmt_cats_grafico = $mysqliFinancas->prepare($sql_cats_grafico);
+$stmt_cats_grafico->bind_param("i", $user_id);
+$stmt_cats_grafico->execute();
+$cats_grafico = $stmt_cats_grafico->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt_cats_grafico->close();
+
+$cats_map_grafico = [];
+foreach ($cats_grafico as $c) {
+    $cats_map_grafico[$c['id']] = $c;
+}
+
+function resolveCorCategoria($id_categoria, $cats_map) {
+    $atual = $id_categoria;
+    while ($atual && isset($cats_map[$atual])) {
+        if (!empty($cats_map[$atual]['cor'])) {
+            return $cats_map[$atual]['cor'];
+        }
+        $atual = $cats_map[$atual]['id_pai'];
+    }
+    return '#ccc'; // fallback
+}
+
+$dados_grafico = [
+    'root' => ['labels' => [], 'data' => [], 'backgroundColor' => [], 'ids' => []],
+    'drilldown' => []
+];
+
+$totais_por_raiz = [];
+$mapa_raiz = [];
+
+foreach ($cats_grafico as $c) {
+    $id = $c['id'];
+    $atual = $id;
+    while (!empty($cats_map_grafico[$atual]['id_pai'])) {
+        $atual = $cats_map_grafico[$atual]['id_pai'];
+    }
+    $mapa_raiz[$id] = $atual;
+    
+    if (!isset($dados_grafico['drilldown'][$atual])) {
+        $dados_grafico['drilldown'][$atual] = ['labels' => [], 'data' => [], 'backgroundColor' => [], 'ids' => [], 'nome_raiz' => $cats_map_grafico[$atual]['nome']];
+    }
+}
+
+foreach ($despesas_agrupadas as $id_cat => $valor) {
+    if (!isset($mapa_raiz[$id_cat])) continue;
+    $id_raiz = $mapa_raiz[$id_cat];
+    
+    if (!isset($totais_por_raiz[$id_raiz])) $totais_por_raiz[$id_raiz] = 0;
+    $totais_por_raiz[$id_raiz] += $valor;
+    
+    $cor = resolveCorCategoria($id_cat, $cats_map_grafico);
+    $nome = $cats_map_grafico[$id_cat]['nome'] . ($id_cat == $id_raiz && count($dados_grafico['drilldown'][$id_raiz]['labels']) >= 0 ? ' (Geral)' : '');
+    
+    $dados_grafico['drilldown'][$id_raiz]['labels'][] = $nome;
+    $dados_grafico['drilldown'][$id_raiz]['data'][] = $valor;
+    $dados_grafico['drilldown'][$id_raiz]['backgroundColor'][] = $cor;
+    $dados_grafico['drilldown'][$id_raiz]['ids'][] = $id_cat;
+}
+
+foreach ($totais_por_raiz as $id_raiz => $total) {
+    if ($total > 0) {
+        $cor = resolveCorCategoria($id_raiz, $cats_map_grafico);
+        $dados_grafico['root']['labels'][] = $cats_map_grafico[$id_raiz]['nome'];
+        $dados_grafico['root']['data'][] = $total;
+        $dados_grafico['root']['backgroundColor'][] = $cor;
+        $dados_grafico['root']['ids'][] = $id_raiz;
+    }
+}
+$json_grafico = json_encode($dados_grafico);
 
 // Buscar nome do usuário
 $stmt = $mysqliFinancas->prepare("SELECT nome FROM usuarios WHERE id = ?");
@@ -84,6 +177,7 @@ $stmt->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Minhas Finanças</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -165,28 +259,28 @@ $stmt->close();
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <!-- Entradas -->
-            <div class="bg-emerald-500/10 backdrop-blur-xl border border-emerald-500/20 rounded-3xl p-6 shadow-lg hover:bg-emerald-500/20 transition-all">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
-                    </div>
+            <div class="bg-emerald-500/10 backdrop-blur-xl border border-emerald-500/20 rounded-3xl p-6 shadow-lg hover:bg-emerald-500/20 transition-all flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
                 </div>
-                <h4 class="text-emerald-100/70 text-sm font-medium mb-1">Entradas</h4>
-                <div class="text-emerald-400 text-3xl font-bold">
-                    R$ <?php echo number_format($entradas_mes, 2, ',', '.'); ?>
+                <div>
+                    <h4 class="text-emerald-100/70 text-sm font-medium mb-1">Entradas</h4>
+                    <div class="text-emerald-400 text-3xl font-bold leading-none">
+                        R$ <?php echo number_format($entradas_mes, 2, ',', '.'); ?>
+                    </div>
                 </div>
             </div>
 
             <!-- Saídas -->
-            <div class="bg-red-500/10 backdrop-blur-xl border border-red-500/20 rounded-3xl p-6 shadow-lg hover:bg-red-500/20 transition-all">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-red-500/20 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
-                    </div>
+            <div class="bg-red-500/10 backdrop-blur-xl border border-red-500/20 rounded-3xl p-6 shadow-lg hover:bg-red-500/20 transition-all flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-red-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
                 </div>
-                <h4 class="text-red-100/70 text-sm font-medium mb-1">Saídas</h4>
-                <div class="text-red-400 text-3xl font-bold">
-                    R$ <?php echo number_format($saidas_mes, 2, ',', '.'); ?>
+                <div>
+                    <h4 class="text-red-100/70 text-sm font-medium mb-1">Saídas</h4>
+                    <div class="text-red-400 text-3xl font-bold leading-none">
+                        R$ <?php echo number_format($saidas_mes, 2, ',', '.'); ?>
+                    </div>
                 </div>
             </div>
 
@@ -198,22 +292,122 @@ $stmt->close();
                 $cor_text = $resultado_mes >= 0 ? 'text-blue-400' : 'text-slate-300';
                 $cor_icon_bg = $resultado_mes >= 0 ? 'bg-blue-500/20' : 'bg-slate-500/20';
             ?>
-            <div class="<?php echo "$cor_bg $cor_border $cor_hover"; ?> backdrop-blur-xl border rounded-3xl p-6 shadow-lg transition-all">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 rounded-2xl <?php echo $cor_icon_bg; ?> flex items-center justify-center">
-                        <svg class="w-6 h-6 <?php echo $cor_text; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
-                    </div>
+            <div class="<?php echo "$cor_bg $cor_border $cor_hover"; ?> backdrop-blur-xl border rounded-3xl p-6 shadow-lg transition-all flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl <?php echo $cor_icon_bg; ?> flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 <?php echo $cor_text; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
                 </div>
-                <h4 class="text-white/60 text-sm font-medium mb-1">Balanço do Mês</h4>
-                <div class="<?php echo $cor_text; ?> text-3xl font-bold flex flex-wrap items-baseline gap-1">
-                    R$ <?php echo number_format(abs($resultado_mes), 2, ',', '.'); ?>
-                    <?php if($resultado_mes < 0): ?>
-                        <span class="text-sm font-medium text-red-400/80 uppercase ml-1">(Negativo)</span>
-                    <?php endif; ?>
+                <div>
+                    <h4 class="text-white/60 text-sm font-medium mb-1">Balanço do Mês</h4>
+                    <div class="<?php echo $cor_text; ?> text-3xl font-bold flex flex-wrap items-baseline gap-1 leading-none">
+                        R$ <?php echo number_format(abs($resultado_mes), 2, ',', '.'); ?>
+                        <?php if($resultado_mes < 0): ?>
+                            <span class="text-sm font-medium text-red-400/80 uppercase ml-1">(Negativo)</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
         </div>
+
+        <!-- Painel de Gráfico: Despesas por Categoria -->
+        <?php if(!empty($dados_grafico['root']['data'])): ?>
+        <div class="mt-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg relative">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-white/80 font-medium text-xl ml-2">Despesas por Categoria</h3>
+                <button id="btnVoltarGrafico" class="hidden px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl text-sm transition-all flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    Voltar para Geral
+                </button>
+            </div>
+            
+            <div class="relative h-[300px] md:h-[400px] w-full flex justify-center">
+                <canvas id="graficoDespesas"></canvas>
+            </div>
+            
+            <script>
+                const chartDados = <?php echo $json_grafico; ?>;
+                const ctx = document.getElementById('graficoDespesas').getContext('2d');
+                let currentChart = null;
+                let isDrilldown = false;
+                
+                function renderChart(dataObj, title) {
+                    if (currentChart) {
+                        currentChart.destroy();
+                    }
+                    
+                    currentChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: dataObj.labels,
+                            datasets: [{
+                                data: dataObj.data,
+                                backgroundColor: dataObj.backgroundColor,
+                                borderWidth: 2,
+                                borderColor: 'rgba(15, 23, 42, 0.5)',
+                                hoverOffset: 10
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: {
+                                    position: window.innerWidth > 768 ? 'right' : 'bottom',
+                                    labels: {
+                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        font: { family: 'Outfit', size: 14 },
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                    titleColor: 'rgba(255,255,255,0.9)',
+                                    bodyColor: 'rgba(255,255,255,0.9)',
+                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    cornerRadius: 12,
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) label += ': ';
+                                            label += 'R$ ' + context.parsed.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                            return label;
+                                        }
+                                    }
+                                }
+                            },
+                            onClick: (e, elements) => {
+                                if (elements.length > 0 && !isDrilldown) {
+                                    const index = elements[0].index;
+                                    const id_raiz = dataObj.ids[index];
+                                    
+                                    if (chartDados.drilldown[id_raiz] && chartDados.drilldown[id_raiz].data.length > 0) {
+                                        if(chartDados.drilldown[id_raiz].data.length === 1 && chartDados.drilldown[id_raiz].labels[0].includes('(Geral)')) {
+                                            return;
+                                        }
+                                        
+                                        isDrilldown = true;
+                                        document.getElementById('btnVoltarGrafico').classList.remove('hidden');
+                                        renderChart(chartDados.drilldown[id_raiz], chartDados.drilldown[id_raiz].nome_raiz);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                renderChart(chartDados.root, 'Geral');
+                
+                document.getElementById('btnVoltarGrafico').addEventListener('click', () => {
+                    isDrilldown = false;
+                    document.getElementById('btnVoltarGrafico').classList.add('hidden');
+                    renderChart(chartDados.root, 'Geral');
+                });
+            </script>
+        </div>
+        <?php endif; ?>
 
         <!-- Saldos das Contas -->
         <?php if(count($contas_ativas) > 0): ?>
