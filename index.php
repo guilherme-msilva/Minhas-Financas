@@ -135,6 +135,16 @@ foreach ($cats_grafico as $c) {
     }
 }
 
+function generateHarmonicColor($index, $total) {
+    if ($total <= 0) $total = 1;
+    // Distribui o Hue ao longo de 360 graus
+    $hue = ($index * (360 / $total)) % 360;
+    // Para dar variação harmônica, alternamos um pouco saturação e luminosidade
+    $saturation = 75 - (($index % 2) * 15); 
+    $lightness = 55 + (($index % 3) * 5);
+    return "hsl({$hue}, {$saturation}%, {$lightness}%)";
+}
+
 foreach ($despesas_agrupadas as $id_cat => $valor) {
     if (!isset($mapa_raiz[$id_cat])) continue;
     $id_raiz = $mapa_raiz[$id_cat];
@@ -142,18 +152,28 @@ foreach ($despesas_agrupadas as $id_cat => $valor) {
     if (!isset($totais_por_raiz[$id_raiz])) $totais_por_raiz[$id_raiz] = 0;
     $totais_por_raiz[$id_raiz] += $valor;
     
-    $cor = resolveCorCategoria($id_cat, $cats_map_grafico);
     $nome = $cats_map_grafico[$id_cat]['nome'] . ($id_cat == $id_raiz && count($dados_grafico['drilldown'][$id_raiz]['labels']) >= 0 ? ' (Geral)' : '');
     
     $dados_grafico['drilldown'][$id_raiz]['labels'][] = $nome;
     $dados_grafico['drilldown'][$id_raiz]['data'][] = $valor;
-    $dados_grafico['drilldown'][$id_raiz]['backgroundColor'][] = $cor;
     $dados_grafico['drilldown'][$id_raiz]['ids'][] = $id_cat;
 }
 
+// Gerar cores para drilldown
+foreach ($dados_grafico['drilldown'] as $id_raiz => &$drill) {
+    $total_drills = count($drill['ids']);
+    foreach ($drill['ids'] as $idx => $id_cat) {
+        $drill['backgroundColor'][] = generateHarmonicColor($idx, $total_drills);
+    }
+}
+unset($drill);
+
+$color_index_root = 0;
+$total_roots = count(array_filter($totais_por_raiz, fn($val) => $val > 0));
+
 foreach ($totais_por_raiz as $id_raiz => $total) {
     if ($total > 0) {
-        $cor = resolveCorCategoria($id_raiz, $cats_map_grafico);
+        $cor = generateHarmonicColor($color_index_root++, $total_roots);
         $dados_grafico['root']['labels'][] = $cats_map_grafico[$id_raiz]['nome'];
         $dados_grafico['root']['data'][] = $total;
         $dados_grafico['root']['backgroundColor'][] = $cor;

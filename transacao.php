@@ -479,7 +479,7 @@ foreach ($contas as $conta) {
                     <div class="bg-white/5 rounded-3xl p-2 space-y-1">
                         <div class="flex items-center justify-between p-3 border-b border-white/5">
                             <span class="text-gray-300 font-medium">Nota</span>
-                            <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar >" id="ui-notas" value="<?php echo htmlspecialchars($notas); ?>">
+                            <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar Notas..." id="ui-notas" value="<?php echo htmlspecialchars($notas); ?>">
                         </div>
 
                         <div class="p-3">

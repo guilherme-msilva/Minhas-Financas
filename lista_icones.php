@@ -7,6 +7,7 @@ $icones_catalogo = [
     'ph-film-strip', 'ph-basketball', 'ph-person-simple-swim', 'ph-music-notes', 'ph-train', 'ph-bus', 
     'ph-bicycle', 'ph-gas-pump', 'ph-baby', 'ph-briefcase', 'ph-credit-card', 
     'ph-invoice', 'ph-chart-line-up', 'ph-dots-three-circle', 'ph-empty', 'ph-swap',
-	'ph-tooth', 'ph-gift', 'ph-dress', 'ph-bread', 'ph-pizza', 'ph-cow', 'ph-hair-dryer'
+	'ph-tooth', 'ph-gift', 'ph-dress', 'ph-bread', 'ph-pizza', 'ph-cow', 'ph-hair-dryer',
+	'ph-building'
 ];
 ?>
