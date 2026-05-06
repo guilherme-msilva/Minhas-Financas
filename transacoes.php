@@ -188,23 +188,24 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
         <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-lg">
             <h1 class="text-2xl font-bold text-white tracking-wide mb-4 md:mb-0">Transações</h1>
             
-            <form method="GET" class="flex items-center space-x-3">
+            <form method="GET" class="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
                 <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
                 
-                <select name="conta" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="conta" onchange="this.form.submit()" class="w-full md:w-auto bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0">Todas as Contas</option>
                     <?php foreach($contas_filtro as $c): ?>
                         <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <select name="mes" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="mes" onchange="this.form.submit()" class="flex-1 md:flex-none bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0" <?php echo $mes_atual == 0 ? 'selected' : ''; ?>>Todos os Meses</option>
                     <?php foreach($meses as $num => $nome): ?>
                         <option class="text-gray-900" value="<?php echo $num; ?>" <?php echo $mes_atual == $num ? 'selected' : ''; ?>><?php echo $nome; ?></option>
                     <?php endforeach; ?>
                 </select>
-                <select name="ano" class="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                
+                <select name="ano" onchange="this.form.submit()" class="flex-1 md:flex-none bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <?php foreach($anos_disponiveis as $ano_opt): ?>
                         <option class="text-gray-900" value="<?php echo $ano_opt; ?>" <?php echo $ano_atual == $ano_opt ? 'selected' : ''; ?>><?php echo $ano_opt; ?></option>
                     <?php endforeach; ?>
@@ -216,10 +217,6 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                     <?php else: ?>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path></svg>
                     <?php endif; ?>
-                </button>
-                
-                <button type="submit" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white" title="Filtrar">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </button>
             </form>
         </div>
