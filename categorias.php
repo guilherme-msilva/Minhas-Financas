@@ -9,7 +9,7 @@ require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
 // Buscar categorias
-$sql = "SELECT id, nome, cor, id_pai FROM categorias WHERE id_user = ? ORDER BY nome ASC";
+$sql = "SELECT id, nome, cor, icone, id_pai FROM categorias WHERE id_user = ? ORDER BY nome ASC";
 $stmt = $mysqliFinancas->prepare($sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -47,6 +47,7 @@ function renderTreeHtml($nodes, $level = 0) {
         $hasChildren = count($cat['children']) > 0;
         $cor = htmlspecialchars($cat['cor'] ?: '#ccc');
         $nome = htmlspecialchars($cat['nome']);
+        $icone = htmlspecialchars($cat['icone'] ?? '');
         $id = $cat['id'];
         
         echo "<div class='flex flex-col'>";
@@ -61,7 +62,11 @@ function renderTreeHtml($nodes, $level = 0) {
             echo "<div class='w-4 h-4'></div>"; // Espaçador
         }
         
-        echo "<div class='w-4 h-4 rounded-full border border-white/20 shadow-inner' style='background-color: $cor'></div>";
+        if ($icone) {
+            echo "<i class='ph $icone text-xl' style='color: $cor'></i>";
+        } else {
+            echo "<div class='w-4 h-4 rounded-full border border-white/20 shadow-inner' style='background-color: $cor'></div>";
+        }
         echo "<span class='text-white font-medium'>$nome</span>";
         echo "</div>"; // fim flex interno
         
@@ -91,6 +96,7 @@ function renderTreeHtml($nodes, $level = 0) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Categorias - Minhas Finanças</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {

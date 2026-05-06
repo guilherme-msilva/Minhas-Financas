@@ -15,10 +15,11 @@ $sucesso = '';
 $nome = '';
 $id_pai = '';
 $cor = '#3b82f6';
+$icone = '';
 
 // Se for edição, carregar os dados
 if ($id > 0 && $_SERVER['REQUEST_METHOD'] != 'POST') {
-    $stmt = $mysqliFinancas->prepare("SELECT nome, id_pai, cor FROM categorias WHERE id = ? AND id_user = ?");
+    $stmt = $mysqliFinancas->prepare("SELECT nome, id_pai, cor, icone FROM categorias WHERE id = ? AND id_user = ?");
     $stmt->bind_param("ii", $id, $user_id);
     $stmt->execute();
     $res = $stmt->get_result();
@@ -26,6 +27,7 @@ if ($id > 0 && $_SERVER['REQUEST_METHOD'] != 'POST') {
         $nome = $cat['nome'];
         $id_pai = $cat['id_pai'];
         $cor = $cat['cor'] ?: '#3b82f6';
+        $icone = $cat['icone'] ?? '';
     } else {
         header("Location: categorias.php");
         exit;
@@ -60,12 +62,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $nome = trim($_POST['nome'] ?? '');
         $id_pai = !empty($_POST['id_pai']) ? (int)$_POST['id_pai'] : NULL;
         $cor = trim($_POST['cor'] ?? '');
+        $icone = trim($_POST['icone'] ?? '');
 
     if ($nome) {
         if ($id > 0) {
             // Update
-            $stmt = $mysqliFinancas->prepare("UPDATE categorias SET nome = ?, id_pai = ?, cor = ? WHERE id = ? AND id_user = ?");
-            $stmt->bind_param("sisii", $nome, $id_pai, $cor, $id, $user_id);
+            $stmt = $mysqliFinancas->prepare("UPDATE categorias SET nome = ?, id_pai = ?, cor = ?, icone = ? WHERE id = ? AND id_user = ?");
+            $stmt->bind_param("sissii", $nome, $id_pai, $cor, $icone, $id, $user_id);
             if ($stmt->execute()) {
                 $sucesso = "Categoria atualizada com sucesso!";
             } else {
@@ -73,8 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         } else {
             // Insert
-            $stmt = $mysqliFinancas->prepare("INSERT INTO categorias (nome, id_pai, cor, id_user) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("sisi", $nome, $id_pai, $cor, $user_id);
+            $stmt = $mysqliFinancas->prepare("INSERT INTO categorias (nome, id_pai, cor, icone, id_user) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sissi", $nome, $id_pai, $cor, $icone, $user_id);
             if ($stmt->execute()) {
                 $sucesso = "Categoria inserida com sucesso!";
                 $id = $stmt->insert_id; // Atualiza o ID pra continuar editando se quiser
@@ -96,6 +99,16 @@ $stmt_pais->bind_param("ii", $user_id, $id);
 $stmt_pais->execute();
 $categorias_pai = $stmt_pais->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_pais->close();
+
+$icones_catalogo = [
+    'ph-house', 'ph-car', 'ph-shopping-cart', 'ph-fork-knife', 'ph-heart-beat', 
+    'ph-graduation-cap', 'ph-airplane-tilt', 'ph-paw-print', 'ph-t-shirt', 
+    'ph-monitor', 'ph-game-controller', 'ph-gift', 'ph-trend-up', 'ph-money', 
+    'ph-piggy-bank', 'ph-lightning', 'ph-wrench', 'ph-book', 'ph-coffee', 
+    'ph-film-strip', 'ph-basketball', 'ph-music-notes', 'ph-train', 'ph-bus', 
+    'ph-bicycle', 'ph-gas-pump', 'ph-baby', 'ph-briefcase', 'ph-credit-card', 
+    'ph-invoice', 'ph-chart-line-up', 'ph-dots-three-circle'
+];
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -104,6 +117,7 @@ $stmt_pais->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $id > 0 ? 'Editar Categoria' : 'Nova Categoria'; ?> - Minhas Finanças</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -189,6 +203,25 @@ $stmt_pais->close();
                     </div>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Ícone da Categoria</label>
+                    <input type="hidden" id="icone" name="icone" value="<?php echo htmlspecialchars($icone); ?>">
+                    
+                    <div class="bg-[#1e293b] border border-white/10 rounded-xl p-4 h-48 overflow-y-auto">
+                        <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                            <?php foreach($icones_catalogo as $ic): ?>
+                                <button type="button" 
+                                        onclick="selectIcon('<?php echo $ic; ?>')" 
+                                        id="btn-<?php echo $ic; ?>"
+                                        class="icon-btn p-2 rounded-lg flex items-center justify-center transition-all <?php echo $icone == $ic ? 'bg-cyan-500/30 border border-cyan-400 text-cyan-400' : 'bg-transparent border border-transparent text-gray-400 hover:text-white hover:bg-white/10'; ?>">
+                                    <i class="ph <?php echo $ic; ?> text-3xl"></i>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <span class="text-gray-400 text-sm mt-2 block">Escolha um ícone para representar esta categoria.</span>
+                </div>
+
                 <div class="pt-4 border-t border-white/10">
                     <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl font-semibold shadow-lg transition-all transform hover:scale-[1.02] active:scale-95">
                         Salvar Categoria
@@ -209,5 +242,27 @@ $stmt_pais->close();
         </div>
     </div>
 
+    <script>
+        function selectIcon(iconClass) {
+            document.getElementById('icone').value = iconClass;
+            
+            // Remove highlight from all
+            document.querySelectorAll('.icon-btn').forEach(btn => {
+                btn.classList.remove('bg-cyan-500/30', 'border-cyan-400', 'text-cyan-400');
+                btn.classList.add('bg-transparent', 'border-transparent', 'text-gray-400');
+                btn.classList.remove('hover:text-white', 'hover:bg-white/10');
+                if (btn.id !== 'btn-' + iconClass) {
+                    btn.classList.add('hover:text-white', 'hover:bg-white/10');
+                }
+            });
+            
+            // Add highlight to selected
+            const selectedBtn = document.getElementById('btn-' + iconClass);
+            if (selectedBtn) {
+                selectedBtn.classList.remove('bg-transparent', 'border-transparent', 'text-gray-400', 'hover:text-white', 'hover:bg-white/10');
+                selectedBtn.classList.add('bg-cyan-500/30', 'border-cyan-400', 'text-cyan-400');
+            }
+        }
+    </script>
 </body>
 </html>

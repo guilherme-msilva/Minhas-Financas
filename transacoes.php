@@ -53,7 +53,7 @@ $stmt_contas_filtro->close();
 
 if ($mes_atual == 0) {
     $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
@@ -68,7 +68,7 @@ if ($mes_atual == 0) {
     }
 } else {
     $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, co.nome as conta_nome
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
@@ -149,6 +149,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transações - Minhas Finanças</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -248,10 +249,14 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                                 <?php if($t['idcategoria'] == -1): ?>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                 <?php else: ?>
-                                    <?php if($t['valor'] > 0): ?>
-                                        <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                                    <?php if(!empty($t['categoria_icone'])): ?>
+                                        <i class="ph <?php echo htmlspecialchars($t['categoria_icone']); ?> text-white text-xl"></i>
                                     <?php else: ?>
-                                        <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                        <?php if($t['valor'] > 0): ?>
+                                            <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                                        <?php else: ?>
+                                            <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </div>
