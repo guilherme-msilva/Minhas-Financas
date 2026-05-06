@@ -70,7 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt = $mysqliFinancas->prepare("UPDATE categorias SET nome = ?, id_pai = ?, cor = ?, icone = ? WHERE id = ? AND id_user = ?");
             $stmt->bind_param("sissii", $nome, $id_pai, $cor, $icone, $id, $user_id);
             if ($stmt->execute()) {
-                $sucesso = "Categoria atualizada com sucesso!";
+                header("Location: categorias.php");
+                exit;
             } else {
                 $erro = "Erro ao atualizar: " . $mysqliFinancas->error;
             }
@@ -79,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt = $mysqliFinancas->prepare("INSERT INTO categorias (nome, id_pai, cor, icone, id_user) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("sissi", $nome, $id_pai, $cor, $icone, $user_id);
             if ($stmt->execute()) {
-                $sucesso = "Categoria inserida com sucesso!";
-                $id = $stmt->insert_id; // Atualiza o ID pra continuar editando se quiser
+                header("Location: categorias.php");
+                exit;
             } else {
                 $erro = "Erro ao inserir: " . $mysqliFinancas->error;
             }

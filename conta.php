@@ -50,7 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt = $mysqliFinancas->prepare("UPDATE contas SET nome = ?, saldo_inicial = ?, cor = ?, img = ?, status = ? WHERE id = ? AND id_user = ?");
             $stmt->bind_param("sdssiii", $nome, $saldo_inicial, $cor, $img, $status, $id, $user_id);
             if ($stmt->execute()) {
-                $sucesso = "Conta atualizada com sucesso!";
+                header("Location: contas.php");
+                exit;
             } else {
                 $erro = "Erro ao atualizar: " . $mysqliFinancas->error;
             }
@@ -59,8 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmt = $mysqliFinancas->prepare("INSERT INTO contas (nome, saldo_inicial, cor, img, status, id_user) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("sdssii", $nome, $saldo_inicial, $cor, $img, $status, $user_id);
             if ($stmt->execute()) {
-                $sucesso = "Conta inserida com sucesso!";
-                $id = $stmt->insert_id;
+                header("Location: contas.php");
+                exit;
             } else {
                 $erro = "Erro ao inserir: " . $mysqliFinancas->error;
             }
