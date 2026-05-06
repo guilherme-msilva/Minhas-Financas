@@ -242,19 +242,23 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                     
                     <!-- Card da Transação -->
                     <div class="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/20 transition-all <?php echo !$t['consolidada'] ? 'opacity-50 border-dashed' : ''; ?>">
-                        <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <!-- Ícone/Cor -->
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner" style="background-color: <?php echo $t['idcategoria'] == -1 ? '#3b82f6' : ($t['categoria_cor'] ?: '#ccc'); ?>">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo $t['idcategoria'] == -1 ? '#3b82f6' : ($t['categoria_cor'] ?: '#ccc'); ?>">
                                 <?php if($t['idcategoria'] == -1): ?>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                 <?php else: ?>
-                                    <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                    <?php if($t['valor'] > 0): ?>
+                                        <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                                    <?php else: ?>
+                                        <svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                             
                             <!-- Detalhes -->
-                            <div>
-                                <h3 class="text-white font-medium text-lg leading-tight"><?php echo htmlspecialchars($t['descricao']); ?></h3>
+                            <div class="flex-1 min-w-0 pr-2">
+                                <h3 class="text-white font-medium text-lg leading-tight truncate"><?php echo htmlspecialchars($t['descricao']); ?></h3>
                                 <p class="text-white/50 text-xs mt-1">
                                     <?php echo htmlspecialchars($t['conta_nome'] ?? 'Conta Desconhecida'); ?>
                                     
@@ -272,15 +276,10 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                         </div>
                         
                         <!-- Valor e Ações -->
-                        <div class="flex items-center space-x-4">
-                            <span class="font-bold text-lg <?php echo $t['idcategoria'] == -1 ? 'text-blue-400' : ($t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'); ?>">
+                        <div class="flex items-center space-x-3 shrink-0">
+                            <span class="font-bold text-lg whitespace-nowrap <?php echo $t['idcategoria'] == -1 ? 'text-blue-400' : ($t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'); ?>">
                                 <?php 
-                                    if($t['idcategoria'] == -1) {
-                                        echo 'R$ ' . number_format(abs($t['valor']), 2, ',', '.');
-                                    } else {
-                                        echo $t['valor'] < 0 ? '-' : '+';
-                                        echo ' R$ ' . number_format(abs($t['valor']), 2, ',', '.');
-                                    }
+                                    echo 'R$ ' . number_format(abs($t['valor']), 2, ',', '.');
                                 ?>
                             </span>
                             
