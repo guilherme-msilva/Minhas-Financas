@@ -493,11 +493,11 @@ $stmt->close();
                                         generateLabels: function(chart) {
                                             const data = chart.data;
                                             if (data.labels.length && data.datasets.length) {
-                                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                                const total = data.datasets[0].data.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
                                                 return data.labels.map(function(label, i) {
                                                     const meta = chart.getDatasetMeta(0);
                                                     const style = meta.controller.getStyle(i);
-                                                    const value = data.datasets[0].data[i];
+                                                    const value = parseFloat(data.datasets[0].data[i]);
                                                     const pct = total > 0 ? ((value * 100) / total).toFixed(1) : 0;
                                                     const formattedValue = value.toLocaleString('pt-BR', {minimumFractionDigits: 2});
                                                     
@@ -527,8 +527,8 @@ $stmt->close();
                                         label: function(context) {
                                             let label = context.label || '';
                                             if (label) label += ': ';
-                                            const valor = context.parsed;
-                                            const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                            const valor = parseFloat(context.parsed || context.raw);
+                                            const total = context.dataset.data.reduce((acc, val) => acc + parseFloat(val), 0);
                                             const pct = total > 0 ? ((valor * 100) / total).toFixed(1) : 0;
                                             label += 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
                                             label += ' (' + pct + '%)';
