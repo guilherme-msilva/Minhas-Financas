@@ -58,6 +58,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $recorrencias = (int)$_POST['recorrencias'];
         }
         
+        $dia_vencimento = isset($_POST['dia_vencimento']) && $_POST['dia_vencimento'] !== '' ? (int)$_POST['dia_vencimento'] : (int)date('d', strtotime($data));
+        $parcela_recorrencia = 1;
+        
         $modo_edicao = $_POST['modo_edicao'] ?? 'todas_futuras'; // 'somente_esta' ou 'todas_futuras'
         $id_grupo_recorrencia = $_POST['id_grupo_recorrencia'] ?? NULL;
         if (empty($id_grupo_recorrencia) && $recorrencias != 0) {
@@ -135,14 +138,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     } else {
                         $mysqliFinancas->begin_transaction();
                         try {
-                            $stmt1 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                            $stmt1->bind_param("sdsiiiisis", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia);
+                            $stmt1 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia, parcela_recorrencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                            $stmt1->bind_param("sdsiiiisisi", $data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia, $parcela_recorrencia);
                             $stmt1->execute();
                             $id_pai = $mysqliFinancas->insert_id;
                             
                             $stmt2 = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, idpai, notas) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
                             $stmt2->bind_param("sdsiiiiis", $data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $user_id, $consolidada, $id_pai, $notas);
                             $stmt2->execute();
+                            
+                            // Create 2nd occurrence immediately if recurring
+                            if ($recorrencias == -1 || $parcela_recorrencia < $recorrencias) {
+                                $prox_data_obj = new DateTime($data);
+                                $prox_data_obj->modify('first day of next month');
+                                $last_day = (int)$prox_data_obj->format('t');
+                                $day_to_use = min($dia_vencimento, $last_day);
+                                $prox_data_obj->setDate((int)$prox_data_obj->format('Y'), (int)$prox_data_obj->format('m'), $day_to_use);
+                                $prox_data = $prox_data_obj->format('Y-m-d');
+                                $prox_parcela = $parcela_recorrencia + 1;
+                                
+                                $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia, parcela_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
+                                $stmt_spawn->bind_param("sdsiiiisisi", $prox_data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $notas, $recorrencias, $id_grupo_recorrencia, $prox_parcela);
+                                $stmt_spawn->execute();
+                                $new_id = $mysqliFinancas->insert_id;
+                                
+                                $stmt_spawn_in = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, idpai, notas) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)");
+                                $stmt_spawn_in->bind_param("sdsiiiiis", $prox_data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $user_id, $new_id, $notas);
+                                $stmt_spawn_in->execute();
+                            }
                             
                             $mysqliFinancas->commit();
                             $sucesso = "Transferência registrada com sucesso!";
@@ -163,11 +186,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $erro = "Erro ao atualizar: " . $mysqliFinancas->error;
                     }
                 } else {
-                    $stmt = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("sdsiiiisis", $data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia);
+                    $stmt = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia, parcela_recorrencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->bind_param("sdsiiiisisi", $data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $consolidada, $notas, $recorrencias, $id_grupo_recorrencia, $parcela_recorrencia);
                     if ($stmt->execute()) {
                         $sucesso = "Transação inserida com sucesso!";
                         $id = $mysqliFinancas->insert_id;
+                        
+                        // Create 2nd occurrence immediately if recurring
+                        if ($recorrencias == -1 || $parcela_recorrencia < $recorrencias) {
+                            $prox_data_obj = new DateTime($data);
+                            $prox_data_obj->modify('first day of next month');
+                            $last_day = (int)$prox_data_obj->format('t');
+                            $day_to_use = min($dia_vencimento, $last_day);
+                            $prox_data_obj->setDate((int)$prox_data_obj->format('Y'), (int)$prox_data_obj->format('m'), $day_to_use);
+                            $prox_data = $prox_data_obj->format('Y-m-d');
+                            $prox_parcela = $parcela_recorrencia + 1;
+                            
+                            $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia, parcela_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
+                            $stmt_spawn->bind_param("sdsiiiisisi", $prox_data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $notas, $recorrencias, $id_grupo_recorrencia, $prox_parcela);
+                            $stmt_spawn->execute();
+                        }
                     } else {
                         $erro = "Erro ao inserir: " . $mysqliFinancas->error;
                     }
@@ -422,6 +460,7 @@ foreach ($contas as $conta) {
         <input type="hidden" name="notas" id="input-notas">
         <input type="hidden" name="recorrencias" id="input-recorrencias">
         <input type="hidden" name="indefinidamente" id="input-indefinidamente">
+        <input type="hidden" name="dia_vencimento" id="input-dia-vencimento">
         <input type="hidden" name="id_grupo_recorrencia" id="input-id-grupo-recorrencia" value="<?php echo htmlspecialchars($id_grupo_recorrencia ?? ''); ?>">
         <input type="hidden" name="modo_edicao" id="input-modo-edicao" value="todas_futuras">
     </form>
@@ -571,6 +610,11 @@ foreach ($contas as $conta) {
                             </div>
                             
                             <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
+                                <span class="text-gray-300 font-medium text-sm">Dia do Vencimento</span>
+                                <input type="number" id="ui-dia-vencimento" min="1" max="31" value="<?php echo date('d', strtotime($data)); ?>" class="bg-black/20 text-right text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24">
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
                                 <span class="text-gray-300 font-medium text-sm">Indefinidamente</span>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                   <input type="checkbox" id="ui-indefinidamente" onchange="toggleIndefinidamente()" class="sr-only peer" <?php echo ($recorrencias == -1) ? 'checked' : ''; ?>>
@@ -579,7 +623,7 @@ foreach ($contas as $conta) {
                             </div>
                             
                             <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
-                                <span class="text-gray-300 font-medium text-sm">Nº de Ocorrências</span>
+                                <span class="text-gray-300 font-medium text-sm">Parcela Final</span>
                                 <input type="number" id="ui-ocorrencias" min="1" value="<?php echo ($recorrencias > 0) ? $recorrencias : ''; ?>" class="bg-black/20 text-right text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24 disabled:opacity-50" <?php echo ($recorrencias == -1) ? 'disabled' : ''; ?> placeholder="Ex: 12">
                             </div>
                         </div>
@@ -953,13 +997,16 @@ foreach ($contas as $conta) {
             
             document.getElementById('input-recorrencias').value = recorrenciasInput.value;
             document.getElementById('input-indefinidamente').value = indefinidamenteInput.checked ? '1' : '';
+            document.getElementById('input-dia-vencimento').value = document.getElementById('ui-dia-vencimento').value;
             
             const id_grupo_recorrencia = document.getElementById('input-id-grupo-recorrencia').value;
             const isEditing = <?php echo $id > 0 ? 'true' : 'false'; ?>;
+            const isConsolidated = <?php echo ($id > 0 && $consolidada == 1) ? 'true' : 'false'; ?>;
             
-            if (isEditing && id_grupo_recorrencia) {
+            if (isEditing && id_grupo_recorrencia && !isConsolidated) {
                 document.getElementById('modal-edicao-recorrencia').classList.remove('hidden');
             } else {
+                document.getElementById('input-modo-edicao').value = 'somente_esta';
                 document.getElementById('transacao-form').submit();
             }
         }

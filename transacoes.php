@@ -17,7 +17,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
     $stmt->execute();
     $res = $stmt->get_result();
     if ($t = $res->fetch_assoc()) {
-        $novo_status = $t['consolidada'] ? 0 : 1;
+        if ($t['consolidada']) {
+            // Já está consolidada, bloqueio de desconsolidar
+            header("Location: transacoes.php");
+            exit;
+        }
+        $novo_status = 1;
         
         if ($t['idcategoria'] == -1) {
             $parent_id = $t['idpai'] ? $t['idpai'] : $id_cons;
@@ -44,12 +49,21 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
                     $stmt_check->execute();
                     if ($stmt_check->get_result()->num_rows == 0) {
                         // Spawna a próxima
-                        $prox_data = date('Y-m-d', strtotime('+1 month', strtotime($t_full['data'])));
-                        $prox_rec = $t_full['recorrencias'] > 0 ? $t_full['recorrencias'] - 1 : -1;
+                        $dia_vencimento = (int)date('d', strtotime($t_full['data']));
+                        $prox_data_obj = new DateTime($t_full['data']);
+                        $prox_data_obj->modify('first day of next month');
+                        $last_day = (int)$prox_data_obj->format('t');
+                        $day_to_use = min($dia_vencimento, $last_day);
+                        $prox_data_obj->setDate((int)$prox_data_obj->format('Y'), (int)$prox_data_obj->format('m'), $day_to_use);
+                        $prox_data = $prox_data_obj->format('Y-m-d');
                         
-                        if ($prox_rec != 0) {
-                            $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)");
-                            $stmt_spawn->bind_param("sdsiiiisis", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $prox_rec, $t_full['id_grupo_recorrencia']);
+                        $recorrencias = $t_full['recorrencias'];
+                        $parcela_atual = $t_full['parcela_recorrencia'] ?? 1;
+                        
+                        if ($recorrencias == -1 || $parcela_atual < $recorrencias) {
+                            $prox_parcela = $parcela_atual + 1;
+                            $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia, parcela_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
+                            $stmt_spawn->bind_param("sdsiiiisisi", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $recorrencias, $t_full['id_grupo_recorrencia'], $prox_parcela);
                             $stmt_spawn->execute();
                             $new_id = $mysqliFinancas->insert_id;
                             
@@ -339,7 +353,16 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                             
                             <!-- Detalhes -->
                             <div class="flex-1 min-w-0 pr-2">
-                                <h3 class="text-white font-medium text-lg leading-tight truncate"><?php echo htmlspecialchars($t['descricao']); ?></h3>
+                                <h3 class="text-white font-medium text-lg leading-tight truncate">
+                                    <?php 
+                                        $desc_exibicao = htmlspecialchars($t['descricao']);
+                                        if (!empty($t['id_grupo_recorrencia']) && $t['recorrencias'] != -1 && $t['recorrencias'] > 0) {
+                                            $parcela = $t['parcela_recorrencia'] ?? 1;
+                                            $desc_exibicao .= " ($parcela / {$t['recorrencias']})";
+                                        }
+                                        echo $desc_exibicao;
+                                    ?>
+                                </h3>
                                 <p class="text-white/50 text-xs mt-1">
                                     <?php echo htmlspecialchars($t['conta_nome'] ?? 'Conta Desconhecida'); ?>
                                     
@@ -366,17 +389,21 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                             
                             <div class="flex space-x-1">
                                 <!-- Botão Consolidar Rapido -->
-                                <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
-                                   class="p-2 rounded-lg transition-colors <?php echo $t['consolidada'] ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10' : 'text-gray-400 hover:text-white hover:bg-white/10'; ?>"
-                                   title="<?php echo $t['consolidada'] ? 'Marcar como pendente' : 'Consolidar'; ?>">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <?php if($t['consolidada']): ?>
+                                <?php if($t['consolidada']): ?>
+                                    <div class="p-2 rounded-lg text-emerald-400 bg-emerald-400/5 cursor-default" title="Transação Consolidada">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        <?php else: ?>
+                                        </svg>
+                                    </div>
+                                <?php else: ?>
+                                    <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
+                                       class="p-2 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-white/10"
+                                       title="Consolidar">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                        <?php endif; ?>
-                                    </svg>
-                                </a>
+                                        </svg>
+                                    </a>
+                                <?php endif; ?>
 
                                 <!-- Botão Editar -->
                                 <a href="transacao.php?id=<?php echo $t['id']; ?>" class="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded-lg transition-colors" title="Editar">
