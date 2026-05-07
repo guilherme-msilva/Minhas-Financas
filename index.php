@@ -400,7 +400,7 @@ $stmt->close();
         </div>
 
         <!-- Painel de Gráfico: Despesas por Categoria -->
-        <?php if(!empty($dados_grafico['root']['data'])): ?>
+        <?php if(true): ?>
         <div class="mt-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg relative">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div class="flex items-center gap-3">
@@ -420,7 +420,6 @@ $stmt->close();
                 <canvas id="graficoDespesas"></canvas>
             </div>
             
-            <script>
             <script>
                 const chartDadosDespesas = <?php echo $json_grafico_despesas; ?>;
                 const chartDadosReceitas = <?php echo $json_grafico_receitas; ?>;
