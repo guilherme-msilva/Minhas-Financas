@@ -75,26 +75,29 @@ $stmt_contas->execute();
 $contas_ativas = $stmt_contas->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_contas->close();
 
-// 4. Despesas do mês atual por categoria (para o gráfico)
-$sql_despesas = "
-    SELECT t.idcategoria, SUM(t.valor) as total
+// 4. Transações do mês por categoria (para o gráfico)
+$sql_trans = "
+    SELECT t.idcategoria, 
+           SUM(CASE WHEN t.valor < 0 THEN ABS(t.valor) ELSE 0 END) as total_despesa,
+           SUM(CASE WHEN t.valor > 0 THEN t.valor ELSE 0 END) as total_receita
     FROM transacoes t
     WHERE t.iduser = ? 
       AND t.idcategoria != -1
       AND t.data >= ? 
       AND t.data <= ?
-      AND t.valor < 0
     GROUP BY t.idcategoria
 ";
-$stmt_despesas = $mysqliFinancas->prepare($sql_despesas);
-$stmt_despesas->bind_param("iss", $user_id, $data_inicio_mes, $data_limite);
-$stmt_despesas->execute();
-$res_despesas = $stmt_despesas->get_result();
+$stmt_trans = $mysqliFinancas->prepare($sql_trans);
+$stmt_trans->bind_param("iss", $user_id, $data_inicio_mes, $data_limite);
+$stmt_trans->execute();
+$res_trans = $stmt_trans->get_result();
 $despesas_agrupadas = [];
-while ($row = $res_despesas->fetch_assoc()) {
-    $despesas_agrupadas[$row['idcategoria']] = abs($row['total']);
+$receitas_agrupadas = [];
+while ($row = $res_trans->fetch_assoc()) {
+    if ($row['total_despesa'] > 0) $despesas_agrupadas[$row['idcategoria']] = $row['total_despesa'];
+    if ($row['total_receita'] > 0) $receitas_agrupadas[$row['idcategoria']] = $row['total_receita'];
 }
-$stmt_despesas->close();
+$stmt_trans->close();
 
 // Buscar todas as categorias para construir a hierarquia do gráfico
 $sql_cats_grafico = "SELECT id, id_pai, nome, cor FROM categorias WHERE id_user = ?";
@@ -109,84 +112,75 @@ foreach ($cats_grafico as $c) {
     $cats_map_grafico[$c['id']] = $c;
 }
 
-function resolveCorCategoria($id_categoria, $cats_map) {
-    $atual = $id_categoria;
-    while ($atual && isset($cats_map[$atual])) {
-        if (!empty($cats_map[$atual]['cor'])) {
-            return $cats_map[$atual]['cor'];
-        }
-        $atual = $cats_map[$atual]['id_pai'];
-    }
-    return '#ccc'; // fallback
-}
-
-$dados_grafico = [
-    'root' => ['labels' => [], 'data' => [], 'backgroundColor' => [], 'ids' => []],
-    'drilldown' => []
-];
-
-$totais_por_raiz = [];
-$mapa_raiz = [];
-
-foreach ($cats_grafico as $c) {
-    $id = $c['id'];
-    $atual = $id;
-    while (!empty($cats_map_grafico[$atual]['id_pai'])) {
-        $atual = $cats_map_grafico[$atual]['id_pai'];
-    }
-    $mapa_raiz[$id] = $atual;
-    
-    if (!isset($dados_grafico['drilldown'][$atual])) {
-        $dados_grafico['drilldown'][$atual] = ['labels' => [], 'data' => [], 'backgroundColor' => [], 'ids' => [], 'nome_raiz' => $cats_map_grafico[$atual]['nome']];
-    }
-}
-
 function generateHarmonicColor($index, $total) {
     if ($total <= 0) $total = 1;
-    // Distribui o Hue ao longo de 360 graus
     $hue = ($index * (360 / $total)) % 360;
-    // Para dar variação harmônica, alternamos um pouco saturação e luminosidade
     $saturation = 75 - (($index % 2) * 15); 
     $lightness = 55 + (($index % 3) * 5);
     return "hsl({$hue}, {$saturation}%, {$lightness}%)";
 }
 
-foreach ($despesas_agrupadas as $id_cat => $valor) {
-    if (!isset($mapa_raiz[$id_cat])) continue;
-    $id_raiz = $mapa_raiz[$id_cat];
+function buildGraphData($agrupadas, $cats_map_grafico, $cats_grafico) {
+    $dados_grafico = [
+        'root' => ['labels' => [], 'data' => [], 'backgroundColor' => [], 'ids' => []],
+        'drilldown' => []
+    ];
+    $mapa_raiz = [];
+    $totais_por_raiz = [];
     
-    if (!isset($totais_por_raiz[$id_raiz])) $totais_por_raiz[$id_raiz] = 0;
-    $totais_por_raiz[$id_raiz] += $valor;
-    
-    $nome = $cats_map_grafico[$id_cat]['nome'] . ($id_cat == $id_raiz && count($dados_grafico['drilldown'][$id_raiz]['labels']) >= 0 ? ' (Geral)' : '');
-    
-    $dados_grafico['drilldown'][$id_raiz]['labels'][] = $nome;
-    $dados_grafico['drilldown'][$id_raiz]['data'][] = $valor;
-    $dados_grafico['drilldown'][$id_raiz]['ids'][] = $id_cat;
-}
-
-// Gerar cores para drilldown
-foreach ($dados_grafico['drilldown'] as $id_raiz => &$drill) {
-    $total_drills = count($drill['ids']);
-    foreach ($drill['ids'] as $idx => $id_cat) {
-        $drill['backgroundColor'][] = generateHarmonicColor($idx, $total_drills);
+    foreach ($cats_grafico as $c) {
+        $id = $c['id'];
+        $atual = $id;
+        while (!empty($cats_map_grafico[$atual]['id_pai'])) {
+            $atual = $cats_map_grafico[$atual]['id_pai'];
+        }
+        $mapa_raiz[$id] = $atual;
+        
+        if (!isset($dados_grafico['drilldown'][$atual])) {
+            $dados_grafico['drilldown'][$atual] = ['labels' => [], 'data' => [], 'backgroundColor' => [], 'ids' => [], 'nome_raiz' => $cats_map_grafico[$atual]['nome']];
+        }
     }
-}
-unset($drill);
 
-$color_index_root = 0;
-$total_roots = count(array_filter($totais_por_raiz, fn($val) => $val > 0));
-
-foreach ($totais_por_raiz as $id_raiz => $total) {
-    if ($total > 0) {
-        $cor = generateHarmonicColor($color_index_root++, $total_roots);
-        $dados_grafico['root']['labels'][] = $cats_map_grafico[$id_raiz]['nome'];
-        $dados_grafico['root']['data'][] = $total;
-        $dados_grafico['root']['backgroundColor'][] = $cor;
-        $dados_grafico['root']['ids'][] = $id_raiz;
+    foreach ($agrupadas as $id_cat => $valor) {
+        if (!isset($mapa_raiz[$id_cat])) continue;
+        $id_raiz = $mapa_raiz[$id_cat];
+        
+        if (!isset($totais_por_raiz[$id_raiz])) $totais_por_raiz[$id_raiz] = 0;
+        $totais_por_raiz[$id_raiz] += $valor;
+        
+        $nome = $cats_map_grafico[$id_cat]['nome'] . ($id_cat == $id_raiz ? ' (Geral)' : '');
+        
+        $dados_grafico['drilldown'][$id_raiz]['labels'][] = $nome;
+        $dados_grafico['drilldown'][$id_raiz]['data'][] = $valor;
+        $dados_grafico['drilldown'][$id_raiz]['ids'][] = $id_cat;
     }
+
+    foreach ($dados_grafico['drilldown'] as $id_raiz => &$drill) {
+        $total_drills = count($drill['ids']);
+        foreach ($drill['ids'] as $idx => $id_cat) {
+            $drill['backgroundColor'][] = generateHarmonicColor($idx, $total_drills);
+        }
+    }
+    unset($drill);
+
+    $color_index_root = 0;
+    $total_roots = count(array_filter($totais_por_raiz, fn($val) => $val > 0));
+
+    foreach ($totais_por_raiz as $id_raiz => $total) {
+        if ($total > 0) {
+            $cor = generateHarmonicColor($color_index_root++, $total_roots);
+            $dados_grafico['root']['labels'][] = $cats_map_grafico[$id_raiz]['nome'];
+            $dados_grafico['root']['data'][] = $total;
+            $dados_grafico['root']['backgroundColor'][] = $cor;
+            $dados_grafico['root']['ids'][] = $id_raiz;
+        }
+    }
+    
+    return $dados_grafico;
 }
-$json_grafico = json_encode($dados_grafico);
+
+$json_grafico_despesas = json_encode(buildGraphData($despesas_agrupadas, $cats_map_grafico, $cats_grafico));
+$json_grafico_receitas = json_encode(buildGraphData($receitas_agrupadas, $cats_map_grafico, $cats_grafico));
 
 // Buscar nome do usuário
 $stmt = $mysqliFinancas->prepare("SELECT nome FROM usuarios WHERE id = ?");
@@ -408,12 +402,18 @@ $stmt->close();
         <!-- Painel de Gráfico: Despesas por Categoria -->
         <?php if(!empty($dados_grafico['root']['data'])): ?>
         <div class="mt-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg relative">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-white/80 font-medium text-xl ml-2">Despesas por Categoria</h3>
-                <button id="btnVoltarGrafico" class="hidden px-4 py-2 bg-white/10 hover:bg-white/20 text-white/80 rounded-xl text-sm transition-all flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Voltar para Geral
-                </button>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div class="flex items-center gap-3">
+                    <h3 class="text-white/80 font-medium text-xl ml-2" id="titulo-grafico">Despesas por Categoria</h3>
+                    <button id="btnVoltarGrafico" class="hidden px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm transition-all flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                        Voltar
+                    </button>
+                </div>
+                <div class="bg-black/20 p-1 rounded-xl flex items-center">
+                    <button onclick="mudarTipoGrafico('despesa')" id="btn-graf-despesa" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/20 text-white shadow transition-all">Despesas</button>
+                    <button onclick="mudarTipoGrafico('receita')" id="btn-graf-receita" class="px-3 py-1.5 text-sm font-medium rounded-lg text-white/50 hover:text-white transition-all">Receitas</button>
+                </div>
             </div>
             
             <div class="relative h-[300px] md:h-[400px] w-full flex justify-center">
@@ -421,10 +421,48 @@ $stmt->close();
             </div>
             
             <script>
-                const chartDados = <?php echo $json_grafico; ?>;
+            <script>
+                const chartDadosDespesas = <?php echo $json_grafico_despesas; ?>;
+                const chartDadosReceitas = <?php echo $json_grafico_receitas; ?>;
+                let currentTipoGrafico = 'despesa';
+                let chartDados = chartDadosDespesas;
+                
                 const ctx = document.getElementById('graficoDespesas').getContext('2d');
                 let currentChart = null;
                 let isDrilldown = false;
+                
+                function mudarTipoGrafico(tipo) {
+                    currentTipoGrafico = tipo;
+                    const btnDespesa = document.getElementById('btn-graf-despesa');
+                    const btnReceita = document.getElementById('btn-graf-receita');
+                    const titulo = document.getElementById('titulo-grafico');
+                    
+                    if (tipo === 'despesa') {
+                        chartDados = chartDadosDespesas;
+                        btnDespesa.classList.add('bg-white/20', 'text-white', 'shadow');
+                        btnDespesa.classList.remove('text-white/50');
+                        btnReceita.classList.remove('bg-white/20', 'text-white', 'shadow');
+                        btnReceita.classList.add('text-white/50');
+                        titulo.innerText = "Despesas por Categoria";
+                    } else {
+                        chartDados = chartDadosReceitas;
+                        btnReceita.classList.add('bg-white/20', 'text-white', 'shadow');
+                        btnReceita.classList.remove('text-white/50');
+                        btnDespesa.classList.remove('bg-white/20', 'text-white', 'shadow');
+                        btnDespesa.classList.add('text-white/50');
+                        titulo.innerText = "Receitas por Categoria";
+                    }
+                    
+                    isDrilldown = false;
+                    document.getElementById('btnVoltarGrafico').classList.add('hidden');
+                    
+                    if (chartDados.root.data.length === 0) {
+                        if (currentChart) currentChart.destroy();
+                        currentChart = null;
+                    } else {
+                        renderChart(chartDados.root, 'Geral');
+                    }
+                }
                 
                 function renderChart(dataObj, title) {
                     if (currentChart) {
@@ -452,7 +490,30 @@ $stmt->close();
                                     labels: {
                                         color: 'rgba(255, 255, 255, 0.7)',
                                         font: { family: 'Outfit', size: 14 },
-                                        padding: 20
+                                        padding: 20,
+                                        generateLabels: function(chart) {
+                                            const data = chart.data;
+                                            if (data.labels.length && data.datasets.length) {
+                                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                                return data.labels.map(function(label, i) {
+                                                    const meta = chart.getDatasetMeta(0);
+                                                    const style = meta.controller.getStyle(i);
+                                                    const value = data.datasets[0].data[i];
+                                                    const pct = total > 0 ? ((value * 100) / total).toFixed(1) : 0;
+                                                    const formattedValue = value.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                                    
+                                                    return {
+                                                        text: `${label} - R$ ${formattedValue} (${pct}%)`,
+                                                        fillStyle: style.backgroundColor,
+                                                        strokeStyle: style.borderColor,
+                                                        lineWidth: style.borderWidth,
+                                                        hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                                        index: i
+                                                    };
+                                                });
+                                            }
+                                            return [];
+                                        }
                                     }
                                 },
                                 tooltip: {
@@ -497,7 +558,9 @@ $stmt->close();
                     });
                 }
                 
-                renderChart(chartDados.root, 'Geral');
+                if (chartDados.root.data.length > 0) {
+                    renderChart(chartDados.root, 'Geral');
+                }
                 
                 document.getElementById('btnVoltarGrafico').addEventListener('click', () => {
                     isDrilldown = false;
