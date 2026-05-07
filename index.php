@@ -7,13 +7,19 @@ if (!isset($_SESSION['user_id'])) {
 require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
-// Filtro de projeção (incluir transações futuras do mês atual)
+// Filtros
+$mes = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
+$ano = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
 $projecao = isset($_GET['projecao']) && $_GET['projecao'] == '1';
 
-// Definir as datas limite
-// Se projeção estiver ativa, usa o último dia do mês atual. Senão, usa a data de hoje.
-$data_limite = $projecao ? date('Y-m-t') : date('Y-m-d');
-$data_inicio_mes = date('Y-m-01');
+$is_current_month = ($mes == (int)date('m') && $ano == (int)date('Y'));
+$data_inicio_mes = sprintf('%04d-%02d-01', $ano, $mes);
+
+if ($is_current_month) {
+    $data_limite = $projecao ? date('Y-m-t', strtotime($data_inicio_mes)) : date('Y-m-d');
+} else {
+    $data_limite = date('Y-m-t', strtotime($data_inicio_mes));
+}
 
 // 1. Cálculo do Saldo Total
 // Somatória dos saldos iniciais das contas ativas + Somatória das transações
@@ -235,19 +241,89 @@ $stmt->close();
         
         <!-- Cabeçalho e Toggle -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-            <div>
-                <h1 class="text-3xl md:text-4xl font-bold text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
-                <p class="text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro de <?php echo strtolower(date('F')); ?>.</p>
+            <div class="flex items-center space-x-4">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
+                    <p class="text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro.</p>
+                </div>
             </div>
             
-            <form id="form-projecao" method="GET" class="bg-white/10 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center space-x-3 shadow-lg">
-                <span class="text-white/90 text-sm font-medium">Projetar lançamentos futuros</span>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" name="projecao" value="1" onchange="document.getElementById('form-projecao').submit()" class="sr-only peer" <?php echo $projecao ? 'checked' : ''; ?>>
-                  <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                </label>
+            <form id="form-filtros" method="GET" class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto relative z-40">
+                <!-- Seletor Liquid Glass de Data -->
+                <div class="relative w-full sm:w-auto">
+                    <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between space-x-3 shadow-lg transition-colors cursor-pointer text-white font-medium text-sm focus:outline-none">
+                        <?php 
+                        $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                        echo $meses[$mes] . ' de ' . $ano; 
+                        ?>
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    
+                    <div id="date-selector" class="absolute top-full left-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
+                        <div class="p-2 border-b border-white/10 flex items-center justify-between">
+                            <button type="button" onclick="mudarAno(-1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <span class="text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano; ?></span>
+                            <button type="button" onclick="mudarAno(1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                        </div>
+                        <div class="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-2 gap-1 p-2">
+                            <?php for($i=1; $i<=12; $i++): ?>
+                                <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
+                                    <?php echo substr($meses[$i], 0, 3); ?>
+                                </button>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="mes" id="input-mes" value="<?php echo $mes; ?>">
+                <input type="hidden" name="ano" id="input-ano" value="<?php echo $ano; ?>">
+            
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between w-full sm:w-auto space-x-3 shadow-lg">
+                    <span class="text-white/90 text-sm font-medium whitespace-nowrap">Projetar lançamentos futuros</span>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input type="checkbox" name="projecao" value="1" onchange="document.getElementById('form-filtros').submit()" class="sr-only peer" <?php echo $projecao ? 'checked' : ''; ?>>
+                      <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+                </div>
             </form>
         </div>
+
+        <script>
+            let anoDropdown = <?php echo $ano; ?>;
+
+            function toggleDateSelect() {
+                const selector = document.getElementById('date-selector');
+                if (selector.classList.contains('hidden')) {
+                    selector.classList.remove('hidden');
+                    setTimeout(() => selector.classList.remove('opacity-0'), 10);
+                } else {
+                    selector.classList.add('opacity-0');
+                    setTimeout(() => selector.classList.add('hidden'), 200);
+                }
+            }
+
+            function mudarAno(delta) {
+                anoDropdown += delta;
+                document.getElementById('display-ano-dropdown').innerText = anoDropdown;
+            }
+
+            function selecionarData(mes) {
+                document.getElementById('input-mes').value = mes;
+                document.getElementById('input-ano').value = anoDropdown;
+                document.getElementById('form-filtros').submit();
+            }
+
+            document.addEventListener('click', function(event) {
+                const formFiltros = document.getElementById('form-filtros');
+                if (formFiltros && !formFiltros.contains(event.target)) {
+                    const selector = document.getElementById('date-selector');
+                    if (selector && !selector.classList.contains('hidden')) {
+                        selector.classList.add('opacity-0');
+                        setTimeout(() => selector.classList.add('hidden'), 200);
+                    }
+                }
+            });
+        </script>
 
         <!-- Painel Saldo Total -->
         <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-8 md:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden mb-8 group">
@@ -356,7 +432,7 @@ $stmt->close();
                     }
                     
                     currentChart = new Chart(ctx, {
-                        type: 'doughnut',
+                        type: 'pie',
                         data: {
                             labels: dataObj.labels,
                             datasets: [{
@@ -370,7 +446,6 @@ $stmt->close();
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            cutout: '65%',
                             plugins: {
                                 legend: {
                                     position: window.innerWidth > 768 ? 'right' : 'bottom',
@@ -392,7 +467,11 @@ $stmt->close();
                                         label: function(context) {
                                             let label = context.label || '';
                                             if (label) label += ': ';
-                                            label += 'R$ ' + context.parsed.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                            const valor = context.parsed;
+                                            const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                            const pct = total > 0 ? ((valor * 100) / total).toFixed(1) : 0;
+                                            label += 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                            label += ' (' + pct + '%)';
                                             return label;
                                         }
                                     }
