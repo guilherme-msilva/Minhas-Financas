@@ -388,7 +388,7 @@ function renderCategoryPanelHtml($nodes, $level = 0) {
 }
 
 // Buscar Contas
-$stmt = $mysqliFinancas->prepare("SELECT id, nome, cor FROM contas WHERE id_user = ? AND status = 1 ORDER BY nome ASC");
+$stmt = $mysqliFinancas->prepare("SELECT id, nome, cor, img FROM contas WHERE id_user = ? AND status = 1 ORDER BY nome ASC");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $contas = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -727,7 +727,11 @@ foreach ($contas as $conta) {
                 <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
                     <?php foreach($contas as $conta): ?>
                         <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
-                            <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                            <?php if (!empty($conta['img'])): ?>
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-white/20 shrink-0">
+                            <?php else: ?>
+                                <div class="w-4 h-4 rounded-full shrink-0" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                            <?php endif; ?>
                             <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
                         </button>
                     <?php endforeach; ?>
@@ -748,7 +752,11 @@ foreach ($contas as $conta) {
                 <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
                     <?php foreach($contas as $conta): ?>
                         <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
-                            <div class="w-4 h-4 rounded-full" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                            <?php if (!empty($conta['img'])): ?>
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-white/20 shrink-0">
+                            <?php else: ?>
+                                <div class="w-4 h-4 rounded-full shrink-0" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                            <?php endif; ?>
                             <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
                         </button>
                     <?php endforeach; ?>
