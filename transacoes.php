@@ -332,7 +332,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
             <?php   endif; ?>
                     
                     <!-- Card da Transação -->
-                    <div class="bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/20 transition-all <?php echo !$t['consolidada'] ? 'opacity-50 border-dashed' : ''; ?>">
+                    <div class="backdrop-blur-xl border rounded-2xl p-4 flex items-center justify-between transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-400/10 border-yellow-400/30 shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:bg-yellow-400/20' : 'bg-white/10 border-white/10 hover:bg-white/20'; ?>">
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <!-- Ícone/Cor -->
                             <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo $t['idcategoria'] == -1 ? '#3b82f6' : ($t['categoria_cor_resolvida']); ?>">
@@ -389,18 +389,12 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                             
                             <div class="flex space-x-1">
                                 <!-- Botão Consolidar Rapido -->
-                                <?php if($t['consolidada']): ?>
-                                    <div class="p-2 rounded-lg text-emerald-400 bg-emerald-400/5 cursor-default" title="Transação Consolidada">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                <?php else: ?>
+                                <?php if(!$t['consolidada']): ?>
                                     <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
-                                       class="p-2 rounded-lg text-emerald-400 bg-emerald-400/5 cursor-default"
+                                       class="p-2 rounded-lg transition-colors text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 hover:text-emerald-300"
                                        title="Consolidar">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                         </svg>
                                     </a>
                                 <?php endif; ?>
