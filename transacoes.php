@@ -397,7 +397,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                                     </div>
                                 <?php else: ?>
                                     <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
-                                       class="p-2 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-white/10"
+                                       class="p-2 rounded-lg text-emerald-400 bg-emerald-400/5 cursor-default"
                                        title="Consolidar">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
