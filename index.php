@@ -64,6 +64,7 @@ $sql_contas = "
     SELECT 
         c.nome, 
         c.cor, 
+        c.img,
         c.saldo_inicial + COALESCE((SELECT SUM(t.valor) FROM transacoes t WHERE t.idconta = c.id AND t.data <= ?), 0) AS saldo_atual
     FROM contas c
     WHERE c.id_user = ? AND c.status = 1
@@ -576,9 +577,15 @@ $stmt->close();
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach($contas_ativas as $conta): ?>
                     <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/10 transition-all flex items-center space-x-4">
-                        <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner" style="background-color: <?php echo $conta['cor']; ?>30;">
-                            <svg class="w-6 h-6" style="color: <?php echo $conta['cor']; ?>;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                        </div>
+                        <?php if(!empty($conta['img'])): ?>
+                            <div class="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner shrink-0 border border-white/10 bg-white/5">
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo da conta" class="w-full h-full object-cover">
+                            </div>
+                        <?php else: ?>
+                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo $conta['cor']; ?>30;">
+                                <svg class="w-6 h-6" style="color: <?php echo $conta['cor']; ?>;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                            </div>
+                        <?php endif; ?>
                         <div>
                             <h4 class="text-white/70 text-sm font-medium mb-1"><?php echo htmlspecialchars($conta['nome']); ?></h4>
                             <div class="text-white text-xl font-bold">

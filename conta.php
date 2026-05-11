@@ -41,14 +41,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nome = trim($_POST['nome'] ?? '');
     $saldo_inicial = str_replace(['.', ','], ['', '.'], $_POST['saldo_inicial'] ?? '0');
     $cor = trim($_POST['cor'] ?? '');
-    $img = trim($_POST['img'] ?? '');
+    $status = isset($_POST['status']) ? 1 : 0;
+
+    $img_to_save = $img;
+    if (isset($_FILES['img']) && $_FILES['img']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = 'img/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        $ext = strtolower(pathinfo($_FILES['img']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        if (in_array($ext, $allowed)) {
+            $new_name = uniqid('conta_') . '.' . $ext;
+            if (move_uploaded_file($_FILES['img']['tmp_name'], $upload_dir . $new_name)) {
+                $img_to_save = $new_name;
+            }
+        }
+    }
     $status = isset($_POST['status']) ? 1 : 0;
 
     if ($nome) {
         if ($id > 0) {
             // Update
             $stmt = $mysqliFinancas->prepare("UPDATE contas SET nome = ?, saldo_inicial = ?, cor = ?, img = ?, status = ? WHERE id = ? AND id_user = ?");
-            $stmt->bind_param("sdssiii", $nome, $saldo_inicial, $cor, $img, $status, $id, $user_id);
+            $stmt->bind_param("sdssiii", $nome, $saldo_inicial, $cor, $img_to_save, $status, $id, $user_id);
             if ($stmt->execute()) {
                 header("Location: contas.php");
                 exit;
@@ -58,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             // Insert
             $stmt = $mysqliFinancas->prepare("INSERT INTO contas (nome, saldo_inicial, cor, img, status, id_user) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sdssii", $nome, $saldo_inicial, $cor, $img, $status, $user_id);
+            $stmt->bind_param("sdssii", $nome, $saldo_inicial, $cor, $img_to_save, $status, $user_id);
             if ($stmt->execute()) {
                 header("Location: contas.php");
                 exit;
@@ -135,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="conta.php<?php echo $id > 0 ? '?id='.$id : ''; ?>" class="space-y-6">
+            <form method="POST" action="conta.php<?php echo $id > 0 ? '?id='.$id : ''; ?>" enctype="multipart/form-data" class="space-y-6">
                 <div>
                     <label for="nome" class="block text-sm font-medium text-gray-300 mb-2">Nome da Conta</label>
                     <input type="text" id="nome" name="nome" value="<?php echo htmlspecialchars($nome); ?>" required 
@@ -156,6 +172,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <input type="color" id="cor" name="cor" value="<?php echo htmlspecialchars($cor); ?>" 
                                 class="w-14 h-14 rounded-xl border-0 bg-transparent cursor-pointer">
                         </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Imagem da Conta</label>
+                        <input type="file" name="img" accept="image/*" class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30 transition-colors">
+                        <?php if ($img): ?>
+                            <div class="mt-2 text-sm text-gray-400 flex items-center space-x-2">
+                                <img src="img/<?php echo htmlspecialchars($img); ?>" alt="Imagem atual" class="w-8 h-8 rounded-full object-cover border border-white/20">
+                                <span>Imagem atual</span>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div>
