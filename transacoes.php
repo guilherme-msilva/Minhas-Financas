@@ -42,7 +42,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
             $stmt_full->bind_param("ii", $id_to_fetch, $user_id);
             $stmt_full->execute();
             if ($t_full = $stmt_full->get_result()->fetch_assoc()) {
-                if (!empty($t_full['id_grupo_recorrencia']) && $t_full['recorrencias'] != 0) {
+                if (!empty($t_full['id_grupo_recorrencia']) && ($t_full['parcela_fim'] > 1 || $t_full['parcela_fim'] == -1)) {
                     // Verifica se já existe uma futura pendente
                     $stmt_check = $mysqliFinancas->prepare("SELECT id FROM transacoes WHERE id_grupo_recorrencia = ? AND consolidada = 0 AND iduser = ?");
                     $stmt_check->bind_param("si", $t_full['id_grupo_recorrencia'], $user_id);
@@ -57,13 +57,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
                         $prox_data_obj->setDate((int)$prox_data_obj->format('Y'), (int)$prox_data_obj->format('m'), $day_to_use);
                         $prox_data = $prox_data_obj->format('Y-m-d');
                         
-                        $recorrencias = $t_full['recorrencias'];
+                        $parcela_fim = $t_full['parcela_fim'];
                         $parcela_atual = $t_full['parcela_recorrencia'] ?? 1;
                         
-                        if ($recorrencias == -1 || $parcela_atual < $recorrencias) {
+                        if ($parcela_fim == -1 || $parcela_atual < $parcela_fim) {
                             $prox_parcela = $parcela_atual + 1;
-                            $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, recorrencias, id_grupo_recorrencia, parcela_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
-                            $stmt_spawn->bind_param("sdsiiiisisi", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $recorrencias, $t_full['id_grupo_recorrencia'], $prox_parcela);
+                            $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, parcela_recorrencia, parcela_fim, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
+                            $stmt_spawn->bind_param("sdsiiiiisss", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $prox_parcela, $parcela_fim, $t_full['id_grupo_recorrencia']);
                             $stmt_spawn->execute();
                             $new_id = $mysqliFinancas->insert_id;
                             
@@ -140,7 +140,7 @@ function resolveAtributosCategoria($id_categoria, $cats_map) {
 
 if ($mes_atual == 0) {
     $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
@@ -155,7 +155,7 @@ if ($mes_atual == 0) {
     }
 } else {
     $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
@@ -356,9 +356,9 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                                 <h3 class="text-white font-medium text-lg leading-tight truncate">
                                     <?php 
                                         $desc_exibicao = htmlspecialchars($t['descricao']);
-                                        if (!empty($t['id_grupo_recorrencia']) && $t['recorrencias'] != -1 && $t['recorrencias'] > 0) {
+                                        if (!empty($t['id_grupo_recorrencia']) && isset($t['parcela_fim']) && $t['parcela_fim'] > 1) {
                                             $parcela = $t['parcela_recorrencia'] ?? 1;
-                                            $desc_exibicao .= " ($parcela / {$t['recorrencias']})";
+                                            $desc_exibicao .= " ($parcela / {$t['parcela_fim']})";
                                         }
                                         echo $desc_exibicao;
                                     ?>
