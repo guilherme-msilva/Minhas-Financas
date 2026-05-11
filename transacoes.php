@@ -63,7 +63,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
                         if ($parcela_fim == -1 || $parcela_atual < $parcela_fim) {
                             $prox_parcela = $parcela_atual + 1;
                             $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, parcela_recorrencia, parcela_fim, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
-                            $stmt_spawn->bind_param("sdsiiiiisss", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $prox_parcela, $parcela_fim, $t_full['id_grupo_recorrencia']);
+                            $stmt_spawn->bind_param("sdsiiisiis", $prox_data, $t_full['valor'], $t_full['descricao'], $t_full['idcategoria'], $t_full['idconta'], $user_id, $t_full['notas'], $prox_parcela, $parcela_fim, $t_full['id_grupo_recorrencia']);
                             $stmt_spawn->execute();
                             $new_id = $mysqliFinancas->insert_id;
                             

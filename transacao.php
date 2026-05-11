@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 
                 if ($old_transacao['parcela_fim'] == -1 || $prox_parcela <= $old_transacao['parcela_fim']) {
                     $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, parcela_recorrencia, parcela_fim, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
-                    $stmt_spawn->bind_param("sdsiiiiisss", $prox_data, $old_transacao['valor'], $old_transacao['descricao'], $old_transacao['idcategoria'], $old_transacao['idconta'], $user_id, $old_transacao['notas'], $prox_parcela, $old_transacao['parcela_fim'], $old_transacao['id_grupo_recorrencia']);
+                    $stmt_spawn->bind_param("sdsiiisiis", $prox_data, $old_transacao['valor'], $old_transacao['descricao'], $old_transacao['idcategoria'], $old_transacao['idconta'], $user_id, $old_transacao['notas'], $prox_parcela, $old_transacao['parcela_fim'], $old_transacao['id_grupo_recorrencia']);
                     $stmt_spawn->execute();
                     $new_id = $mysqliFinancas->insert_id;
                     
@@ -161,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 $prox_parcela = $parcela_recorrencia + 1;
                                 
                                 $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, parcela_recorrencia, parcela_fim, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
-                                $stmt_spawn->bind_param("sdsiiiiisss", $prox_data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $notas, $prox_parcela, $parcela_fim, $id_grupo_recorrencia);
+                                $stmt_spawn->bind_param("sdsiiisiis", $prox_data, $valor_origem, $descricao, $id_categoria, $id_conta, $user_id, $notas, $prox_parcela, $parcela_fim, $id_grupo_recorrencia);
                                 $stmt_spawn->execute();
                                 $new_id = $mysqliFinancas->insert_id;
                                 
@@ -206,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $prox_parcela = $parcela_recorrencia + 1;
                             
                             $stmt_spawn = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, notas, parcela_recorrencia, parcela_fim, id_grupo_recorrencia) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)");
-                            $stmt_spawn->bind_param("sdsiiiiisss", $prox_data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $notas, $prox_parcela, $parcela_fim, $id_grupo_recorrencia);
+                            $stmt_spawn->bind_param("sdsiiisiis", $prox_data, $valor, $descricao, $id_categoria, $id_conta, $user_id, $notas, $prox_parcela, $parcela_fim, $id_grupo_recorrencia);
                             $stmt_spawn->execute();
                         }
                     } else {
