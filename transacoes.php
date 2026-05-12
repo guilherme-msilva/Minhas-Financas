@@ -140,7 +140,9 @@ function resolveAtributosCategoria($id_categoria, $cats_map) {
 
 if ($mes_atual == 0) {
     $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome,
+        (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
+        (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
@@ -155,7 +157,9 @@ if ($mes_atual == 0) {
     }
 } else {
     $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome
+        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome,
+        (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
+        (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
         FROM transacoes t
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
@@ -188,14 +192,26 @@ foreach ($transacoes as $t) {
 // Segunda passagem: agrupar
 foreach ($transacoes as $t) {
     if ($t['idcategoria'] == -1) {
-        if ($t['idpai']) {
-            // É a perna filha (Entrada), pula para não duplicar na lista
-            continue;
-        } else {
-            // É a perna pai (Saída)
-            $filha = $transferencias_filhas[$t['id']] ?? null;
-            $t['conta_destino_nome'] = $filha ? $filha['conta_nome'] : 'Desconhecida';
+        if ($conta_atual > 0) {
+            // Se está filtrado por conta, mostramos a perna que retornou sem pular a entrada
+            if ($t['idpai']) {
+                $t['is_transferencia_entrada'] = true;
+                $t['conta_oposta_nome'] = $t['conta_origem_nome_db'] ?? 'Desconhecida';
+            } else {
+                $t['is_transferencia_saida'] = true;
+                $t['conta_oposta_nome'] = $t['conta_destino_nome_db'] ?? 'Desconhecida';
+            }
             $transacoes_agrupadas[] = $t;
+        } else {
+            if ($t['idpai']) {
+                // É a perna filha (Entrada), pula para não duplicar na lista
+                continue;
+            } else {
+                // É a perna pai (Saída)
+                $filha = $transferencias_filhas[$t['id']] ?? null;
+                $t['conta_destino_nome'] = $filha ? $filha['conta_nome'] : ($t['conta_destino_nome_db'] ?? 'Desconhecida');
+                $transacoes_agrupadas[] = $t;
+            }
         }
     } else {
         $atributos = resolveAtributosCategoria($t['idcategoria'], $cats_map);
@@ -335,7 +351,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                     <div class="backdrop-blur-xl border rounded-2xl p-4 flex items-center justify-between transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-400/10 border-yellow-400/30 shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:bg-yellow-400/20' : 'bg-white/10 border-white/10 hover:bg-white/20'; ?>">
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <!-- Ícone/Cor -->
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo $t['idcategoria'] == -1 ? '#3b82f6' : ($t['categoria_cor_resolvida']); ?>">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? '#3b82f6' : ($t['idcategoria'] == -1 ? ($t['valor'] < 0 ? '#ef4444' : '#10b981') : $t['categoria_cor_resolvida']); ?>">
                                 <?php if($t['idcategoria'] == -1): ?>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                                 <?php else: ?>
@@ -366,8 +382,14 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                                 <p class="text-white/50 text-xs mt-1">
                                     <?php echo htmlspecialchars($t['conta_nome'] ?? 'Conta Desconhecida'); ?>
                                     
-                                    <?php if($t['idcategoria'] == -1 && isset($t['conta_destino_nome'])): ?>
-                                        <span class="mx-1">➔</span> <?php echo htmlspecialchars($t['conta_destino_nome']); ?>
+                                    <?php if($t['idcategoria'] == -1): ?>
+                                        <?php if(isset($t['is_transferencia_entrada'])): ?>
+                                            <span class="mx-1">⬅</span> <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
+                                        <?php elseif(isset($t['is_transferencia_saida'])): ?>
+                                            <span class="mx-1">➔</span> <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
+                                        <?php elseif(isset($t['conta_destino_nome'])): ?>
+                                            <span class="mx-1">➔</span> <?php echo htmlspecialchars($t['conta_destino_nome']); ?>
+                                        <?php endif; ?>
                                     <?php elseif($t['idcategoria'] != -1 && $t['categoria_nome']): ?>
                                         <span class="mx-1">•</span> <?php echo htmlspecialchars($t['categoria_nome']); ?>
                                     <?php endif; ?>
@@ -381,7 +403,7 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                         
                         <!-- Valor e Ações -->
                         <div class="flex items-center space-x-3 shrink-0">
-                            <span class="font-bold text-lg whitespace-nowrap <?php echo $t['idcategoria'] == -1 ? 'text-blue-400' : ($t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'); ?>">
+                            <span class="font-bold text-lg whitespace-nowrap <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? 'text-blue-400' : ($t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'); ?>">
                                 <?php 
                                     echo 'R$ ' . number_format(abs($t['valor']), 2, ',', '.');
                                 ?>
