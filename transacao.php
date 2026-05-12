@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 $new_id = $mysqliFinancas->insert_id;
                                 
                                 $stmt_spawn_in = $mysqliFinancas->prepare("INSERT INTO transacoes (data, valor, descricao, idcategoria, idconta, iduser, consolidada, idpai, notas) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)");
-                                $stmt_spawn_in->bind_param("sdsiiiiis", $prox_data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $user_id, $new_id, $notas);
+                                $stmt_spawn_in->bind_param("sdsiiiis", $prox_data, $valor_destino, $descricao, $id_categoria, $id_conta_destino, $user_id, $new_id, $notas);
                                 $stmt_spawn_in->execute();
                             }
                             
