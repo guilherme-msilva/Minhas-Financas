@@ -102,6 +102,7 @@ $categoria_filtro = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
 $data_inicio_filtro = isset($_GET['data_inicio']) ? trim($_GET['data_inicio']) : '';
 $data_fim_filtro = isset($_GET['data_fim']) ? trim($_GET['data_fim']) : '';
 $descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
+$tipo_filtro = isset($_GET['tipo']) ? $_GET['tipo'] : 'todas';
 
 $has_advanced_filter = (!empty($data_inicio_filtro) || !empty($data_fim_filtro) || !empty($descricao_filtro));
 
@@ -193,13 +194,25 @@ if (!empty($descricao_filtro)) {
     $types .= "s";
 }
 
+if ($tipo_filtro == 'receitas') {
+    $conditions[] = "t.valor > 0 AND t.idcategoria != -1";
+} elseif ($tipo_filtro == 'despesas') {
+    $conditions[] = "t.valor < 0 AND t.idcategoria != -1";
+} elseif ($tipo_filtro == 'transferencias') {
+    $conditions[] = "t.idcategoria = -1";
+}
+
 $where_clause = implode(" AND ", $conditions);
 
 $sql = "
     SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, 
            c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome, co.img as conta_img, co.cor as conta_cor,
            (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
-           (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
+           (SELECT co2.img FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_img_db,
+           (SELECT co2.cor FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_cor_db,
+           (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db,
+           (SELECT co3.img FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_img_db,
+           (SELECT co3.cor FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_cor_db
     FROM transacoes t
     LEFT JOIN categorias c ON t.idcategoria = c.id
     LEFT JOIN contas co ON t.idconta = co.id
@@ -232,9 +245,13 @@ foreach ($transacoes as $t) {
             if ($t['idpai']) {
                 $t['is_transferencia_entrada'] = true;
                 $t['conta_oposta_nome'] = $t['conta_origem_nome_db'] ?? 'Desconhecida';
+                $t['conta_oposta_img'] = $t['conta_origem_img_db'] ?? null;
+                $t['conta_oposta_cor'] = $t['conta_origem_cor_db'] ?? null;
             } else {
                 $t['is_transferencia_saida'] = true;
                 $t['conta_oposta_nome'] = $t['conta_destino_nome_db'] ?? 'Desconhecida';
+                $t['conta_oposta_img'] = $t['conta_destino_img_db'] ?? null;
+                $t['conta_oposta_cor'] = $t['conta_destino_cor_db'] ?? null;
             }
             $transacoes_agrupadas[] = $t;
         } else {
@@ -245,6 +262,8 @@ foreach ($transacoes as $t) {
                 // É a perna pai (Saída)
                 $filha = $transferencias_filhas[$t['id']] ?? null;
                 $t['conta_destino_nome'] = $filha ? $filha['conta_nome'] : ($t['conta_destino_nome_db'] ?? 'Desconhecida');
+                $t['conta_destino_img'] = $filha ? $filha['conta_img'] : ($t['conta_destino_img_db'] ?? null);
+                $t['conta_destino_cor'] = $filha ? $filha['conta_cor'] : ($t['conta_destino_cor_db'] ?? null);
                 $transacoes_agrupadas[] = $t;
             }
         }
@@ -375,18 +394,44 @@ $tree_categorias = buildCategoryTree($all_cats);
                     <?php renderCategoryOptions($tree_categorias, 0, $categoria_filtro); ?>
                 </select>
 
-                <select name="mes" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <option class="text-gray-900" value="0" <?php echo $mes_atual == 0 ? 'selected' : ''; ?>>Todos os Meses</option>
-                    <?php foreach($meses as $num => $nome): ?>
-                        <option class="text-gray-900" value="<?php echo $num; ?>" <?php echo $mes_atual == $num ? 'selected' : ''; ?>><?php echo $nome; ?></option>
-                    <?php endforeach; ?>
+                <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                    <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Todas as Transações</option>
+                    <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
+                    <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
+                    <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
                 </select>
-                
-                <select name="ano" onchange="this.form.submit()" class="flex-1 min-w-[100px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <?php foreach($anos_disponiveis as $ano_opt): ?>
-                        <option class="text-gray-900" value="<?php echo $ano_opt; ?>" <?php echo $ano_atual == $ano_opt ? 'selected' : ''; ?>><?php echo $ano_opt; ?></option>
-                    <?php endforeach; ?>
-                </select>
+
+                <!-- Seletor de Mês/Ano (Estilo Dashboard) -->
+                <div class="relative w-full sm:w-auto z-40">
+                    <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl flex items-center justify-between space-x-3 transition-colors cursor-pointer text-white focus:outline-none min-w-[180px]">
+                        <?php 
+                        $meses_nomes = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+                        echo ($mes_atual > 0 ? substr($meses_nomes[$mes_atual], 0, 3) : 'Todos') . ' de ' . $ano_atual; 
+                        ?>
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    
+                    <div id="date-selector" class="absolute top-full right-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
+                        <div class="p-2 border-b border-white/10 flex items-center justify-between">
+                            <button type="button" onclick="mudarAno(-1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <span class="text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano_atual; ?></span>
+                            <button type="button" onclick="mudarAno(1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                        </div>
+                        <div class="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-2 gap-1 p-2">
+                            <button type="button" onclick="selecionarData(0)" class="col-span-2 py-2 px-1 text-xs font-medium rounded-lg <?php echo (0 == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
+                                Todos
+                            </button>
+                            <?php for($i=1; $i<=12; $i++): ?>
+                                <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
+                                    <?php echo substr($meses_nomes[$i], 0, 3); ?>
+                                </button>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <input type="hidden" name="mes" id="input-mes" value="<?php echo $mes_atual; ?>">
+                <input type="hidden" name="ano" id="input-ano" value="<?php echo $ano_atual; ?>">
                 
                 <button type="button" onclick="document.getElementById('ordem-input').value = '<?php echo $ordem_atual == 'DESC' ? 'ASC' : 'DESC'; ?>'; this.form.submit();" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white" title="Inverter Ordem">
                     <?php if($ordem_atual == 'DESC'): ?>
@@ -469,7 +514,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                             
                             <!-- Detalhes -->
                             <div class="flex-1 min-w-0 pr-2">
-                                <h3 class="text-white font-medium text-lg leading-tight truncate">
+                                <h3 class="text-white font-medium text-lg leading-tight break-words whitespace-normal">
                                     <?php 
                                         $desc_exibicao = htmlspecialchars($t['descricao']);
                                         if (!empty($t['id_grupo_recorrencia']) && isset($t['parcela_fim']) && $t['parcela_fim'] > 1) {
@@ -489,11 +534,29 @@ $tree_categorias = buildCategoryTree($all_cats);
                                     
                                     <?php if($t['idcategoria'] == -1): ?>
                                         <?php if(isset($t['is_transferencia_entrada'])): ?>
-                                            <span class="mx-1">⬅</span> <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
+                                            <span class="mx-1">⬅</span> 
+                                            <?php if(!empty($t['conta_oposta_img'])): ?>
+                                                <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-white/10">
+                                            <?php else: ?>
+                                                <span class="w-3.5 h-3.5 rounded-full mr-1.5 inline-block shrink-0" style="background-color: <?php echo $t['conta_oposta_cor'] ?? '#ccc'; ?>"></span>
+                                            <?php endif; ?>
+                                            <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
                                         <?php elseif(isset($t['is_transferencia_saida'])): ?>
-                                            <span class="mx-1">➔</span> <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
+                                            <span class="mx-1">➔</span> 
+                                            <?php if(!empty($t['conta_oposta_img'])): ?>
+                                                <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-white/10">
+                                            <?php else: ?>
+                                                <span class="w-3.5 h-3.5 rounded-full mr-1.5 inline-block shrink-0" style="background-color: <?php echo $t['conta_oposta_cor'] ?? '#ccc'; ?>"></span>
+                                            <?php endif; ?>
+                                            <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
                                         <?php elseif(isset($t['conta_destino_nome'])): ?>
-                                            <span class="mx-1">➔</span> <?php echo htmlspecialchars($t['conta_destino_nome']); ?>
+                                            <span class="mx-1">➔</span> 
+                                            <?php if(!empty($t['conta_destino_img'])): ?>
+                                                <img src="img/<?php echo htmlspecialchars($t['conta_destino_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-white/10">
+                                            <?php else: ?>
+                                                <span class="w-3.5 h-3.5 rounded-full mr-1.5 inline-block shrink-0" style="background-color: <?php echo $t['conta_destino_cor'] ?? '#ccc'; ?>"></span>
+                                            <?php endif; ?>
+                                            <?php echo htmlspecialchars($t['conta_destino_nome']); ?>
                                         <?php endif; ?>
                                     <?php elseif($t['idcategoria'] != -1 && $t['categoria_nome']): ?>
                                         <span class="mx-1">•</span> <?php echo htmlspecialchars($t['categoria_nome']); ?>
@@ -546,4 +609,40 @@ $tree_categorias = buildCategoryTree($all_cats);
     </div>
 
 </body>
+<script>
+    let anoDropdown = <?php echo $ano_atual; ?>;
+
+    function toggleDateSelect() {
+        const selector = document.getElementById('date-selector');
+        if (selector.classList.contains('hidden')) {
+            selector.classList.remove('hidden');
+            setTimeout(() => selector.classList.remove('opacity-0'), 10);
+        } else {
+            selector.classList.add('opacity-0');
+            setTimeout(() => selector.classList.add('hidden'), 200);
+        }
+    }
+
+    function mudarAno(delta) {
+        anoDropdown += delta;
+        document.getElementById('display-ano-dropdown').innerText = anoDropdown;
+    }
+
+    function selecionarData(mes) {
+        document.getElementById('input-mes').value = mes;
+        document.getElementById('input-ano').value = anoDropdown;
+        document.getElementById('ordem-input').closest('form').submit();
+    }
+
+    document.addEventListener('click', function(event) {
+        const formFiltros = document.getElementById('ordem-input').closest('form');
+        if (formFiltros && !formFiltros.contains(event.target)) {
+            const selector = document.getElementById('date-selector');
+            if (selector && !selector.classList.contains('hidden')) {
+                selector.classList.add('opacity-0');
+                setTimeout(() => selector.classList.add('hidden'), 200);
+            }
+        }
+    });
+</script>
 </html>
