@@ -97,6 +97,14 @@ $ano_atual = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
 $ordem_atual = isset($_GET['ordem']) && strtoupper($_GET['ordem']) == 'ASC' ? 'ASC' : 'DESC';
 $conta_atual = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
 
+// Filtros Avançados
+$categoria_filtro = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
+$data_inicio_filtro = isset($_GET['data_inicio']) ? trim($_GET['data_inicio']) : '';
+$data_fim_filtro = isset($_GET['data_fim']) ? trim($_GET['data_fim']) : '';
+$descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
+
+$has_advanced_filter = ($categoria_filtro > 0 || !empty($data_inicio_filtro) || !empty($data_fim_filtro) || !empty($descricao_filtro));
+
 // Busca contas do usuário para popular o select de filtro
 $stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? and status = 1 ORDER BY nome");
 $stmt_contas_filtro->bind_param("i", $user_id);
@@ -138,42 +146,69 @@ function resolveAtributosCategoria($id_categoria, $cats_map) {
     return ['icone' => $icone, 'cor' => $cor];
 }
 
-if ($mes_atual == 0) {
-    $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome,
-        (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
-        (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
-        FROM transacoes t
-        LEFT JOIN categorias c ON t.idcategoria = c.id
-        LEFT JOIN contas co ON t.idconta = co.id
-        WHERE t.iduser = ? AND YEAR(t.data) = ? " . ($conta_atual > 0 ? "AND t.idconta = ?" : "") . "
-        ORDER BY t.data $ordem_atual, t.id $ordem_atual
-    ";
-    $stmt = $mysqliFinancas->prepare($sql);
-    if ($conta_atual > 0) {
-        $stmt->bind_param("iii", $user_id, $ano_atual, $conta_atual);
-    } else {
-        $stmt->bind_param("ii", $user_id, $ano_atual);
+// Construção Dinâmica da Query
+$conditions = ["t.iduser = ?"];
+$params = [$user_id];
+$types = "i";
+
+if (!empty($data_inicio_filtro) || !empty($data_fim_filtro)) {
+    if (!empty($data_inicio_filtro)) {
+        $conditions[] = "t.data >= ?";
+        $params[] = $data_inicio_filtro;
+        $types .= "s";
+    }
+    if (!empty($data_fim_filtro)) {
+        $conditions[] = "t.data <= ?";
+        $params[] = $data_fim_filtro;
+        $types .= "s";
     }
 } else {
-    $sql = "
-        SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome,
-        (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
-        (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
-        FROM transacoes t
-        LEFT JOIN categorias c ON t.idcategoria = c.id
-        LEFT JOIN contas co ON t.idconta = co.id
-        WHERE t.iduser = ? AND MONTH(t.data) = ? AND YEAR(t.data) = ? " . ($conta_atual > 0 ? "AND t.idconta = ?" : "") . "
-        ORDER BY t.data $ordem_atual, t.id $ordem_atual
-    ";
-    $stmt = $mysqliFinancas->prepare($sql);
-    if ($conta_atual > 0) {
-        $stmt->bind_param("iiii", $user_id, $mes_atual, $ano_atual, $conta_atual);
-    } else {
-        $stmt->bind_param("iii", $user_id, $mes_atual, $ano_atual);
+    if ($mes_atual > 0) {
+        $conditions[] = "MONTH(t.data) = ?";
+        $params[] = $mes_atual;
+        $types .= "i";
+    }
+    if ($ano_atual > 0) {
+        $conditions[] = "YEAR(t.data) = ?";
+        $params[] = $ano_atual;
+        $types .= "i";
     }
 }
 
+if ($conta_atual > 0) {
+    $conditions[] = "t.idconta = ?";
+    $params[] = $conta_atual;
+    $types .= "i";
+}
+
+if ($categoria_filtro > 0) {
+    $conditions[] = "t.idcategoria = ?";
+    $params[] = $categoria_filtro;
+    $types .= "i";
+}
+
+if (!empty($descricao_filtro)) {
+    $conditions[] = "t.descricao LIKE ?";
+    $params[] = "%" . $descricao_filtro . "%";
+    $types .= "s";
+}
+
+$where_clause = implode(" AND ", $conditions);
+
+$sql = "
+    SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, 
+           c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome,
+           (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
+           (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
+    FROM transacoes t
+    LEFT JOIN categorias c ON t.idcategoria = c.id
+    LEFT JOIN contas co ON t.idconta = co.id
+    WHERE $where_clause
+    ORDER BY t.data $ordem_atual, t.id $ordem_atual
+";
+
+$stmt = $mysqliFinancas->prepare($sql);
+$stmt->bind_param($types, ...$params);
 $stmt->execute();
 $transacoes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
@@ -247,6 +282,37 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
     $anos_disponiveis[] = $ano_vigente;
     rsort($anos_disponiveis);
 }
+
+// Funções para hierarquia de categorias no select
+function buildCategoryTree(array $elements, $parentId = null) {
+    $branch = array();
+    foreach ($elements as $element) {
+        if ($element['id_pai'] == $parentId) {
+            $children = buildCategoryTree($elements, $element['id']);
+            if ($children) {
+                $element['children'] = $children;
+            } else {
+                $element['children'] = [];
+            }
+            $branch[] = $element;
+        }
+    }
+    return $branch;
+}
+
+function renderCategoryOptions($categorias, $level = 0, $selected_id = 0) {
+    foreach ($categorias as $cat) {
+        $indent = str_repeat("&nbsp;&nbsp;&nbsp;&nbsp;", $level);
+        $prefix = $level > 0 ? "↳ " : "";
+        $selected = $cat['id'] == $selected_id ? 'selected' : '';
+        echo "<option class='text-gray-900' value='{$cat['id']}' {$selected}>{$indent}{$prefix}" . htmlspecialchars($cat['nome']) . "</option>";
+        if (!empty($cat['children'])) {
+            renderCategoryOptions($cat['children'], $level + 1, $selected_id);
+        }
+    }
+}
+
+$tree_categorias = buildCategoryTree($all_cats);
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -325,6 +391,43 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path></svg>
                     <?php endif; ?>
                 </button>
+                
+                <button type="button" onclick="document.getElementById('filtros-avancados').classList.toggle('hidden')" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-cyan-400 <?php echo $has_advanced_filter ? 'bg-white/20 border-cyan-400/50 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : ''; ?>" title="Filtros Avançados">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                </button>
+                
+                <!-- Painel de Filtros Avançados -->
+                <div id="filtros-avancados" class="w-full mt-4 bg-white/5 p-4 rounded-2xl border border-white/10 <?php echo $has_advanced_filter ? '' : 'hidden'; ?>">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-white/70 mb-1">Buscar na descrição</label>
+                            <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Ex: Mercado, Uber..." class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-white/70 mb-1">Categoria</label>
+                            <select name="categoria" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                                <option class="text-gray-900" value="0">Todas as Categorias</option>
+                                <?php renderCategoryOptions($tree_categorias, 0, $categoria_filtro); ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-white/70 mb-1">Data Inicial</label>
+                            <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-white/70 mb-1">Data Final</label>
+                            <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-3">
+                        <?php if($has_advanced_filter): ?>
+                            <a href="transacoes.php" class="px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-xl transition-colors">Limpar Filtros</a>
+                        <?php endif; ?>
+                        <button type="submit" class="px-6 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
+                            Aplicar
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
 
