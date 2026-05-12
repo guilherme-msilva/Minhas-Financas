@@ -443,7 +443,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                         $ano_extenso = date('Y', strtotime($data_atual));
             ?>
                         <div class="pt-4 pb-2 border-b border-white/10">
-                            <span class="text-white/60 font-medium text-sm"><?php echo $dia_semana . ', ' . $dia . ' de ' . $mes_extenso . ($mes_atual == 0 ? ' de ' . $ano_extenso : ''); ?></span>
+                            <span class="text-white/60 font-medium text-sm"><?php echo $dia_semana . ', ' . $dia . ' de ' . $mes_extenso . ($ano_extenso != date('Y') ? ' de ' . $ano_extenso : ''); ?></span>
                         </div>
             <?php   endif; ?>
                     
