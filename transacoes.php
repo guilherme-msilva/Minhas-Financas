@@ -378,12 +378,12 @@ $tree_categorias = buildCategoryTree($all_cats);
         <h1 class="text-3xl font-bold text-white tracking-wide mb-6">Transações</h1>
         
         <!-- Filtros -->
-        <div class="mb-8 bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-lg">
+        <div class="relative z-50 mb-8 bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-lg">
             <form method="GET" class="flex flex-wrap items-center justify-start gap-3 w-full">
                 <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
                 
                 <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <option class="text-gray-900" value="0">Todas as Contas</option>
+                    <option class="text-gray-900" value="0">Contas</option>
                     <?php foreach($contas_filtro as $c): ?>
                         <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
                     <?php endforeach; ?>
@@ -395,23 +395,23 @@ $tree_categorias = buildCategoryTree($all_cats);
                 </select>
 
                 <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Todas as Transações</option>
+                    <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
                     <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
                     <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
                     <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
                 </select>
 
                 <!-- Seletor de Mês/Ano (Estilo Dashboard) -->
-                <div class="relative w-full sm:w-auto z-40">
+                <div class="relative w-full sm:w-auto z-50">
                     <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl flex items-center justify-between space-x-3 transition-colors cursor-pointer text-white focus:outline-none min-w-[180px]">
                         <?php 
                         $meses_nomes = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                        echo ($mes_atual > 0 ? substr($meses_nomes[$mes_atual], 0, 3) : 'Todos') . ' de ' . $ano_atual; 
+                        echo ($mes_atual > 0 ? $meses_nomes[$mes_atual] : 'Todos') . ' de ' . $ano_atual; 
                         ?>
                         <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     
-                    <div id="date-selector" class="absolute top-full right-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
+                    <div id="date-selector" class="absolute top-full right-0 mt-2 w-56 z-50 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
                         <div class="p-2 border-b border-white/10 flex items-center justify-between">
                             <button type="button" onclick="mudarAno(-1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
                             <span class="text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano_atual; ?></span>
@@ -423,7 +423,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                             </button>
                             <?php for($i=1; $i<=12; $i++): ?>
                                 <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
-                                    <?php echo substr($meses_nomes[$i], 0, 3); ?>
+                                    <?php echo $meses_nomes[$i]; ?>
                                 </button>
                             <?php endfor; ?>
                         </div>
