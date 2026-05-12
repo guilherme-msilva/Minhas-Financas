@@ -197,7 +197,7 @@ $where_clause = implode(" AND ", $conditions);
 
 $sql = "
     SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, 
-           c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome,
+           c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome, co.img as conta_img, co.cor as conta_cor,
            (SELECT co2.nome FROM transacoes t2 JOIN contas co2 ON t2.idconta = co2.id WHERE t2.idpai = t.id LIMIT 1) as conta_destino_nome_db,
            (SELECT co3.nome FROM transacoes t3 JOIN contas co3 ON t3.idconta = co3.id WHERE t3.id = t.idpai LIMIT 1) as conta_origem_nome_db
     FROM transacoes t
@@ -479,8 +479,13 @@ $tree_categorias = buildCategoryTree($all_cats);
                                         echo $desc_exibicao;
                                     ?>
                                 </h3>
-                                <p class="text-white/50 text-xs mt-1">
-                                    <?php echo htmlspecialchars($t['conta_nome'] ?? 'Conta Desconhecida'); ?>
+                                <p class="text-white/50 text-xs mt-1 flex items-center flex-wrap">
+                                    <?php if(!empty($t['conta_img'])): ?>
+                                        <img src="img/<?php echo htmlspecialchars($t['conta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 shrink-0 border border-white/10">
+                                    <?php else: ?>
+                                        <span class="w-3.5 h-3.5 rounded-full mr-1.5 shrink-0" style="background-color: <?php echo $t['conta_cor'] ?? '#ccc'; ?>"></span>
+                                    <?php endif; ?>
+                                    <span class="truncate"><?php echo htmlspecialchars($t['conta_nome'] ?? 'Conta Desconhecida'); ?></span>
                                     
                                     <?php if($t['idcategoria'] == -1): ?>
                                         <?php if(isset($t['is_transferencia_entrada'])): ?>
