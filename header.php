@@ -10,6 +10,7 @@ $tema_class = (isset($_SESSION['tema']) && $_SESSION['tema'] === 'CLARO') ? '' :
     <title><?php echo isset($page_title) ? htmlspecialchars($page_title) : 'Minhas Finanças'; ?></title>
     
     <!-- Favicon -->
+    <link rel="apple-touch-icon" href="icone.png">
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" href="favicon.ico">
