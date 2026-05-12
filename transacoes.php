@@ -103,7 +103,7 @@ $data_inicio_filtro = isset($_GET['data_inicio']) ? trim($_GET['data_inicio']) :
 $data_fim_filtro = isset($_GET['data_fim']) ? trim($_GET['data_fim']) : '';
 $descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
 
-$has_advanced_filter = ($categoria_filtro > 0 || !empty($data_inicio_filtro) || !empty($data_fim_filtro) || !empty($descricao_filtro));
+$has_advanced_filter = (!empty($data_inicio_filtro) || !empty($data_fim_filtro) || !empty($descricao_filtro));
 
 // Busca contas do usuário para popular o select de filtro
 $stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? and status = 1 ORDER BY nome");
@@ -113,7 +113,7 @@ $contas_filtro = $stmt_contas_filtro->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_contas_filtro->close();
 
 // Mapear categorias para resolução hierárquica de ícones e cores
-$stmt_cats = $mysqliFinancas->prepare("SELECT id, id_pai, icone, cor FROM categorias WHERE id_user = ?");
+$stmt_cats = $mysqliFinancas->prepare("SELECT id, nome, id_pai, icone, cor FROM categorias WHERE id_user = ? ORDER BY nome");
 $stmt_cats->bind_param("i", $user_id);
 $stmt_cats->execute();
 $all_cats = $stmt_cats->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -151,7 +151,7 @@ $conditions = ["t.iduser = ?"];
 $params = [$user_id];
 $types = "i";
 
-if (!empty($data_inicio_filtro) || !empty($data_fim_filtro)) {
+if (!empty($data_inicio_filtro) || !empty($data_fim_filtro) || !empty($descricao_filtro)) {
     if (!empty($data_inicio_filtro)) {
         $conditions[] = "t.data >= ?";
         $params[] = $data_inicio_filtro;
@@ -356,29 +356,33 @@ $tree_categorias = buildCategoryTree($all_cats);
     <?php include 'menu.php'; ?>
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 class="text-3xl font-bold text-white tracking-wide mb-6">Transações</h1>
         
-        <!-- Header e Filtros -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-lg">
-            <h1 class="text-2xl font-bold text-white tracking-wide mb-4 md:mb-0">Transações</h1>
-            
-            <form method="GET" class="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
+        <!-- Filtros -->
+        <div class="mb-8 bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-lg">
+            <form method="GET" class="flex flex-wrap items-center justify-start gap-3 w-full">
                 <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
                 
-                <select name="conta" onchange="this.form.submit()" class="w-full md:w-auto bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0">Todas as Contas</option>
                     <?php foreach($contas_filtro as $c): ?>
                         <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <select name="mes" onchange="this.form.submit()" class="flex-1 md:flex-none bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="categoria" onchange="this.form.submit()" class="flex-1 min-w-[180px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                    <option class="text-gray-900" value="0">Todas as Categorias</option>
+                    <?php renderCategoryOptions($tree_categorias, 0, $categoria_filtro); ?>
+                </select>
+
+                <select name="mes" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0" <?php echo $mes_atual == 0 ? 'selected' : ''; ?>>Todos os Meses</option>
                     <?php foreach($meses as $num => $nome): ?>
                         <option class="text-gray-900" value="<?php echo $num; ?>" <?php echo $mes_atual == $num ? 'selected' : ''; ?>><?php echo $nome; ?></option>
                     <?php endforeach; ?>
                 </select>
                 
-                <select name="ano" onchange="this.form.submit()" class="flex-1 md:flex-none bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="ano" onchange="this.form.submit()" class="flex-1 min-w-[100px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <?php foreach($anos_disponiveis as $ano_opt): ?>
                         <option class="text-gray-900" value="<?php echo $ano_opt; ?>" <?php echo $ano_atual == $ano_opt ? 'selected' : ''; ?>><?php echo $ano_opt; ?></option>
                     <?php endforeach; ?>
@@ -398,23 +402,16 @@ $tree_categorias = buildCategoryTree($all_cats);
                 
                 <!-- Painel de Filtros Avançados -->
                 <div id="filtros-avancados" class="w-full mt-4 bg-white/5 p-4 rounded-2xl border border-white/10 <?php echo $has_advanced_filter ? '' : 'hidden'; ?>">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-white/70 mb-1">Buscar na descrição</label>
                             <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Ex: Mercado, Uber..." class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
-                        <div>
-                            <label class="block text-xs font-medium text-white/70 mb-1">Categoria</label>
-                            <select name="categoria" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                                <option class="text-gray-900" value="0">Todas as Categorias</option>
-                                <?php renderCategoryOptions($tree_categorias, 0, $categoria_filtro); ?>
-                            </select>
-                        </div>
-                        <div>
+                        <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-white/70 mb-1">Data Inicial</label>
                             <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
-                        <div>
+                        <div class="md:col-span-1">
                             <label class="block text-xs font-medium text-white/70 mb-1">Data Final</label>
                             <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
