@@ -308,6 +308,39 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $categorias = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
+$cats_map = [];
+foreach ($categorias as $c) {
+    $cats_map[$c['id']] = $c;
+}
+
+function resolveAtributosCategoria($id_categoria, $cats_map) {
+    $atual = $id_categoria;
+    $icone = '';
+    $cor = '';
+    
+    while ($atual && isset($cats_map[$atual])) {
+        if (empty($icone) && !empty($cats_map[$atual]['icone'])) {
+            $icone = $cats_map[$atual]['icone'];
+        }
+        if (empty($cor) && !empty($cats_map[$atual]['cor'])) {
+            $cor = $cats_map[$atual]['cor'];
+        }
+        
+        if (!empty($icone) && !empty($cor)) break;
+        $atual = $cats_map[$atual]['id_pai'];
+    }
+    
+    if (empty($cor)) $cor = '#ccc';
+    
+    return ['icone' => $icone, 'cor' => $cor];
+}
+
+foreach ($categorias as &$cat) {
+    $atributos = resolveAtributosCategoria($cat['id'], $cats_map);
+    $cat['icone_resolvido'] = $atributos['icone'];
+    $cat['cor_resolvida'] = $atributos['cor'];
+}
+unset($cat);
 
 function buildCategoryTree(array $elements, $parentId = null) {
     $branch = array();
@@ -333,11 +366,11 @@ function renderCategoryPanelHtml($nodes, $level = 0) {
     echo "<div class='space-y-1 $marginLeft'>";
     foreach ($nodes as $cat) {
         $hasChildren = count($cat['children']) > 0;
-        $cor = htmlspecialchars($cat['cor'] ?: '#ccc');
+        $cor = htmlspecialchars($cat['cor_resolvida']);
         $nome = htmlspecialchars($cat['nome']);
         $nomeJs = addslashes($cat['nome']);
         $id = $cat['id'];
-        $icone = !empty($cat['icone']) ? htmlspecialchars($cat['icone']) : '';
+        $icone = htmlspecialchars($cat['icone_resolvido']);
         
         echo "<div class='flex flex-col'>";
         echo "<div class='flex items-center justify-between p-2 border-b border-gray-100 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors rounded-xl'>";
