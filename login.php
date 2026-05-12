@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $senha = $_POST['senha'] ?? '';
 
     if ($email && $senha) {
-        $stmt = $mysqliFinancas->prepare("SELECT id, nome, senha FROM usuarios WHERE email = ?");
+        $stmt = $mysqliFinancas->prepare("SELECT id, nome, senha, tema FROM usuarios WHERE email = ?");
         $stmt->bind_param("s", $email);
         $stmt->execute();
         $resultado = $stmt->get_result();
@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (password_verify($senha, $usuario['senha'])) {
                 $_SESSION['user_id'] = $usuario['id'];
                 $_SESSION['user_nome'] = $usuario['nome'];
+                $_SESSION['tema'] = $usuario['tema'] ?? 'ESCURO';
                 header("Location: index.php");
                 exit;
             } else {

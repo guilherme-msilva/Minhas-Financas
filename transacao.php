@@ -329,7 +329,7 @@ $arvore_categorias = buildCategoryTree($categorias);
 
 function renderCategoryPanelHtml($nodes, $level = 0) {
     if (count($nodes) === 0) return;
-    $marginLeft = $level > 0 ? 'ml-6 border-l border-white/10 pl-2' : '';
+    $marginLeft = $level > 0 ? 'ml-6 border-l border-gray-200 dark:border-white/10 pl-2' : '';
     echo "<div class='space-y-1 $marginLeft'>";
     foreach ($nodes as $cat) {
         $hasChildren = count($cat['children']) > 0;
@@ -340,7 +340,7 @@ function renderCategoryPanelHtml($nodes, $level = 0) {
         $icone = !empty($cat['icone']) ? htmlspecialchars($cat['icone']) : '';
         
         echo "<div class='flex flex-col'>";
-        echo "<div class='flex items-center justify-between p-2 border-b border-white/5 hover:bg-white/10 transition-colors rounded-xl'>";
+        echo "<div class='flex items-center justify-between p-2 border-b border-gray-100 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors rounded-xl'>";
         
         if ($hasChildren) {
             // Clicar no nome expande/recolhe filhos
@@ -352,22 +352,22 @@ function renderCategoryPanelHtml($nodes, $level = 0) {
 
         echo "<div class='flex items-center space-x-3 flex-1 cursor-pointer py-2' onclick=\"$onClickArea\">";
         if ($icone) {
-            echo "<div class='w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-inner border border-white/20' style='background-color: $cor'><i class='ph-fill $icone text-white text-sm'></i></div>";
+            echo "<div class='w-7 h-7 rounded-full flex items-center justify-center shrink-0 shadow-inner border border-gray-200 dark:border-white/20' style='background-color: $cor'><i class='ph-fill $icone text-white text-sm'></i></div>";
         } else {
-            echo "<div class='w-4 h-4 rounded-full border border-white/20 shadow-inner shrink-0' style='background-color: $cor'></div>";
+            echo "<div class='w-4 h-4 rounded-full border border-gray-200 dark:border-white/20 shadow-inner shrink-0' style='background-color: $cor'></div>";
         }
-        echo "<span class='text-white font-medium'>$nome</span>";
+        echo "<span class='text-slate-800 dark:text-white font-medium'>$nome</span>";
         
         // Se tem filhos, adicionamos a setinha ao lado do nome pra indicar que expande
         if ($hasChildren) {
-            echo "<svg id='panel-icon-$id' class='w-4 h-4 text-white/50 transform -rotate-90 transition-transform duration-200 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
+            echo "<svg id='panel-icon-$id' class='w-4 h-4 text-slate-400 dark:text-white/50 transform -rotate-90 transition-transform duration-200 ml-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
         }
         echo "</div>";
         
         // Botão da direita
         if ($hasChildren) {
             // Botão para SELECIONAR a categoria pai
-            echo "<button type='button' onclick=\"selectItem('categoria', '$id', '$nomeJs')\" class='p-2 text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition-colors rounded-lg flex items-center justify-center' title='Selecionar esta categoria'>";
+            echo "<button type='button' onclick=\"selectItem('categoria', '$id', '$nomeJs')\" class='p-2 text-slate-400 dark:text-white/50 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors rounded-lg flex items-center justify-center' title='Selecionar esta categoria'>";
             echo "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg>";
             echo "</button>";
         } else {
@@ -410,7 +410,8 @@ foreach ($contas as $conta) {
 ?>
 <?php 
 $page_title = "Nova Transação - Minhas Finanças";
-$extra_head = '<style>
+$extra_head = '<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style>
     .theme-despesa .blob-1 { background: #ef4444; }
     .theme-despesa .blob-2 { background: #f43f5e; }
     .theme-despesa .blob-3 { background: #be123c; }

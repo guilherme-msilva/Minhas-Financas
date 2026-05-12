@@ -288,14 +288,14 @@ include 'header.php';
         </script>
 
         <!-- Painel Saldo Total -->
-        <div class="bg-white/10 backdrop-blur-xl border border-white/20 rounded-[2rem] p-8 md:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden mb-8 group">
+        <div class="bg-white/60 dark:bg-white/10 backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-[2rem] p-8 md:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden mb-8 group">
             <!-- Efeito de brilho hover -->
             <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400/0 to-blue-500/0 group-hover:from-cyan-400/5 group-hover:to-blue-500/5 transition-all duration-500"></div>
             
-            <h2 class="text-white/70 text-lg font-medium mb-2 uppercase tracking-widest">Saldo Total Geral</h2>
+            <h2 class="text-slate-500 dark:text-white/70 text-lg font-medium mb-2 uppercase tracking-widest">Saldo Total Geral</h2>
             <div class="flex items-end space-x-2 relative z-10">
-                <span class="text-white/60 text-3xl font-light pb-1 md:pb-2">R$</span>
-                <span class="text-white text-5xl md:text-7xl font-bold tracking-tight">
+                <span class="text-slate-400 dark:text-white/60 text-3xl font-light pb-1 md:pb-2">R$</span>
+                <span class="text-slate-800 dark:text-white text-5xl md:text-7xl font-bold tracking-tight">
                     <?php echo number_format($saldo_total, 2, ',', '.'); ?>
                 </span>
             </div>
