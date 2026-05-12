@@ -217,7 +217,7 @@ $sql = "
     LEFT JOIN categorias c ON t.idcategoria = c.id
     LEFT JOIN contas co ON t.idconta = co.id
     WHERE $where_clause
-    ORDER BY t.data $ordem_atual, t.id $ordem_atual
+    ORDER BY t.data $ordem_atual, t.id ASC
 ";
 
 $stmt = $mysqliFinancas->prepare($sql);
