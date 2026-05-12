@@ -333,68 +333,35 @@ function renderCategoryOptions($categorias, $level = 0, $selected_id = 0) {
 
 $tree_categorias = buildCategoryTree($all_cats);
 ?>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transações - Minhas Finanças</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            overflow-x: hidden;
-        }
-        .blob {
-            position: fixed;
-            filter: blur(80px);
-            z-index: -1;
-            opacity: 0.6;
-            animation: move 10s infinite alternate ease-in-out;
-        }
-        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #3b82f6; border-radius: 50%; }
-        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #8b5cf6; border-radius: 50%; animation-delay: 2s; }
-        .blob-3 { top: 40%; left: 40%; width: 400px; height: 400px; background: #06b6d4; border-radius: 50%; animation-delay: 4s; }
-        
-        @keyframes move {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, -50px) scale(1.1); }
-        }
-    </style>
-</head>
-<body class="min-h-screen relative pb-20">
-    
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+<?php 
+$page_title = "Transações - Minhas Finanças";
+$extra_head = '<script src="https://unpkg.com/@phosphor-icons/web"></script>';
+include 'header.php'; 
+?>
 
     <?php include 'menu.php'; ?>
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 class="text-3xl font-bold text-white tracking-wide mb-6">Transações</h1>
+        <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide mb-6">Transações</h1>
         
         <!-- Filtros -->
-        <div class="relative z-50 mb-8 bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-white/20 shadow-lg">
+        <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
             <form method="GET" class="flex flex-wrap items-center justify-start gap-3 w-full">
                 <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
                 
-                <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0">Contas</option>
                     <?php foreach($contas_filtro as $c): ?>
                         <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
                     <?php endforeach; ?>
                 </select>
 
-                <select name="categoria" onchange="this.form.submit()" class="flex-1 min-w-[180px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="categoria" onchange="this.form.submit()" class="flex-1 min-w-[180px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0">Todas as Categorias</option>
                     <?php renderCategoryOptions($tree_categorias, 0, $categoria_filtro); ?>
                 </select>
 
-                <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
                     <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
                     <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
@@ -403,7 +370,7 @@ $tree_categorias = buildCategoryTree($all_cats);
 
                 <!-- Seletor de Mês/Ano (Estilo Dashboard) -->
                 <div class="relative w-full sm:w-auto z-50">
-                    <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl flex items-center justify-between space-x-3 transition-colors cursor-pointer text-white focus:outline-none min-w-[180px]">
+                    <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/50 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 px-4 py-2 rounded-xl flex items-center justify-between space-x-3 transition-colors cursor-pointer text-slate-800 dark:text-white focus:outline-none min-w-[180px]">
                         <?php 
                         $meses_nomes = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                         echo ($mes_atual > 0 ? $meses_nomes[$mes_atual] : 'Todos') . ' de ' . $ano_atual; 
@@ -411,18 +378,18 @@ $tree_categorias = buildCategoryTree($all_cats);
                         <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     
-                    <div id="date-selector" class="absolute top-full right-0 mt-2 w-56 z-50 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
-                        <div class="p-2 border-b border-white/10 flex items-center justify-between">
-                            <button type="button" onclick="mudarAno(-1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
-                            <span class="text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano_atual; ?></span>
-                            <button type="button" onclick="mudarAno(1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                    <div id="date-selector" class="absolute top-full right-0 mt-2 w-56 z-50 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
+                        <div class="p-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                            <button type="button" onclick="mudarAno(-1)" class="p-1 text-slate-400 hover:text-slate-800 dark:text-white/50 dark:hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <span class="text-slate-800 dark:text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano_atual; ?></span>
+                            <button type="button" onclick="mudarAno(1)" class="p-1 text-slate-400 hover:text-slate-800 dark:text-white/50 dark:hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
                         </div>
                         <div class="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-2 gap-1 p-2">
-                            <button type="button" onclick="selecionarData(0)" class="col-span-2 py-2 px-1 text-xs font-medium rounded-lg <?php echo (0 == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
+                            <button type="button" onclick="selecionarData(0)" class="col-span-2 py-2 px-1 text-xs font-medium rounded-lg <?php echo (0 == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'; ?> transition-colors text-center">
                                 Todos
                             </button>
                             <?php for($i=1; $i<=12; $i++): ?>
-                                <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
+                                <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes_atual) ? 'bg-cyan-500 text-white' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'; ?> transition-colors text-center">
                                     <?php echo $meses_nomes[$i]; ?>
                                 </button>
                             <?php endfor; ?>
@@ -433,7 +400,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                 <input type="hidden" name="mes" id="input-mes" value="<?php echo $mes_atual; ?>">
                 <input type="hidden" name="ano" id="input-ano" value="<?php echo $ano_atual; ?>">
                 
-                <button type="button" onclick="document.getElementById('ordem-input').value = '<?php echo $ordem_atual == 'DESC' ? 'ASC' : 'DESC'; ?>'; this.form.submit();" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-white" title="Inverter Ordem">
+                <button type="button" onclick="document.getElementById('ordem-input').value = '<?php echo $ordem_atual == 'DESC' ? 'ASC' : 'DESC'; ?>'; this.form.submit();" class="p-2 bg-white/50 hover:bg-white/60 dark:bg-white/10 dark:hover:bg-white/20 rounded-xl transition-colors border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white" title="Inverter Ordem">
                     <?php if($ordem_atual == 'DESC'): ?>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
                     <?php else: ?>
@@ -441,29 +408,29 @@ $tree_categorias = buildCategoryTree($all_cats);
                     <?php endif; ?>
                 </button>
                 
-                <button type="button" onclick="document.getElementById('filtros-avancados').classList.toggle('hidden')" class="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors border border-white/10 text-cyan-400 <?php echo $has_advanced_filter ? 'bg-white/20 border-cyan-400/50 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : ''; ?>" title="Filtros Avançados">
+                <button type="button" onclick="document.getElementById('filtros-avancados').classList.toggle('hidden')" class="p-2 bg-white/50 hover:bg-white/60 dark:bg-white/10 dark:hover:bg-white/20 rounded-xl transition-colors border border-gray-200 dark:border-white/10 text-cyan-600 dark:text-cyan-400 <?php echo $has_advanced_filter ? 'bg-white dark:bg-white/20 border-cyan-400/50 shadow-[0_0_10px_rgba(34,211,238,0.2)]' : ''; ?>" title="Filtros Avançados">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                 </button>
                 
                 <!-- Painel de Filtros Avançados -->
-                <div id="filtros-avancados" class="w-full mt-4 bg-white/5 p-4 rounded-2xl border border-white/10 <?php echo $has_advanced_filter ? '' : 'hidden'; ?>">
+                <div id="filtros-avancados" class="w-full mt-4 bg-white/60 dark:bg-white/5 p-4 rounded-2xl border border-gray-200 dark:border-white/10 <?php echo $has_advanced_filter ? '' : 'hidden'; ?>">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="md:col-span-1">
-                            <label class="block text-xs font-medium text-white/70 mb-1">Buscar na descrição</label>
-                            <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Ex: Mercado, Uber..." class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                            <label class="block text-xs font-medium text-slate-600 dark:text-white/70 mb-1">Buscar na descrição</label>
+                            <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Ex: Mercado, Uber..." class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
                         <div class="md:col-span-1">
-                            <label class="block text-xs font-medium text-white/70 mb-1">Data Inicial</label>
-                            <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                            <label class="block text-xs font-medium text-slate-600 dark:text-white/70 mb-1">Data Inicial</label>
+                            <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
                         <div class="md:col-span-1">
-                            <label class="block text-xs font-medium text-white/70 mb-1">Data Final</label>
-                            <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                            <label class="block text-xs font-medium text-slate-600 dark:text-white/70 mb-1">Data Final</label>
+                            <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
                     </div>
                     <div class="mt-4 flex justify-end space-x-3">
                         <?php if($has_advanced_filter): ?>
-                            <a href="transacoes.php" class="px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-xl transition-colors">Limpar Filtros</a>
+                            <a href="transacoes.php" class="px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors">Limpar Filtros</a>
                         <?php endif; ?>
                         <button type="submit" class="px-6 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
                             Aplicar
@@ -487,13 +454,13 @@ $tree_categorias = buildCategoryTree($all_cats);
                         $mes_extenso = $meses[(int)date('m', strtotime($data_atual))];
                         $ano_extenso = date('Y', strtotime($data_atual));
             ?>
-                        <div class="pt-4 pb-2 border-b border-white/10">
-                            <span class="text-white/60 font-medium text-sm"><?php echo $dia_semana . ', ' . $dia . ' de ' . $mes_extenso . ($ano_extenso != date('Y') ? ' de ' . $ano_extenso : ''); ?></span>
+                        <div class="pt-4 pb-2 border-b border-gray-200 dark:border-white/10">
+                            <span class="text-slate-500 dark:text-white/60 font-medium text-sm"><?php echo $dia_semana . ', ' . $dia . ' de ' . $mes_extenso . ($ano_extenso != date('Y') ? ' de ' . $ano_extenso : ''); ?></span>
                         </div>
             <?php   endif; ?>
                     
                     <!-- Card da Transação -->
-                    <div class="backdrop-blur-xl border rounded-2xl p-4 flex items-center justify-between transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-400/10 border-yellow-400/30 shadow-[0_0_15px_rgba(250,204,21,0.1)] hover:bg-yellow-400/20' : 'bg-white/10 border-white/10 hover:bg-white/20'; ?>">
+                    <div class="backdrop-blur-xl border rounded-2xl p-4 flex items-center justify-between transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-400/10 dark:border-yellow-400/30 shadow-sm dark:shadow-[0_0_15px_rgba(250,204,21,0.1)] dark:hover:bg-yellow-400/20' : 'bg-white/60 border-gray-200 hover:bg-white/70 dark:bg-white/10 dark:border-white/10 dark:hover:bg-white/20 shadow-sm'; ?>">
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <!-- Ícone/Cor -->
                             <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? '#3b82f6' : ($t['idcategoria'] == -1 ? ($t['valor'] < 0 ? '#ef4444' : '#10b981') : $t['categoria_cor_resolvida']); ?>">
@@ -514,7 +481,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                             
                             <!-- Detalhes -->
                             <div class="flex-1 min-w-0 pr-2">
-                                <h3 class="text-white font-medium text-lg leading-tight break-words whitespace-normal">
+                                <h3 class="text-slate-800 dark:text-white font-medium text-lg leading-tight break-words whitespace-normal">
                                     <?php 
                                         $desc_exibicao = htmlspecialchars($t['descricao']);
                                         if (!empty($t['id_grupo_recorrencia']) && isset($t['parcela_fim']) && $t['parcela_fim'] > 1) {
@@ -524,9 +491,9 @@ $tree_categorias = buildCategoryTree($all_cats);
                                         echo $desc_exibicao;
                                     ?>
                                 </h3>
-                                <p class="text-white/50 text-xs mt-1 flex items-center flex-wrap">
+                                <p class="text-slate-500 dark:text-white/50 text-xs mt-1 flex items-center flex-wrap">
                                     <?php if(!empty($t['conta_img'])): ?>
-                                        <img src="img/<?php echo htmlspecialchars($t['conta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 shrink-0 border border-white/10">
+                                        <img src="img/<?php echo htmlspecialchars($t['conta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 shrink-0 border border-gray-200 dark:border-white/10">
                                     <?php else: ?>
                                         <span class="w-3.5 h-3.5 rounded-full mr-1.5 shrink-0" style="background-color: <?php echo $t['conta_cor'] ?? '#ccc'; ?>"></span>
                                     <?php endif; ?>
@@ -536,7 +503,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                                         <?php if(isset($t['is_transferencia_entrada'])): ?>
                                             <span class="mx-1">⬅</span> 
                                             <?php if(!empty($t['conta_oposta_img'])): ?>
-                                                <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-white/10">
+                                                <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-gray-200 dark:border-white/10">
                                             <?php else: ?>
                                                 <span class="w-3.5 h-3.5 rounded-full mr-1.5 inline-block shrink-0" style="background-color: <?php echo $t['conta_oposta_cor'] ?? '#ccc'; ?>"></span>
                                             <?php endif; ?>
@@ -544,7 +511,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                                         <?php elseif(isset($t['is_transferencia_saida'])): ?>
                                             <span class="mx-1">➔</span> 
                                             <?php if(!empty($t['conta_oposta_img'])): ?>
-                                                <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-white/10">
+                                                <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-gray-200 dark:border-white/10">
                                             <?php else: ?>
                                                 <span class="w-3.5 h-3.5 rounded-full mr-1.5 inline-block shrink-0" style="background-color: <?php echo $t['conta_oposta_cor'] ?? '#ccc'; ?>"></span>
                                             <?php endif; ?>
@@ -552,7 +519,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                                         <?php elseif(isset($t['conta_destino_nome'])): ?>
                                             <span class="mx-1">➔</span> 
                                             <?php if(!empty($t['conta_destino_img'])): ?>
-                                                <img src="img/<?php echo htmlspecialchars($t['conta_destino_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-white/10">
+                                                <img src="img/<?php echo htmlspecialchars($t['conta_destino_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-gray-200 dark:border-white/10">
                                             <?php else: ?>
                                                 <span class="w-3.5 h-3.5 rounded-full mr-1.5 inline-block shrink-0" style="background-color: <?php echo $t['conta_destino_cor'] ?? '#ccc'; ?>"></span>
                                             <?php endif; ?>
@@ -563,7 +530,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                                     <?php endif; ?>
                                     
                                     <?php if(!$t['consolidada']): ?>
-                                        <span class="ml-2 text-yellow-400 font-medium bg-yellow-400/10 px-2 py-0.5 rounded-full">Pendente</span>
+                                        <span class="ml-2 text-yellow-600 dark:text-yellow-400 font-medium bg-yellow-100 dark:bg-yellow-400/10 px-2 py-0.5 rounded-full">Pendente</span>
                                     <?php endif; ?>
                                 </p>
                             </div>
@@ -571,7 +538,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                         
                         <!-- Valor e Ações -->
                         <div class="flex items-center space-x-3 shrink-0">
-                            <span class="font-bold text-lg whitespace-nowrap <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? 'text-blue-400' : ($t['valor'] < 0 ? 'text-red-400' : 'text-emerald-400'); ?>">
+                            <span class="font-bold text-lg whitespace-nowrap <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? 'text-blue-600 dark:text-blue-400' : ($t['valor'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'); ?>">
                                 <?php 
                                     echo 'R$ ' . number_format(abs($t['valor']), 2, ',', '.');
                                 ?>
@@ -581,7 +548,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                                 <!-- Botão Consolidar Rapido -->
                                 <?php if(!$t['consolidada']): ?>
                                     <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
-                                       class="p-2 rounded-lg transition-colors text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 hover:text-emerald-300"
+                                       class="p-2 rounded-lg transition-colors text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 dark:text-emerald-400 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/20 dark:hover:text-emerald-300"
                                        title="Consolidar">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -590,7 +557,7 @@ $tree_categorias = buildCategoryTree($all_cats);
                                 <?php endif; ?>
 
                                 <!-- Botão Editar -->
-                                <a href="transacao.php?id=<?php echo $t['id']; ?>" class="p-2 text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded-lg transition-colors" title="Editar">
+                                <a href="transacao.php?id=<?php echo $t['id']; ?>" class="p-2 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:text-cyan-300 dark:hover:bg-white/10 rounded-lg transition-colors" title="Editar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </a>
                             </div>
@@ -601,8 +568,8 @@ $tree_categorias = buildCategoryTree($all_cats);
                 endforeach; 
             else: 
             ?>
-                <div class="text-center p-8 bg-white/5 rounded-3xl border border-white/10">
-                    <p class="text-white/50">Nenhuma transação encontrada neste mês.</p>
+                <div class="text-center p-8 bg-white/60 dark:bg-white/5 rounded-3xl border border-gray-200 dark:border-white/10">
+                    <p class="text-slate-500 dark:text-white/50">Nenhuma transação encontrada neste mês.</p>
                 </div>
             <?php endif; ?>
         </div>

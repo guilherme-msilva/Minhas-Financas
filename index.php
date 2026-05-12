@@ -191,44 +191,11 @@ $res = $stmt->get_result();
 $user_nome = $res->fetch_assoc()['nome'] ?? 'Usuário';
 $stmt->close();
 ?>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Minhas Finanças</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            overflow-x: hidden;
-        }
-        .blob {
-            position: fixed;
-            filter: blur(80px);
-            z-index: -1;
-            opacity: 0.6;
-            animation: move 10s infinite alternate ease-in-out;
-        }
-        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #3b82f6; border-radius: 50%; }
-        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; background: #8b5cf6; border-radius: 50%; animation-delay: 2s; }
-        .blob-3 { top: 40%; left: 40%; width: 400px; height: 400px; background: #06b6d4; border-radius: 50%; animation-delay: 4s; }
-        
-        @keyframes move {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, -50px) scale(1.1); }
-        }
-    </style>
-</head>
-<body class="min-h-screen relative pb-20">
-    
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+<?php 
+$page_title = "Dashboard - Minhas Finanças";
+$extra_head = '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>';
+include 'header.php'; 
+?>
 
     <?php include 'menu.php'; ?>
 
@@ -238,15 +205,15 @@ $stmt->close();
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
             <div class="flex items-center space-x-4">
                 <div>
-                    <h1 class="text-3xl md:text-4xl font-bold text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
-                    <p class="text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro.</p>
+                    <h1 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
+                    <p class="text-slate-500 dark:text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro.</p>
                 </div>
             </div>
             
             <form id="form-filtros" method="GET" class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto relative z-40">
                 <!-- Seletor Liquid Glass de Data -->
                 <div class="relative w-full sm:w-auto">
-                    <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between space-x-3 shadow-lg transition-colors cursor-pointer text-white font-medium text-sm focus:outline-none">
+                    <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/60 hover:bg-white/70 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-md border border-gray-200 dark:border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between space-x-3 shadow-lg transition-colors cursor-pointer text-slate-800 dark:text-white font-medium text-sm focus:outline-none">
                         <?php 
                         $meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                         echo $meses[$mes] . ' de ' . $ano; 
@@ -254,15 +221,15 @@ $stmt->close();
                         <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     
-                    <div id="date-selector" class="absolute top-full left-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200">
-                        <div class="p-2 border-b border-white/10 flex items-center justify-between">
-                            <button type="button" onclick="mudarAno(-1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
-                            <span class="text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano; ?></span>
-                            <button type="button" onclick="mudarAno(1)" class="p-1 text-white/50 hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                    <div id="date-selector" class="absolute top-full left-0 mt-2 w-48 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden opacity-0 transition-opacity duration-200 z-50">
+                        <div class="p-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
+                            <button type="button" onclick="mudarAno(-1)" class="p-1 text-slate-400 hover:text-slate-800 dark:text-white/50 dark:hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <span class="text-slate-800 dark:text-white font-semibold text-sm" id="display-ano-dropdown"><?php echo $ano; ?></span>
+                            <button type="button" onclick="mudarAno(1)" class="p-1 text-slate-400 hover:text-slate-800 dark:text-white/50 dark:hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
                         </div>
                         <div class="max-h-60 overflow-y-auto no-scrollbar grid grid-cols-2 gap-1 p-2">
                             <?php for($i=1; $i<=12; $i++): ?>
-                                <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes) ? 'bg-cyan-500 text-white' : 'text-gray-300 hover:bg-white/10 hover:text-white'; ?> transition-colors text-center">
+                                <button type="button" onclick="selecionarData(<?php echo $i; ?>)" class="py-2 px-1 text-xs font-medium rounded-lg <?php echo ($i == $mes) ? 'bg-cyan-500 text-white' : 'text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'; ?> transition-colors text-center">
                                     <?php echo substr($meses[$i], 0, 3); ?>
                                 </button>
                             <?php endfor; ?>
@@ -273,11 +240,11 @@ $stmt->close();
                 <input type="hidden" name="mes" id="input-mes" value="<?php echo $mes; ?>">
                 <input type="hidden" name="ano" id="input-ano" value="<?php echo $ano; ?>">
             
-                <div class="bg-white/10 backdrop-blur-md border border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between w-full sm:w-auto space-x-3 shadow-lg">
-                    <span class="text-white/90 text-sm font-medium whitespace-nowrap">Projetar lançamentos futuros</span>
+                <div class="bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between w-full sm:w-auto space-x-3 shadow-lg">
+                    <span class="text-slate-700 dark:text-white/90 text-sm font-medium whitespace-nowrap">Projetar lançamentos futuros</span>
                     <label class="relative inline-flex items-center cursor-pointer shrink-0">
                       <input type="checkbox" name="projecao" value="1" onchange="document.getElementById('form-filtros').submit()" class="sr-only peer" <?php echo $projecao ? 'checked' : ''; ?>>
-                      <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                      <div class="w-11 h-6 bg-slate-300 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
                     </label>
                 </div>
             </form>
@@ -350,26 +317,26 @@ $stmt->close();
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <!-- Entradas -->
-            <div class="bg-emerald-500/10 backdrop-blur-xl border border-emerald-500/20 rounded-3xl p-6 shadow-lg hover:bg-emerald-500/20 transition-all flex items-center space-x-4">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
+            <div class="bg-emerald-50 dark:bg-emerald-500/10 backdrop-blur-xl border border-emerald-200 dark:border-emerald-500/20 rounded-3xl p-6 shadow-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
                 </div>
                 <div>
-                    <h4 class="text-emerald-100/70 text-sm font-medium mb-1">Entradas</h4>
-                    <div class="text-emerald-400 text-3xl font-bold leading-none">
+                    <h4 class="text-emerald-700 dark:text-emerald-100/70 text-sm font-medium mb-1">Entradas</h4>
+                    <div class="text-emerald-600 dark:text-emerald-400 text-3xl font-bold leading-none">
                         R$ <?php echo number_format($entradas_mes, 2, ',', '.'); ?>
                     </div>
                 </div>
             </div>
 
             <!-- Saídas -->
-            <div class="bg-red-500/10 backdrop-blur-xl border border-red-500/20 rounded-3xl p-6 shadow-lg hover:bg-red-500/20 transition-all flex items-center space-x-4">
-                <div class="w-12 h-12 rounded-2xl bg-red-500/20 flex items-center justify-center shrink-0">
-                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
+            <div class="bg-red-50 dark:bg-red-500/10 backdrop-blur-xl border border-red-200 dark:border-red-500/20 rounded-3xl p-6 shadow-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-all flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
                 </div>
                 <div>
-                    <h4 class="text-red-100/70 text-sm font-medium mb-1">Saídas</h4>
-                    <div class="text-red-400 text-3xl font-bold leading-none">
+                    <h4 class="text-red-700 dark:text-red-100/70 text-sm font-medium mb-1">Saídas</h4>
+                    <div class="text-red-600 dark:text-red-400 text-3xl font-bold leading-none">
                         R$ <?php echo number_format($saidas_mes, 2, ',', '.'); ?>
                     </div>
                 </div>
@@ -377,22 +344,22 @@ $stmt->close();
 
             <!-- Balanço / Resultado -->
             <?php 
-                $cor_bg = $resultado_mes >= 0 ? 'bg-blue-500/10' : 'bg-slate-500/10';
-                $cor_border = $resultado_mes >= 0 ? 'border-blue-500/20' : 'border-slate-500/20';
-                $cor_hover = $resultado_mes >= 0 ? 'hover:bg-blue-500/20' : 'hover:bg-slate-500/20';
-                $cor_text = $resultado_mes >= 0 ? 'text-blue-400' : 'text-slate-300';
-                $cor_icon_bg = $resultado_mes >= 0 ? 'bg-blue-500/20' : 'bg-slate-500/20';
+                $cor_bg = $resultado_mes >= 0 ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-slate-50 dark:bg-slate-500/10';
+                $cor_border = $resultado_mes >= 0 ? 'border-blue-200 dark:border-blue-500/20' : 'border-slate-200 dark:border-slate-500/20';
+                $cor_hover = $resultado_mes >= 0 ? 'hover:bg-blue-100 dark:hover:bg-blue-500/20' : 'hover:bg-slate-100 dark:hover:bg-slate-500/20';
+                $cor_text = $resultado_mes >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300';
+                $cor_icon_bg = $resultado_mes >= 0 ? 'bg-blue-100 dark:bg-blue-500/20' : 'bg-slate-200 dark:bg-slate-500/20';
             ?>
             <div class="<?php echo "$cor_bg $cor_border $cor_hover"; ?> backdrop-blur-xl border rounded-3xl p-6 shadow-lg transition-all flex items-center space-x-4">
                 <div class="w-12 h-12 rounded-2xl <?php echo $cor_icon_bg; ?> flex items-center justify-center shrink-0">
                     <svg class="w-6 h-6 <?php echo $cor_text; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
                 </div>
                 <div>
-                    <h4 class="text-white/60 text-sm font-medium mb-1">Balanço do Mês</h4>
+                    <h4 class="text-slate-600 dark:text-white/60 text-sm font-medium mb-1">Balanço do Mês</h4>
                     <div class="<?php echo $cor_text; ?> text-3xl font-bold flex flex-wrap items-baseline gap-1 leading-none">
                         R$ <?php echo number_format(abs($resultado_mes), 2, ',', '.'); ?>
                         <?php if($resultado_mes < 0): ?>
-                            <span class="text-sm font-medium text-red-400/80 uppercase ml-1">(Negativo)</span>
+                            <span class="text-sm font-medium text-red-500 dark:text-red-400/80 uppercase ml-1">(Negativo)</span>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -402,18 +369,18 @@ $stmt->close();
 
         <!-- Painel de Gráfico: Despesas por Categoria -->
         <?php if(true): ?>
-        <div class="mt-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-lg relative">
+        <div class="mt-8 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-lg relative">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div class="flex items-center gap-3">
-                    <h3 class="text-white/80 font-medium text-xl ml-2" id="titulo-grafico">Despesas por Categoria</h3>
-                    <button id="btnVoltarGrafico" class="hidden px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 rounded-lg text-sm transition-all flex items-center">
+                    <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl ml-2" id="titulo-grafico">Despesas por Categoria</h3>
+                    <button id="btnVoltarGrafico" class="hidden px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white/80 rounded-lg text-sm transition-all flex items-center">
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                         Voltar
                     </button>
                 </div>
-                <div class="bg-black/20 p-1 rounded-xl flex items-center">
-                    <button onclick="mudarTipoGrafico('despesa')" id="btn-graf-despesa" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-white/20 text-white shadow transition-all">Despesas</button>
-                    <button onclick="mudarTipoGrafico('receita')" id="btn-graf-receita" class="px-3 py-1.5 text-sm font-medium rounded-lg text-white/50 hover:text-white transition-all">Receitas</button>
+                <div class="bg-slate-200 dark:bg-black/20 p-1 rounded-xl flex items-center">
+                    <button onclick="mudarTipoGrafico('despesa')" id="btn-graf-despesa" class="px-3 py-1.5 text-sm font-medium rounded-lg bg-white dark:bg-white/20 text-slate-900 dark:text-white shadow transition-all">Despesas</button>
+                    <button onclick="mudarTipoGrafico('receita')" id="btn-graf-receita" class="px-3 py-1.5 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-900 dark:text-white/50 dark:hover:text-white transition-all">Receitas</button>
                 </div>
             </div>
             
@@ -437,19 +404,20 @@ $stmt->close();
                     const btnReceita = document.getElementById('btn-graf-receita');
                     const titulo = document.getElementById('titulo-grafico');
                     
+                    const isDark = document.documentElement.classList.contains('dark');
+                    const activeBg = isDark ? 'bg-white/20' : 'bg-white';
+                    const activeText = isDark ? 'text-white' : 'text-slate-900';
+                    const inactiveText = isDark ? 'text-white/50' : 'text-slate-500';
+
                     if (tipo === 'despesa') {
                         chartDados = chartDadosDespesas;
-                        btnDespesa.classList.add('bg-white/20', 'text-white', 'shadow');
-                        btnDespesa.classList.remove('text-white/50');
-                        btnReceita.classList.remove('bg-white/20', 'text-white', 'shadow');
-                        btnReceita.classList.add('text-white/50');
+                        btnDespesa.className = `px-3 py-1.5 text-sm font-medium rounded-lg ${activeBg} ${activeText} shadow transition-all`;
+                        btnReceita.className = `px-3 py-1.5 text-sm font-medium rounded-lg ${inactiveText} hover:text-slate-900 dark:hover:text-white transition-all`;
                         titulo.innerText = "Despesas por Categoria";
                     } else {
                         chartDados = chartDadosReceitas;
-                        btnReceita.classList.add('bg-white/20', 'text-white', 'shadow');
-                        btnReceita.classList.remove('text-white/50');
-                        btnDespesa.classList.remove('bg-white/20', 'text-white', 'shadow');
-                        btnDespesa.classList.add('text-white/50');
+                        btnReceita.className = `px-3 py-1.5 text-sm font-medium rounded-lg ${activeBg} ${activeText} shadow transition-all`;
+                        btnDespesa.className = `px-3 py-1.5 text-sm font-medium rounded-lg ${inactiveText} hover:text-slate-900 dark:hover:text-white transition-all`;
                         titulo.innerText = "Receitas por Categoria";
                     }
                     
@@ -488,7 +456,7 @@ $stmt->close();
                                 legend: {
                                     position: window.innerWidth > 768 ? 'right' : 'bottom',
                                     labels: {
-                                        color: 'rgba(255, 255, 255, 0.7)',
+                                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)',
                                         font: { family: 'Outfit', size: 14 },
                                         padding: 20,
                                         generateLabels: function(chart) {
@@ -517,10 +485,10 @@ $stmt->close();
                                     }
                                 },
                                 tooltip: {
-                                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                    titleColor: 'rgba(255,255,255,0.9)',
-                                    bodyColor: 'rgba(255,255,255,0.9)',
-                                    borderColor: 'rgba(255,255,255,0.1)',
+                                    backgroundColor: document.documentElement.classList.contains('dark') ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                                    titleColor: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.9)' : 'rgba(15, 23, 42, 0.9)',
+                                    bodyColor: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.9)' : 'rgba(15, 23, 42, 0.9)',
+                                    borderColor: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(15, 23, 42, 0.1)',
                                     borderWidth: 1,
                                     padding: 12,
                                     cornerRadius: 12,
@@ -573,12 +541,12 @@ $stmt->close();
 
         <!-- Saldos das Contas -->
         <?php if(count($contas_ativas) > 0): ?>
-            <h3 class="text-white/80 font-medium text-xl mt-12 mb-4 ml-2">Saldos por Conta</h3>
+            <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl mt-12 mb-4 ml-2">Saldos por Conta</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach($contas_ativas as $conta): ?>
-                    <div class="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/10 transition-all flex items-center space-x-4">
+                    <div class="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/70 dark:hover:bg-white/10 transition-all flex items-center space-x-4">
                         <?php if(!empty($conta['img'])): ?>
-                            <div class="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner shrink-0 border border-white/10 bg-white/5">
+                            <div class="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner shrink-0 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
                                 <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo da conta" class="w-full h-full object-cover">
                             </div>
                         <?php else: ?>
@@ -587,8 +555,8 @@ $stmt->close();
                             </div>
                         <?php endif; ?>
                         <div>
-                            <h4 class="text-white/70 text-sm font-medium mb-1"><?php echo htmlspecialchars($conta['nome']); ?></h4>
-                            <div class="text-white text-xl font-bold">
+                            <h4 class="text-slate-600 dark:text-white/70 text-sm font-medium mb-1"><?php echo htmlspecialchars($conta['nome']); ?></h4>
+                            <div class="text-slate-800 dark:text-white text-xl font-bold">
                                 R$ <?php echo number_format($conta['saldo_atual'], 2, ',', '.'); ?>
                             </div>
                         </div>

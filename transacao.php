@@ -408,76 +408,41 @@ foreach ($contas as $conta) {
     if ($conta['id'] == $id_conta_destino) $nome_conta_destino = $conta['nome'];
 }
 ?>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nova Transação - Minhas Finanças</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-            overflow-x: hidden;
-        }
-        .blob {
-            position: fixed;
-            filter: blur(80px);
-            z-index: -1;
-            opacity: 0.6;
-            animation: move 10s infinite alternate ease-in-out;
-            transition: background 0.5s ease;
-        }
-        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; border-radius: 50%; }
-        .blob-2 { bottom: -10%; right: -10%; width: 600px; height: 600px; border-radius: 50%; animation-delay: 2s; }
-        .blob-3 { top: 40%; left: 40%; width: 400px; height: 400px; border-radius: 50%; animation-delay: 4s; }
-        
-        @keyframes move {
-            0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(50px, -50px) scale(1.1); }
-        }
+<?php 
+$page_title = "Nova Transação - Minhas Finanças";
+$extra_head = '<style>
+    .theme-despesa .blob-1 { background: #ef4444; }
+    .theme-despesa .blob-2 { background: #f43f5e; }
+    .theme-despesa .blob-3 { background: #be123c; }
+    .theme-despesa .header-glass { background: linear-gradient(135deg, rgba(239, 68, 68, 0.4), rgba(225, 29, 72, 0.2)); border-bottom-color: rgba(239, 68, 68, 0.3); }
 
-        .theme-despesa .blob-1 { background: #ef4444; }
-        .theme-despesa .blob-2 { background: #f43f5e; }
-        .theme-despesa .blob-3 { background: #be123c; }
-        .theme-despesa .header-glass { background: linear-gradient(135deg, rgba(239, 68, 68, 0.4), rgba(225, 29, 72, 0.2)); border-bottom-color: rgba(239, 68, 68, 0.3); }
+    .theme-receita .blob-1 { background: #10b981; }
+    .theme-receita .blob-2 { background: #059669; }
+    .theme-receita .blob-3 { background: #047857; }
+    .theme-receita .header-glass { background: linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(5, 150, 105, 0.2)); border-bottom-color: rgba(16, 185, 129, 0.3); }
 
-        .theme-receita .blob-1 { background: #10b981; }
-        .theme-receita .blob-2 { background: #059669; }
-        .theme-receita .blob-3 { background: #047857; }
-        .theme-receita .header-glass { background: linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(5, 150, 105, 0.2)); border-bottom-color: rgba(16, 185, 129, 0.3); }
+    .theme-transferencia .blob-1 { background: #3b82f6; }
+    .theme-transferencia .blob-2 { background: #4f46e5; }
+    .theme-transferencia .blob-3 { background: #3730a3; }
+    .theme-transferencia .header-glass { background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(79, 70, 229, 0.2)); border-bottom-color: rgba(59, 130, 246, 0.3); }
 
-        .theme-transferencia .blob-1 { background: #3b82f6; }
-        .theme-transferencia .blob-2 { background: #4f46e5; }
-        .theme-transferencia .blob-3 { background: #3730a3; }
-        .theme-transferencia .header-glass { background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(79, 70, 229, 0.2)); border-bottom-color: rgba(59, 130, 246, 0.3); }
+    .toggle-checkbox:checked { right: 0; border-color: #10b981; }
+    .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
 
-        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
-
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Esconder setas de input number */
-        input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-    </style>
-</head>
-<body class="min-h-screen relative theme-<?php echo $tipo; ?>" id="app-body">
-    
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+    /* Esconder setas de input number */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+</style>';
+$body_id = 'app-body';
+$body_class = 'min-h-screen relative pb-20 bg-slate-50 text-slate-800 dark:bg-[#0f172a] dark:text-[#f8fafc] transition-colors duration-300 theme-' . $tipo;
+include 'header.php'; 
+?>
 
     <div class="hidden md:block">
         <?php include 'menu.php'; ?>
@@ -507,36 +472,36 @@ foreach ($contas as $conta) {
     <div class="max-w-md mx-auto relative h-[85vh] md:h-[80vh] flex flex-col mb-10 overflow-hidden">
         
         <?php if ($erro): ?>
-            <div class="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-xl mb-4 mx-2 sm:mx-0 text-sm z-50 relative">
+            <div class="bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 px-4 py-2 rounded-xl mb-4 mx-2 sm:mx-0 text-sm z-50 relative">
                 <?php echo $erro; ?>
             </div>
         <?php endif; ?>
         <?php if ($sucesso): ?>
-            <div class="bg-emerald-500/20 border border-emerald-500/50 text-emerald-200 px-4 py-2 rounded-xl mb-4 mx-2 sm:mx-0 text-sm z-50 relative">
+            <div class="bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/50 text-emerald-600 dark:text-emerald-200 px-4 py-2 rounded-xl mb-4 mx-2 sm:mx-0 text-sm z-50 relative">
                 <?php echo $sucesso; ?>
             </div>
         <?php endif; ?>
 
         <!-- Formulário Principal -->
-        <div id="main-view" class="bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[2.5rem] shadow-2xl h-full flex flex-col relative mx-2 sm:mx-0 z-10 transition-transform duration-300">
+        <div id="main-view" class="bg-white/60 dark:bg-white/10 backdrop-blur-2xl border border-gray-200 dark:border-white/20 rounded-[2.5rem] shadow-2xl h-full flex flex-col relative mx-2 sm:mx-0 z-10 transition-transform duration-300">
             
             <!-- Cabeçalho dinâmico -->
             <div id="header-area" class="header-glass p-6 transition-all duration-500 border-b relative shrink-0 rounded-t-[2.5rem] z-50">
                 <div class="flex justify-between items-center mb-6">
-                    <a href="transacoes.php" class="text-white/80 hover:text-white font-medium">Cancelar</a>
-                    <span id="header-title" class="text-white font-semibold text-lg tracking-wide">
+                    <a href="transacoes.php" class="text-slate-600 hover:text-slate-800 dark:text-white/80 dark:hover:text-white font-medium">Cancelar</a>
+                    <span id="header-title" class="text-slate-800 dark:text-white font-semibold text-lg tracking-wide">
                         <?php 
                         if($tipo == 'despesa') echo 'Despesa'; 
                         elseif($tipo == 'receita') echo 'Receita'; 
                         else echo 'Transferência'; 
                         ?>
                     </span>
-                    <button type="button" onclick="submitForm()" class="text-white font-bold tracking-wide">Salvar</button>
+                    <button type="button" onclick="submitForm()" class="text-slate-800 dark:text-white font-bold tracking-wide">Salvar</button>
                 </div>
 
                 <div class="flex items-center justify-between mb-2">
-                    <button type="button" onclick="toggleTypeSelect()" class="w-12 h-12 rounded-2xl border border-white/40 flex items-center justify-center bg-white/10 hover:bg-white/20 transition-colors cursor-pointer z-20">
-                        <svg id="icon-seta" class="w-6 h-6 text-white transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <button type="button" onclick="toggleTypeSelect()" class="w-12 h-12 rounded-2xl border border-gray-300 dark:border-white/40 flex items-center justify-center bg-white/50 dark:bg-white/10 hover:bg-white/60 dark:hover:bg-white/20 transition-colors cursor-pointer z-20">
+                        <svg id="icon-seta" class="w-6 h-6 text-slate-700 dark:text-white transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <?php if($tipo == 'despesa'): ?>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                             <?php elseif($tipo == 'receita'): ?>
@@ -548,46 +513,46 @@ foreach ($contas as $conta) {
                     </button>
                     
                     <div class="flex-1 text-right ml-4 cursor-pointer relative z-10" onclick="toggleNumpad()">
-                        <span class="text-4xl md:text-5xl font-bold text-white tracking-tight" id="display-valor">
+                        <span class="text-4xl md:text-5xl font-bold text-slate-800 dark:text-white tracking-tight" id="display-valor">
                             R$ <?php echo number_format($valor, 2, ',', '.'); ?>
                         </span>
                     </div>
                 </div>
 
                 <!-- Action Sheet de Seleção de Tipo -->
-                <div id="type-selector" class="absolute top-[85px] left-6 bg-white/95 backdrop-blur-3xl rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-white/20 w-48 overflow-hidden hidden opacity-0 transition-opacity duration-200 z-50">
-                    <button onclick="setTipo('despesa')" class="w-full text-left px-4 py-3 border-b border-gray-100 flex items-center space-x-3 hover:bg-gray-50 transition-colors">
-                        <span class="w-6 h-6 rounded-full bg-red-100 text-red-500 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg></span>
-                        <span class="text-gray-800 font-medium">Despesa</span>
+                <div id="type-selector" class="absolute top-[85px] left-6 bg-white/95 dark:bg-slate-800/95 backdrop-blur-3xl rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-gray-200 dark:border-white/20 w-48 overflow-hidden hidden opacity-0 transition-opacity duration-200 z-50">
+                    <button onclick="setTipo('despesa')" class="w-full text-left px-4 py-3 border-b border-gray-100 dark:border-white/10 flex items-center space-x-3 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                        <span class="w-6 h-6 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 dark:text-red-400 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg></span>
+                        <span class="text-slate-800 dark:text-white font-medium">Despesa</span>
                     </button>
-                    <button onclick="setTipo('receita')" class="w-full text-left px-4 py-3 border-b border-gray-100 flex items-center space-x-3 hover:bg-gray-50 transition-colors">
-                        <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></span>
-                        <span class="text-gray-800 font-medium">Receita</span>
+                    <button onclick="setTipo('receita')" class="w-full text-left px-4 py-3 border-b border-gray-100 dark:border-white/10 flex items-center space-x-3 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                        <span class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg></span>
+                        <span class="text-slate-800 dark:text-white font-medium">Receita</span>
                     </button>
-                    <button onclick="setTipo('transferencia')" class="w-full text-left px-4 py-3 flex items-center space-x-3 hover:bg-gray-50 transition-colors">
-                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg></span>
-                        <span class="text-gray-800 font-medium">Transferência</span>
+                    <button onclick="setTipo('transferencia')" class="w-full text-left px-4 py-3 flex items-center space-x-3 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                        <span class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-500 dark:text-blue-400 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg></span>
+                        <span class="text-slate-800 dark:text-white font-medium">Transferência</span>
                     </button>
                 </div>
                 <div id="type-selector-overlay" onclick="toggleTypeSelect()" class="fixed inset-0 z-40 hidden"></div>
             </div>
 
             <div class="flex-1 overflow-y-auto no-scrollbar p-2 relative">
-                <div class="bg-white/5 rounded-3xl p-2 space-y-1 my-4">
+                <div class="bg-white/50 dark:bg-white/5 rounded-3xl p-2 space-y-1 my-4">
                     
-                    <div class="flex items-center justify-between p-3 border-b border-white/5">
-                        <span class="text-gray-300 font-medium">Data</span>
-                        <input type="date" class="bg-transparent text-right text-white focus:outline-none w-32" id="ui-data" value="<?php echo htmlspecialchars($data); ?>">
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
+                        <span class="text-slate-500 dark:text-gray-300 font-medium">Data</span>
+                        <input type="date" class="bg-transparent text-right text-slate-800 dark:text-white focus:outline-none w-32" id="ui-data" value="<?php echo htmlspecialchars($data); ?>">
                     </div>
                     
-                    <div class="flex items-center justify-between p-3 border-b border-white/5">
-                        <span class="text-gray-300 font-medium whitespace-nowrap mr-4">Descrição</span>
-                        <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>">
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
+                        <span class="text-slate-500 dark:text-gray-300 font-medium whitespace-nowrap mr-4">Descrição</span>
+                        <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>">
                     </div>
 
-                    <div class="flex items-center justify-between p-3 border-b border-white/5">
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
                         <div class="flex items-center space-x-2">
-                            <span class="text-gray-300 font-medium">Consolidada</span>
+                            <span class="text-slate-500 dark:text-gray-300 font-medium">Consolidada</span>
                         </div>
                         <div class="flex items-center space-x-3">
                             <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
@@ -597,85 +562,85 @@ foreach ($contas as $conta) {
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between p-3 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? 'hidden' : ''; ?>" id="linha-categoria" onclick="openPanel('panel-categoria')">
-                        <span class="text-gray-300 font-medium">Categoria</span>
-                        <div class="flex items-center text-white/70 space-x-2">
-                            <span id="display-categoria" class="text-white"><?php echo htmlspecialchars($nome_categoria); ?></span>
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5 cursor-pointer hover:bg-white/60 dark:hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? 'hidden' : ''; ?>" id="linha-categoria" onclick="openPanel('panel-categoria')">
+                        <span class="text-slate-500 dark:text-gray-300 font-medium">Categoria</span>
+                        <div class="flex items-center text-slate-500 dark:text-white/70 space-x-2">
+                            <span id="display-categoria" class="text-slate-800 dark:text-white"><?php echo htmlspecialchars($nome_categoria); ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between p-3 border-b border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors" onclick="openPanel('panel-conta')">
-                        <span class="text-gray-300 font-medium" id="label-conta-origem"><?php echo $tipo == 'transferencia' ? 'Conta Origem' : 'Conta'; ?></span>
-                        <div class="flex items-center text-white/70 space-x-2">
-                            <span id="display-conta" class="text-white"><?php echo htmlspecialchars($nome_conta); ?></span>
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5 cursor-pointer hover:bg-white/60 dark:hover:bg-white/5 rounded-xl transition-colors" onclick="openPanel('panel-conta')">
+                        <span class="text-slate-500 dark:text-gray-300 font-medium" id="label-conta-origem"><?php echo $tipo == 'transferencia' ? 'Conta Origem' : 'Conta'; ?></span>
+                        <div class="flex items-center text-slate-500 dark:text-white/70 space-x-2">
+                            <span id="display-conta" class="text-slate-800 dark:text-white"><?php echo htmlspecialchars($nome_conta); ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
                     
-                    <div class="flex items-center justify-between p-3 border-white/5 cursor-pointer hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? '' : 'hidden'; ?>" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
-                        <span class="text-gray-300 font-medium">Conta Destino</span>
-                        <div class="flex items-center text-white/70 space-x-2">
-                            <span id="display-conta-destino" class="text-white"><?php echo htmlspecialchars($nome_conta_destino); ?></span>
+                    <div class="flex items-center justify-between p-3 border-gray-200 dark:border-white/5 cursor-pointer hover:bg-white/60 dark:hover:bg-white/5 rounded-xl transition-colors <?php echo $tipo == 'transferencia' ? '' : 'hidden'; ?>" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
+                        <span class="text-slate-500 dark:text-gray-300 font-medium">Conta Destino</span>
+                        <div class="flex items-center text-slate-500 dark:text-white/70 space-x-2">
+                            <span id="display-conta-destino" class="text-slate-800 dark:text-white"><?php echo htmlspecialchars($nome_conta_destino); ?></span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex justify-center my-6" id="container-btn-mais-opcoes">
-                    <button type="button" onclick="toggleMaisOpcoes()" id="btn-mais-opcoes" class="px-6 py-2 rounded-full border border-white/30 text-white/60 hover:text-white hover:bg-white/5 hover:border-white/50 text-sm font-semibold tracking-wide transition-all uppercase">
+                    <button type="button" onclick="toggleMaisOpcoes()" id="btn-mais-opcoes" class="px-6 py-2 rounded-full border border-gray-300 dark:border-white/30 text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 hover:border-gray-400 dark:hover:border-white/50 text-sm font-semibold tracking-wide transition-all uppercase">
                         Mais Opções
                     </button>
                 </div>
 
                 <div id="mais-opcoes" class="hidden opacity-0 transition-opacity duration-500 pb-6">
-                    <div class="bg-white/5 rounded-3xl p-2 space-y-1">
-                        <div class="flex items-center justify-between p-3 border-b border-white/5">
-                            <span class="text-gray-300 font-medium">Nota</span>
-                            <input type="text" class="bg-transparent text-right text-white placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar Notas..." id="ui-notas" value="<?php echo htmlspecialchars($notas); ?>">
+                    <div class="bg-white/50 dark:bg-white/5 rounded-3xl p-2 space-y-1">
+                        <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
+                            <span class="text-slate-500 dark:text-gray-300 font-medium">Nota</span>
+                            <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar Notas..." id="ui-notas" value="<?php echo htmlspecialchars($notas); ?>">
                         </div>
 
                         <div class="p-3">
-                            <div class="flex rounded-xl bg-black/20 p-1">
-                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-white shadow bg-white/20 transition-all" id="tab-nenhuma">Nenhuma</button>
-                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-white/60 hover:text-white transition-all bg-transparent" id="tab-avancada">Avançada</button>
+                            <div class="flex rounded-xl bg-black/5 dark:bg-black/20 p-1">
+                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-800 dark:text-white shadow bg-white dark:bg-white/20 transition-all" id="tab-nenhuma">Nenhuma</button>
+                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white transition-all bg-transparent" id="tab-avancada">Avançada</button>
                             </div>
                         </div>
 
                         <div id="opcoes-avancadas-conteudo" class="p-2 space-y-3 hidden">
                             <!-- Intervalo Accordion -->
-                            <div class="border border-white/5 rounded-xl bg-white/5 overflow-hidden transition-all duration-300">
-                                <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/5 transition-colors" onclick="toggleIntervaloPanel()">
-                                    <span class="text-gray-300 font-medium text-sm">Intervalo</span>
+                            <div class="border border-gray-200 dark:border-white/5 rounded-xl bg-white/50 dark:bg-white/5 overflow-hidden transition-all duration-300">
+                                <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/60 dark:hover:bg-white/5 transition-colors" onclick="toggleIntervaloPanel()">
+                                    <span class="text-slate-500 dark:text-gray-300 font-medium text-sm">Intervalo</span>
                                     <div class="flex items-center space-x-2">
-                                        <span class="text-white font-medium text-sm bg-black/20 px-3 py-1 rounded-lg">Mensal</span>
-                                        <svg id="icon-intervalo" class="w-4 h-4 text-white/50 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <span class="text-slate-700 dark:text-white font-medium text-sm bg-black/5 dark:bg-black/20 px-3 py-1 rounded-lg">Mensal</span>
+                                        <svg id="icon-intervalo" class="w-4 h-4 text-slate-400 dark:text-white/50 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
-                                <div id="panel-intervalo-extra" class="hidden p-3 border-t border-white/5 bg-black/10">
+                                <div id="panel-intervalo-extra" class="hidden p-3 border-t border-gray-200 dark:border-white/5 bg-black/5 dark:bg-black/10">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-gray-400 font-medium text-sm">Dia do Vencimento</span>
-                                        <input type="number" id="ui-dia-vencimento" min="1" max="31" value="<?php echo date('d', strtotime($data)); ?>" class="bg-black/20 text-right text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24">
+                                        <span class="text-slate-500 dark:text-gray-400 font-medium text-sm">Dia do Vencimento</span>
+                                        <input type="number" id="ui-dia-vencimento" min="1" max="31" value="<?php echo date('d', strtotime($data)); ?>" class="bg-black/5 dark:bg-black/20 text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24">
                                     </div>
                                 </div>
                             </div>
                             
-                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
-                                <span class="text-gray-300 font-medium text-sm">Indefinidamente</span>
+                            <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-white/5 rounded-xl bg-white/50 dark:bg-white/5">
+                                <span class="text-slate-500 dark:text-gray-300 font-medium text-sm">Indefinidamente</span>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                   <input type="checkbox" id="ui-indefinidamente" onchange="toggleIndefinidamente()" class="sr-only peer" <?php echo ($parcela_fim == -1) ? 'checked' : ''; ?>>
-                                  <div class="w-11 h-6 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                  <div class="w-11 h-6 bg-slate-200 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
                                 </label>
                             </div>
                             
-                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
-                                <span class="text-gray-300 font-medium text-sm">Parcela Inicial</span>
-                                <input type="number" id="ui-parcela-recorrencia" min="1" value="<?php echo $parcela_recorrencia; ?>" class="bg-black/20 text-right text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24">
+                            <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-white/5 rounded-xl bg-white/50 dark:bg-white/5">
+                                <span class="text-slate-500 dark:text-gray-300 font-medium text-sm">Parcela Inicial</span>
+                                <input type="number" id="ui-parcela-recorrencia" min="1" value="<?php echo $parcela_recorrencia; ?>" class="bg-black/5 dark:bg-black/20 text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24">
                             </div>
 
-                            <div class="flex items-center justify-between p-3 border border-white/5 rounded-xl bg-white/5">
-                                <span class="text-gray-300 font-medium text-sm">Parcela Final</span>
-                                <input type="number" id="ui-parcela-fim" min="1" value="<?php echo ($parcela_fim > 1) ? $parcela_fim : ''; ?>" class="bg-black/20 text-right text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24 disabled:opacity-50" <?php echo ($parcela_fim == -1) ? 'disabled' : ''; ?> placeholder="Ex: 12">
+                            <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-white/5 rounded-xl bg-white/50 dark:bg-white/5">
+                                <span class="text-slate-500 dark:text-gray-300 font-medium text-sm">Parcela Final</span>
+                                <input type="number" id="ui-parcela-fim" min="1" value="<?php echo ($parcela_fim > 1) ? $parcela_fim : ''; ?>" class="bg-black/5 dark:bg-black/20 text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-cyan-500 rounded-lg px-3 py-1 w-24 disabled:opacity-50" <?php echo ($parcela_fim == -1) ? 'disabled' : ''; ?> placeholder="Ex: 12">
                             </div>
                         </div>
                     </div>
@@ -694,70 +659,70 @@ foreach ($contas as $conta) {
         </div>
 
         <!-- Panels Categoria e Contas -->
-        <div id="panel-categoria" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
-            <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
-                <button onclick="closePanel('panel-categoria')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
+        <div id="panel-categoria" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl border border-gray-200 dark:border-white/10">
+            <div class="p-6 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
+                <button onclick="closePanel('panel-categoria')" class="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     <span>Voltar</span>
                 </button>
-                <span class="text-white font-semibold">Selecionar Categoria</span>
+                <span class="text-slate-800 dark:text-white font-semibold">Selecionar Categoria</span>
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <div class="bg-white/5 rounded-3xl p-2 border border-white/10">
+                <div class="bg-white/50 dark:bg-white/5 rounded-3xl p-2 border border-gray-200 dark:border-white/10">
                     <?php if (count($arvore_categorias) > 0): ?>
                         <?php renderCategoryPanelHtml($arvore_categorias); ?>
                     <?php else: ?>
-                        <div class="p-4 text-center text-white/50">Nenhuma categoria encontrada.</div>
+                        <div class="p-4 text-center text-slate-500 dark:text-white/50">Nenhuma categoria encontrada.</div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
 
-        <div id="panel-conta" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
-            <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
-                <button onclick="closePanel('panel-conta')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
+        <div id="panel-conta" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl border border-gray-200 dark:border-white/10">
+            <div class="p-6 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
+                <button onclick="closePanel('panel-conta')" class="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     <span>Voltar</span>
                 </button>
-                <span class="text-white font-semibold" id="title-panel-conta">Selecionar Conta</span>
+                <span class="text-slate-800 dark:text-white font-semibold" id="title-panel-conta">Selecionar Conta</span>
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+                <div class="bg-white/50 dark:bg-white/5 rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10">
                     <?php foreach($contas as $conta): ?>
-                        <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                        <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-gray-200 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
                             <?php if (!empty($conta['img'])): ?>
-                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-white/20 shrink-0">
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-white/20 shrink-0">
                             <?php else: ?>
                                 <div class="w-4 h-4 rounded-full shrink-0" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
                             <?php endif; ?>
-                            <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
+                            <span class="text-slate-800 dark:text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
                         </button>
                     <?php endforeach; ?>
                 </div>
             </div>
         </div>
 
-        <div id="panel-conta-destino" class="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
-            <div class="p-6 border-b border-white/10 flex items-center justify-between shrink-0">
-                <button onclick="closePanel('panel-conta-destino')" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-medium">
+        <div id="panel-conta-destino" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl rounded-[2.5rem] z-30 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl border border-gray-200 dark:border-white/10">
+            <div class="p-6 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
+                <button onclick="closePanel('panel-conta-destino')" class="text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 flex items-center space-x-1 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     <span>Voltar</span>
                 </button>
-                <span class="text-white font-semibold">Selecionar Destino</span>
+                <span class="text-slate-800 dark:text-white font-semibold">Selecionar Destino</span>
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <div class="bg-white/5 rounded-3xl overflow-hidden border border-white/10">
+                <div class="bg-white/50 dark:bg-white/5 rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10">
                     <?php foreach($contas as $conta): ?>
-                        <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-white/5 hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                        <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-gray-200 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
                             <?php if (!empty($conta['img'])): ?>
-                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-white/20 shrink-0">
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-white/20 shrink-0">
                             <?php else: ?>
                                 <div class="w-4 h-4 rounded-full shrink-0" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
                             <?php endif; ?>
-                            <span class="text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
+                            <span class="text-slate-800 dark:text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
                         </button>
                     <?php endforeach; ?>
                 </div>
@@ -769,35 +734,35 @@ foreach ($contas as $conta) {
     <!-- Overlay Numpad -->
     <div id="numpad-overlay" onclick="closeNumpad()" class="fixed inset-0 bg-transparent z-40 hidden md:hidden"></div>
 
-    <div id="numpad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#e2e8f0]/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 transform translate-y-full transition-transform duration-300 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.3)] md:hidden">
+    <div id="numpad" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-slate-100/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 transform translate-y-full transition-transform duration-300 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-gray-200 dark:border-white/10 md:hidden">
         <div class="flex justify-between items-center mb-4">
-            <span class="text-gray-800 font-semibold pl-2">Digite o valor</span>
-            <button onclick="closeNumpad()" class="text-gray-500 hover:text-gray-800 p-2">
+            <span class="text-slate-800 dark:text-gray-200 font-semibold pl-2">Digite o valor</span>
+            <button onclick="closeNumpad()" class="text-slate-500 hover:text-slate-800 dark:text-gray-400 dark:hover:text-white p-2">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
         <div class="grid grid-cols-4 gap-3">
             <div class="col-span-3 grid grid-cols-3 gap-3">
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('7')">7</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('8')">8</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('9')">9</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('4')">4</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('5')">5</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('6')">6</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('1')">1</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('2')">2</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('3')">3</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addDoubleZero()">,00</button>
-                <button class="bg-white rounded-full h-16 text-2xl font-medium text-gray-800 shadow-sm active:bg-gray-200" onclick="addNumber('0')">0</button>
-                <button class="bg-gray-500 rounded-full h-16 text-2xl font-medium text-white shadow-sm active:bg-gray-600 flex items-center justify-center" onclick="backspace()">
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('7')">7</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('8')">8</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('9')">9</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('4')">4</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('5')">5</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('6')">6</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('1')">1</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('2')">2</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('3')">3</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addDoubleZero()">,00</button>
+                <button class="bg-white dark:bg-slate-800 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-200 dark:active:bg-slate-700" onclick="addNumber('0')">0</button>
+                <button class="bg-slate-300 dark:bg-slate-700 rounded-full h-16 text-2xl font-medium text-slate-800 dark:text-white shadow-sm active:bg-slate-400 dark:active:bg-slate-600 flex items-center justify-center" onclick="backspace()">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path></svg>
                 </button>
             </div>
-            <div class="col-span-1 grid grid-rows-4 gap-3 bg-white rounded-[2rem] p-2 shadow-sm">
-                <button class="text-2xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('÷')">÷</button>
-                <button class="text-2xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('×')">×</button>
-                <button class="text-3xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('-')">-</button>
-                <button class="text-3xl text-gray-600 font-medium active:bg-gray-100 rounded-full h-full" onclick="setOperation('+')">+</button>
+            <div class="col-span-1 grid grid-rows-4 gap-3 bg-white dark:bg-slate-800 rounded-[2rem] p-2 shadow-sm border border-gray-100 dark:border-white/5">
+                <button class="text-2xl text-slate-600 dark:text-slate-300 font-medium active:bg-slate-100 dark:active:bg-slate-700 rounded-full h-full" onclick="setOperation('÷')">÷</button>
+                <button class="text-2xl text-slate-600 dark:text-slate-300 font-medium active:bg-slate-100 dark:active:bg-slate-700 rounded-full h-full" onclick="setOperation('×')">×</button>
+                <button class="text-3xl text-slate-600 dark:text-slate-300 font-medium active:bg-slate-100 dark:active:bg-slate-700 rounded-full h-full" onclick="setOperation('-')">-</button>
+                <button class="text-3xl text-slate-600 dark:text-slate-300 font-medium active:bg-slate-100 dark:active:bg-slate-700 rounded-full h-full" onclick="setOperation('+')">+</button>
             </div>
         </div>
         <button id="btn-ok-numpad" class="w-full mt-3 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full h-14 text-white text-2xl font-bold shadow-lg hover:from-orange-500 hover:to-orange-600 transition-all active:scale-95" onclick="handleOkButton()">
@@ -807,18 +772,18 @@ foreach ($contas as $conta) {
 
         <!-- Modal Edição Recorrência -->
         <div id="modal-edicao-recorrencia" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div class="bg-slate-800 border border-white/10 rounded-3xl p-6 shadow-2xl max-w-sm w-full">
-                <h3 class="text-white font-medium text-lg mb-2">Editar Transação Recorrente</h3>
-                <p class="text-white/60 text-sm mb-6">Esta é uma transação recorrente. Você deseja alterar apenas esta ocorrência ou todas as futuras também?</p>
+            <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl max-w-sm w-full">
+                <h3 class="text-slate-800 dark:text-white font-medium text-lg mb-2">Editar Transação Recorrente</h3>
+                <p class="text-slate-500 dark:text-white/60 text-sm mb-6">Esta é uma transação recorrente. Você deseja alterar apenas esta ocorrência ou todas as futuras também?</p>
                 
                 <div class="space-y-3">
-                    <button type="button" onclick="confirmarEdicaoRecorrencia('somente_esta')" class="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium border border-white/5">
+                    <button type="button" onclick="confirmarEdicaoRecorrencia('somente_esta')" class="w-full py-3 bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-800 dark:text-white rounded-xl transition-colors font-medium border border-gray-200 dark:border-white/5">
                         Apenas esta transação
                     </button>
                     <button type="button" onclick="confirmarEdicaoRecorrencia('todas_futuras')" class="w-full py-3 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl transition-colors font-medium shadow-lg shadow-cyan-500/20">
                         Esta e as futuras
                     </button>
-                    <button type="button" onclick="document.getElementById('modal-edicao-recorrencia').classList.add('hidden')" class="w-full py-3 text-white/50 hover:text-white transition-colors font-medium text-sm mt-2">
+                    <button type="button" onclick="document.getElementById('modal-edicao-recorrencia').classList.add('hidden')" class="w-full py-3 text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white transition-colors font-medium text-sm mt-2">
                         Cancelar
                     </button>
                 </div>
