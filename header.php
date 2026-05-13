@@ -15,6 +15,9 @@ $tema_class = (isset($_SESSION['tema']) && $_SESSION['tema'] === 'CLARO') ? '' :
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="shortcut icon" href="favicon.ico">
     
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>

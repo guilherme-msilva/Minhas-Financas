@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->execute()) {
                 $_SESSION['tema'] = $novo_tema;
                 $current_tema = $novo_tema;
-                $mensagem = 'Tema salvo com sucesso! (A aplicação suportará o Tema Claro em breve).';
+                $mensagem = 'Tema salvo com sucesso!';
                 $tipo_mensagem = 'sucesso';
             } else {
                 $mensagem = 'Erro ao atualizar a preferência de tema.';
