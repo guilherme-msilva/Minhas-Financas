@@ -4,6 +4,7 @@
  * Sincroniza transações por usuário e separa por abas anuais.
  */
 
+
 require_once 'conexao.php';
 
 // --- CONFIGURAÇÕES ---
