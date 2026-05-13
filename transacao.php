@@ -52,15 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $id_conta = !empty($_POST['id_conta']) ? (int)$_POST['id_conta'] : NULL;
         $id_conta_destino = !empty($_POST['id_conta_destino']) ? (int)$_POST['id_conta_destino'] : NULL;
         
-        $parcela_fim = 1;
-        if (isset($_POST['indefinidamente'])) {
-            $parcela_fim = -1;
-        } elseif (!empty($_POST['parcela_fim'])) {
-            $parcela_fim = (int)$_POST['parcela_fim'];
-        }
+        $is_recorrente = !empty($_POST['is_recorrente']) ? 1 : 0;
         
-        $dia_vencimento = isset($_POST['dia_vencimento']) && $_POST['dia_vencimento'] !== '' ? (int)$_POST['dia_vencimento'] : (int)date('d', strtotime($data));
-        $parcela_recorrencia = !empty($_POST['parcela_recorrencia']) ? (int)$_POST['parcela_recorrencia'] : 1;
+        $parcela_fim = 1;
+        $parcela_recorrencia = 1;
+        $dia_vencimento = (int)date('d', strtotime($data));
+        
+        if ($is_recorrente) {
+            if (isset($_POST['indefinidamente'])) {
+                $parcela_fim = -1;
+            } elseif (!empty($_POST['parcela_fim'])) {
+                $parcela_fim = (int)$_POST['parcela_fim'];
+            }
+            
+            $dia_vencimento = isset($_POST['dia_vencimento']) && $_POST['dia_vencimento'] !== '' ? (int)$_POST['dia_vencimento'] : (int)date('d', strtotime($data));
+            $parcela_recorrencia = !empty($_POST['parcela_recorrencia']) ? (int)$_POST['parcela_recorrencia'] : 1;
+        }
         
         $modo_edicao = $_POST['modo_edicao'] ?? 'todas_futuras'; // 'somente_esta' ou 'todas_futuras'
         $id_grupo_recorrencia = $_POST['id_grupo_recorrencia'] ?? NULL;
@@ -501,6 +508,7 @@ include 'header.php';
         <input type="hidden" name="dia_vencimento" id="input-dia-vencimento">
         <input type="hidden" name="id_grupo_recorrencia" id="input-id-grupo-recorrencia" value="<?php echo htmlspecialchars($id_grupo_recorrencia ?? ''); ?>">
         <input type="hidden" name="modo_edicao" id="input-modo-edicao" value="todas_futuras">
+        <input type="hidden" name="is_recorrente" id="input-is-recorrente" value="0">
     </form>
 
     <div class="max-w-md mx-auto relative h-[85vh] md:h-[80vh] flex flex-col mb-10 overflow-hidden">
@@ -634,14 +642,17 @@ include 'header.php';
                             <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full ml-4" placeholder="Adicionar Notas..." id="ui-notas" value="<?php echo htmlspecialchars($notas); ?>">
                         </div>
 
-                        <div class="p-3">
-                            <div class="flex rounded-xl bg-black/5 dark:bg-black/20 p-1">
-                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-800 dark:text-white shadow bg-white dark:bg-white/20 transition-all" id="tab-nenhuma">Nenhuma</button>
-                                <button class="flex-1 py-2 text-sm font-medium rounded-lg text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white transition-all bg-transparent" id="tab-avancada">Avançada</button>
+                        <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
+                            <span class="text-slate-500 dark:text-gray-300 font-medium">Transação Recorrente</span>
+                            <div class="flex items-center space-x-3">
+                                <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" id="ui-is-recorrente" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-400 appearance-none cursor-pointer transition-all duration-300" <?php echo ($parcela_fim > 1 || $parcela_fim == -1) ? 'checked' : ''; ?> onchange="toggleRecorrenciaUI()"/>
+                                    <label for="ui-is-recorrente" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-400 cursor-pointer transition-colors duration-300"></label>
+                                </div>
                             </div>
                         </div>
 
-                        <div id="opcoes-avancadas-conteudo" class="p-2 space-y-3 hidden">
+                        <div id="opcoes-avancadas-conteudo" class="p-2 space-y-3 <?php echo ($parcela_fim > 1 || $parcela_fim == -1) ? '' : 'hidden'; ?>">
                             <!-- Intervalo Accordion -->
                             <div class="border border-gray-200 dark:border-white/5 rounded-xl bg-white/50 dark:bg-white/5 overflow-hidden transition-all duration-300">
                                 <div class="flex items-center justify-between p-3 cursor-pointer hover:bg-white/60 dark:hover:bg-white/5 transition-colors" onclick="toggleIntervaloPanel()">
@@ -986,21 +997,15 @@ include 'header.php';
             }
         }
 
-        const tabs = ['nenhuma', 'avancada'];
-        tabs.forEach(tab => {
-            document.getElementById(`tab-${tab}`).addEventListener('click', function() {
-                tabs.forEach(t => {
-                    document.getElementById(`tab-${t}`).classList.remove('bg-white/20', 'text-white', 'shadow');
-                    document.getElementById(`tab-${t}`).classList.add('text-white/60', 'bg-transparent');
-                });
-                this.classList.add('bg-white/20', 'text-white', 'shadow');
-                this.classList.remove('text-white/60', 'bg-transparent');
-                
-                const cont = document.getElementById('opcoes-avancadas-conteudo');
-                if (tab === 'nenhuma') cont.classList.add('hidden');
-                else cont.classList.remove('hidden');
-            });
-        });
+        function toggleRecorrenciaUI() {
+            const check = document.getElementById('ui-is-recorrente');
+            const cont = document.getElementById('opcoes-avancadas-conteudo');
+            if (check.checked) {
+                cont.classList.remove('hidden');
+            } else {
+                cont.classList.add('hidden');
+            }
+        }
 
         function openPanel(id) {
             document.getElementById(id).classList.remove('translate-x-full');
@@ -1066,6 +1071,7 @@ include 'header.php';
             const parcelaInicialInput = document.getElementById('ui-parcela-recorrencia');
             const indefinidamenteInput = document.getElementById('ui-indefinidamente');
             
+            document.getElementById('input-is-recorrente').value = document.getElementById('ui-is-recorrente').checked ? '1' : '';
             document.getElementById('input-parcela-fim').value = parcelaFimInput.value;
             document.getElementById('input-parcela-recorrencia').value = parcelaInicialInput.value;
             document.getElementById('input-indefinidamente').value = indefinidamenteInput.checked ? '1' : '';
