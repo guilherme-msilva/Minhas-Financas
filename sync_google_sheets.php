@@ -16,6 +16,13 @@ function base64UrlEncode($data) {
     return str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($data));
 }
 
+function extractSpreadsheetId($input) {
+    if (preg_match('/\/d\/([a-zA-Z0-9-_]+)/', $input, $matches)) {
+        return $matches[1];
+    }
+    return $input;
+}
+
 function getGoogleAccessToken($service_account_file) {
     if (!file_exists($service_account_file)) {
         die("Erro: Arquivo de credenciais não encontrado: $service_account_file\n");
@@ -77,8 +84,15 @@ function callSheetsAPI($method, $url, $token, $data = null) {
     }
 
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-    return json_decode($response, true);
+    
+    $decoded = json_decode($response, true);
+    if ($httpCode >= 400) {
+        echo "  [ERRO API] Código $httpCode: " . ($decoded['error']['message'] ?? $response) . "\n";
+    }
+    return $decoded;
+}
 }
 
 function ensureSheetExists($spreadsheetId, $title, $token) {
@@ -135,9 +149,9 @@ if ($res_users->num_rows === 0) {
 
 while ($user = $res_users->fetch_assoc()) {
     $userId = $user['id'];
-    $spreadsheetId = $user['google_sheets_id'];
+    $spreadsheetId = extractSpreadsheetId($user['google_sheets_id']);
     
-    echo "Processando usuário ID $userId (Planilha: $spreadsheetId)...\n";
+    echo "Processando usuário ID $userId (ID Planilha: $spreadsheetId)...\n";
 
     // 2. Buscar transações do usuário (com nomes de categoria e conta)
     $sql_trans = "
