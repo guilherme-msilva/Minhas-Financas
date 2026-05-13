@@ -93,7 +93,7 @@ function callSheetsAPI($method, $url, $token, $data = null) {
     }
     return $decoded;
 }
-}
+
 
 function ensureSheetExists($spreadsheetId, $title, $token) {
     $url = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId;
