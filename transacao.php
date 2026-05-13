@@ -1122,6 +1122,15 @@ include 'header.php';
                 addDoubleZero();
             }
         });
+        // Sincronizar dia do vencimento quando a data muda
+        document.getElementById('ui-data').addEventListener('change', function() {
+            if (this.value) {
+                const parts = this.value.split('-');
+                if (parts.length === 3) {
+                    document.getElementById('ui-dia-vencimento').value = parseInt(parts[2], 10);
+                }
+            }
+        });
     </script>
 </body>
 </html>

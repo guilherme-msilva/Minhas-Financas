@@ -62,6 +62,7 @@ $stmt->close();
 // 3. Saldo por Contas Ativas
 $sql_contas = "
     SELECT 
+        c.id,
         c.nome, 
         c.cor, 
         c.img,
@@ -313,7 +314,7 @@ include 'header.php';
         </div>
 
         <!-- Resumo Mensal Grid -->
-        <h3 class="text-white/80 font-medium text-xl mb-4 ml-2">Resumo do Mês</h3>
+        <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl mb-4 ml-2">Resumo do Mês</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <!-- Entradas -->
@@ -428,7 +429,13 @@ include 'header.php';
                         if (currentChart) currentChart.destroy();
                         currentChart = null;
                     } else {
-                        renderChart(chartDados.root, 'Geral');
+                        if (tipo === 'receita' && chartDados.drilldown[2] && chartDados.drilldown[2].data.length > 0) {
+                            isDrilldown = true;
+                            document.getElementById('btnVoltarGrafico').classList.remove('hidden');
+                            renderChart(chartDados.drilldown[2], chartDados.drilldown[2].nome_raiz);
+                        } else {
+                            renderChart(chartDados.root, 'Geral');
+                        }
                     }
                 }
                 
@@ -544,7 +551,7 @@ include 'header.php';
             <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl mt-12 mb-4 ml-2">Saldos por Conta</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach($contas_ativas as $conta): ?>
-                    <div class="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/70 dark:hover:bg-white/10 transition-all flex items-center space-x-4">
+                    <a href="transacoes.php?conta=<?php echo $conta['id']; ?>" class="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/70 dark:hover:bg-white/10 transition-all flex items-center space-x-4 cursor-pointer">
                         <?php if(!empty($conta['img'])): ?>
                             <div class="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center shadow-inner shrink-0 border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5">
                                 <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo da conta" class="w-full h-full object-cover">
@@ -560,7 +567,7 @@ include 'header.php';
                                 R$ <?php echo number_format($conta['saldo_atual'], 2, ',', '.'); ?>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
