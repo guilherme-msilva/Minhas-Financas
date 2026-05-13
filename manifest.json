@@ -2,7 +2,7 @@
   "name": "Minhas Finanças",
   "short_name": "Finanças",
   "description": "App de gestão financeira pessoal",
-  "start_url": "/index.php",
+  "start_url": "index.php",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",

@@ -18,6 +18,11 @@ $tema_class = (isset($_SESSION['tema']) && $_SESSION['tema'] === 'CLARO') ? '' :
     <!-- Web App Manifest -->
     <link rel="manifest" href="manifest.json">
     
+    <!-- iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
