@@ -483,6 +483,8 @@ include 'header.php';
                                                         strokeStyle: style.borderColor,
                                                         lineWidth: style.borderWidth,
                                                         hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                                        color: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
+                                                        fontColor: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
                                                         index: i
                                                     };
                                                 });
@@ -492,9 +494,9 @@ include 'header.php';
                                     }
                                 },
                                 tooltip: {
-                                    backgroundColor: document.documentElement.classList.contains('dark') ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-                                    titleColor: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.9)' : 'rgba(15, 23, 42, 0.9)',
-                                    bodyColor: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.9)' : 'rgba(15, 23, 42, 0.9)',
+                                    backgroundColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff',
+                                    titleColor: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
+                                    bodyColor: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
                                     borderColor: document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(15, 23, 42, 0.1)',
                                     borderWidth: 1,
                                     padding: 12,
