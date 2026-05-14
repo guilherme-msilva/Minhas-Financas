@@ -190,13 +190,91 @@ function applyNumberFormatCurrency($spreadsheetId, $title, $token) {
                     'userEnteredFormat' => [
                         'numberFormat' => [
                             'type'    => 'CURRENCY',
-                            'pattern' => '"R$"#,##0.00;"R$"-#,##0.00'
+                            'pattern' => '"R$ "#,##0.00;"R$ "-#,##0.00'
                         ]
                     ]
                 ],
                 'fields' => 'userEnteredFormat.numberFormat'
             ]
         ]]
+    ];
+    callSheetsAPI('POST', $urlBatch, $token, $body);
+}
+
+function applyConditionalFormatting($spreadsheetId, $title, $token) {
+    // Buscar o sheetId a partir do título
+    $url = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId;
+    $metadata = callSheetsAPI('GET', $url, $token);
+    $sheetId = null;
+    if (isset($metadata['sheets'])) {
+        foreach ($metadata['sheets'] as $sheet) {
+            if ($sheet['properties']['title'] == $title) {
+                $sheetId = $sheet['properties']['sheetId'];
+                break;
+            }
+        }
+    }
+    if ($sheetId === null) return;
+
+    $range = [
+        'sheetId'          => $sheetId,
+        'startRowIndex'    => 1,  // Ignora cabeçalho
+        'startColumnIndex' => 2,  // Coluna C (Valor)
+        'endColumnIndex'   => 3
+    ];
+
+    $urlBatch = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId . ":batchUpdate";
+    $body = [
+        'requests' => [
+            // Regra 1: Valores negativos → texto vermelho
+            [
+                'addConditionalFormatRule' => [
+                    'rule' => [
+                        'ranges' => [$range],
+                        'booleanRule' => [
+                            'condition' => [
+                                'type'   => 'NUMBER_LESS',
+                                'values' => [['userEnteredValue' => '0']]
+                            ],
+                            'format' => [
+                                'textFormat' => [
+                                    'foregroundColor' => [
+                                        'red'   => 0.84,
+                                        'green' => 0.18,
+                                        'blue'  => 0.18
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'index' => 0
+                ]
+            ],
+            // Regra 2: Valores positivos → texto azul
+            [
+                'addConditionalFormatRule' => [
+                    'rule' => [
+                        'ranges' => [$range],
+                        'booleanRule' => [
+                            'condition' => [
+                                'type'   => 'NUMBER_GREATER',
+                                'values' => [['userEnteredValue' => '0']]
+                            ],
+                            'format' => [
+                                'textFormat' => [
+                                    'foregroundColor' => [
+                                        'red'   => 0.13,
+                                        'green' => 0.47,
+                                        'blue'  => 0.71
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'index' => 1
+                ]
+            ]
+        ]
     ];
     callSheetsAPI('POST', $urlBatch, $token, $body);
 }
@@ -239,7 +317,7 @@ while ($user = $res_users->fetch_assoc()) {
         LEFT JOIN categorias c ON t.idcategoria = c.id
         LEFT JOIN contas co ON t.idconta = co.id
         WHERE t.iduser = ?
-        ORDER BY t.data ASC, t.id ASC
+        ORDER BY t.data ASC
     ";
     
     $stmt = $mysqliFinancas->prepare($sql_trans);
@@ -276,6 +354,7 @@ while ($user = $res_users->fetch_assoc()) {
         clearSheet($spreadsheetId, $sheetTitle, $access_token);
         updateSheetValues($spreadsheetId, $sheetTitle, $values, $access_token);
         applyNumberFormatCurrency($spreadsheetId, $sheetTitle, $access_token);
+        applyConditionalFormatting($spreadsheetId, $sheetTitle, $access_token);
         autoResizeSheet($spreadsheetId, $sheetTitle, $access_token);
     }
 }
