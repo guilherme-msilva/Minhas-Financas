@@ -124,9 +124,40 @@ function clearSheet($spreadsheetId, $title, $token) {
 }
 
 function updateSheetValues($spreadsheetId, $title, $values, $token) {
-    $url = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId . "/values/" . urlencode($title) . "!A1?valueInputOption=RAW";
+    $url = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId . "/values/" . urlencode($title) . "!A1?valueInputOption=USER_ENTERED";
     $body = ['values' => $values];
     return callSheetsAPI('PUT', $url, $token, $body);
+}
+
+function autoResizeSheet($spreadsheetId, $title, $token) {
+    // Buscar o sheetId a partir do título
+    $url = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId;
+    $metadata = callSheetsAPI('GET', $url, $token);
+    $sheetId = null;
+    if (isset($metadata['sheets'])) {
+        foreach ($metadata['sheets'] as $sheet) {
+            if ($sheet['properties']['title'] == $title) {
+                $sheetId = $sheet['properties']['sheetId'];
+                break;
+            }
+        }
+    }
+    if ($sheetId === null) return;
+
+    $urlBatch = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId . ":batchUpdate";
+    $body = [
+        'requests' => [[
+            'autoResizeDimensions' => [
+                'dimensions' => [
+                    'sheetId' => $sheetId,
+                    'dimension' => 'COLUMNS',
+                    'startIndex' => 0,
+                    'endIndex' => 6
+                ]
+            ]
+        ]]
+    ];
+    callSheetsAPI('POST', $urlBatch, $token, $body);
 }
 
 // --- SCRIPT PRINCIPAL ---
@@ -185,8 +216,8 @@ while ($user = $res_users->fetch_assoc()) {
         }
         $trans_por_ano[$ano][] = [
             $row['id'],
-            $row['data'],
-            (float)$row['valor'],
+            date('d/m/Y', strtotime($row['data'])),
+            'R$ ' . number_format((float)$row['valor'], 2, ',', '.'),
             $row['descricao'],
             $row['categoria'],
             $row['conta']
@@ -194,7 +225,8 @@ while ($user = $res_users->fetch_assoc()) {
     }
     $stmt->close();
 
-    // 3. Sincronizar cada ano na sua respectiva aba
+    // 3. Sincronizar cada ano na sua respectiva aba (do mais recente para o mais antigo)
+    krsort($trans_por_ano);
     foreach ($trans_por_ano as $ano => $values) {
         $sheetTitle = (string)$ano;
         echo "  -> Sincronizando ano $sheetTitle...\n";
@@ -202,6 +234,7 @@ while ($user = $res_users->fetch_assoc()) {
         ensureSheetExists($spreadsheetId, $sheetTitle, $access_token);
         clearSheet($spreadsheetId, $sheetTitle, $access_token);
         updateSheetValues($spreadsheetId, $sheetTitle, $values, $access_token);
+        autoResizeSheet($spreadsheetId, $sheetTitle, $access_token);
     }
 }
 
