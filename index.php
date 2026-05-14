@@ -463,7 +463,7 @@ include 'header.php';
                                 legend: {
                                     position: window.innerWidth > 768 ? 'right' : 'bottom',
                                     labels: {
-                                        color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.7)',
+                                        color: document.documentElement.classList.contains('dark') ? '#f8fafc' : '#1e293b',
                                         font: { family: 'Outfit', size: 14 },
                                         padding: 20,
                                         generateLabels: function(chart) {
