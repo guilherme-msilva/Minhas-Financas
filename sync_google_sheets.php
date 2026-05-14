@@ -160,6 +160,47 @@ function autoResizeSheet($spreadsheetId, $title, $token) {
     callSheetsAPI('POST', $urlBatch, $token, $body);
 }
 
+function applyNumberFormatCurrency($spreadsheetId, $title, $token) {
+    // Buscar o sheetId a partir do título
+    $url = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId;
+    $metadata = callSheetsAPI('GET', $url, $token);
+    $sheetId = null;
+    if (isset($metadata['sheets'])) {
+        foreach ($metadata['sheets'] as $sheet) {
+            if ($sheet['properties']['title'] == $title) {
+                $sheetId = $sheet['properties']['sheetId'];
+                break;
+            }
+        }
+    }
+    if ($sheetId === null) return;
+
+    // Aplica NumberFormat CURRENCY na coluna C (índice 2), ignorando o cabeçalho (linha 1 em diante)
+    $urlBatch = "https://sheets.googleapis.com/v4/spreadsheets/" . $spreadsheetId . ":batchUpdate";
+    $body = [
+        'requests' => [[
+            'repeatCell' => [
+                'range' => [
+                    'sheetId'          => $sheetId,
+                    'startRowIndex'    => 1,     // Ignora o cabeçalho
+                    'startColumnIndex' => 2,     // Coluna C (índice 2)
+                    'endColumnIndex'   => 3      // Apenas coluna C
+                ],
+                'cell' => [
+                    'userEnteredFormat' => [
+                        'numberFormat' => [
+                            'type'    => 'CURRENCY',
+                            'pattern' => '"R$"#,##0.00;"R$"-#,##0.00'
+                        ]
+                    ]
+                ],
+                'fields' => 'userEnteredFormat.numberFormat'
+            ]
+        ]]
+    ];
+    callSheetsAPI('POST', $urlBatch, $token, $body);
+}
+
 // --- SCRIPT PRINCIPAL ---
 
 echo "Iniciando sincronização...\n";
@@ -217,7 +258,7 @@ while ($user = $res_users->fetch_assoc()) {
         $trans_por_ano[$ano][] = [
             $row['id'],
             date('d/m/Y', strtotime($row['data'])),
-            'R$ ' . number_format((float)$row['valor'], 2, ',', '.'),
+            (float)$row['valor'],
             $row['descricao'],
             $row['categoria'],
             $row['conta']
@@ -234,6 +275,7 @@ while ($user = $res_users->fetch_assoc()) {
         ensureSheetExists($spreadsheetId, $sheetTitle, $access_token);
         clearSheet($spreadsheetId, $sheetTitle, $access_token);
         updateSheetValues($spreadsheetId, $sheetTitle, $values, $access_token);
+        applyNumberFormatCurrency($spreadsheetId, $sheetTitle, $access_token);
         autoResizeSheet($spreadsheetId, $sheetTitle, $access_token);
     }
 }
