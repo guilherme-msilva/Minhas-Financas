@@ -174,8 +174,8 @@ include 'header.php';
 
             <form method="POST">
                 <input type="hidden" name="action" value="update_sheets">
-                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
-                    <div class="flex-1">
+                <div class="flex flex-col gap-4">
+                    <div>
                         <label class="block text-sm font-medium text-slate-600 dark:text-white/70 mb-2">URL da Planilha Google Sheets</label>
                         <input
                             type="url"
@@ -185,20 +185,21 @@ include 'header.php';
                             class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-400 transition-colors placeholder-slate-400 dark:placeholder-white/20"
                             placeholder="https://docs.google.com/spreadsheets/d/..."
                         >
-                        <p class="text-xs text-slate-400 dark:text-white/40 mt-2">Cole aqui a URL completa da sua planilha. Lembre-se de compartilhá-la com o e-mail da conta de serviço.</p>
+                        <p class="text-xs text-slate-600 dark:text-white/40 mt-2">Cole aqui a URL completa da sua planilha.</p>
+                        <p class="text-xs text-slate-600 dark:text-white/40 mt-2">E-mail da conta de serviço: <span class="font-mono text-slate-800 dark:text-white">minhas-financas@red-abstraction-488018-i7.iam.gserviceaccount.com</span>. Lembre-se de compartilhá-la com este e-mail.</p>
                     </div>
-                    <div class="shrink-0">
-                        <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02] whitespace-nowrap">
+                    <?php if (!empty($current_google_sheets_id)): ?>
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Planilha vinculada. As sincronizações serão enviadas para esta URL.</span>
+                        </div>
+                    <?php endif; ?>
+                    <div>
+                        <button type="submit" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02]">
                             Salvar Planilha
                         </button>
                     </div>
                 </div>
-                <?php if (!empty($current_google_sheets_id)): ?>
-                    <div class="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
-                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        <span>Planilha vinculada. As sincronizações serão enviadas para esta URL.</span>
-                    </div>
-                <?php endif; ?>
             </form>
         </div>
     </div>
