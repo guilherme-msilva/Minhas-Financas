@@ -8,12 +8,14 @@ require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
 // Obtém os dados atuais do usuário
-$stmt = $mysqliFinancas->prepare("SELECT nome, email, tema FROM usuarios WHERE id = ?");
+$stmt = $mysqliFinancas->prepare("SELECT nome, email, tema, google_sheets_id FROM usuarios WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $res = $stmt->get_result();
 $user_data = $res->fetch_assoc();
 $stmt->close();
+
+$current_google_sheets_id = $user_data['google_sheets_id'] ?? '';
 
 $current_tema = !empty($user_data['tema']) ? $user_data['tema'] : 'ESCURO';
 $mensagem = '';
@@ -59,6 +61,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $stmt->close();
         }
+    } elseif (isset($_POST['action']) && $_POST['action'] === 'update_sheets') {
+        $nova_url = trim($_POST['google_sheets_id'] ?? '');
+        $stmt = $mysqliFinancas->prepare("UPDATE usuarios SET google_sheets_id = ? WHERE id = ?");
+        $stmt->bind_param("si", $nova_url, $user_id);
+        if ($stmt->execute()) {
+            $current_google_sheets_id = $nova_url;
+            $mensagem = 'URL da planilha salva com sucesso!';
+            $tipo_mensagem = 'sucesso';
+        } else {
+            $mensagem = 'Erro ao salvar a URL da planilha.';
+            $tipo_mensagem = 'erro';
+        }
+        $stmt->close();
     }
 }
 ?>
@@ -147,6 +162,44 @@ include 'header.php';
                     </div>
                 </form>
             </div>
+        </div>
+
+        <!-- Card Google Sheets -->
+        <div class="mt-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl p-6 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
+            <h2 class="text-xl font-medium text-slate-800 dark:text-white mb-2 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Integração Google Sheets
+            </h2>
+            <p class="text-slate-500 dark:text-white/50 text-sm mb-6">Conecte sua conta a uma planilha do Google Sheets para sincronizar automaticamente suas transações.</p>
+
+            <form method="POST">
+                <input type="hidden" name="action" value="update_sheets">
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-slate-600 dark:text-white/70 mb-2">URL da Planilha Google Sheets</label>
+                        <input
+                            type="url"
+                            name="google_sheets_id"
+                            id="google_sheets_id"
+                            value="<?php echo htmlspecialchars($current_google_sheets_id); ?>"
+                            class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-400 transition-colors placeholder-slate-400 dark:placeholder-white/20"
+                            placeholder="https://docs.google.com/spreadsheets/d/..."
+                        >
+                        <p class="text-xs text-slate-400 dark:text-white/40 mt-2">Cole aqui a URL completa da sua planilha. Lembre-se de compartilhá-la com o e-mail da conta de serviço.</p>
+                    </div>
+                    <div class="shrink-0">
+                        <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all transform hover:scale-[1.02] whitespace-nowrap">
+                            Salvar Planilha
+                        </button>
+                    </div>
+                </div>
+                <?php if (!empty($current_google_sheets_id)): ?>
+                    <div class="mt-4 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span>Planilha vinculada. As sincronizações serão enviadas para esta URL.</span>
+                    </div>
+                <?php endif; ?>
+            </form>
         </div>
     </div>
 </body>
