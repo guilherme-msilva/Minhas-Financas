@@ -7,6 +7,29 @@
 
 require_once 'conexao.php';
 
+// --- PARÂMETRO OPCIONAL: user_id ---
+// Quando chamado via web com ?user_id=N → sincroniza apenas aquele usuário.
+// Quando chamado via CLI com argv[1]=N   → idem.
+// Sem parâmetro → sincroniza todos os usuários (comportamento original / cron).
+$filter_user_id = null;
+
+if (PHP_SAPI === 'cli') {
+    if (isset($argv[1]) && is_numeric($argv[1])) {
+        $filter_user_id = (int)$argv[1];
+    }
+} else {
+    // Requisição web: exige que o solicitante seja o próprio usuário logado
+    session_start();
+    if (isset($_GET['user_id']) && is_numeric($_GET['user_id'])) {
+        $requested_id = (int)$_GET['user_id'];
+        // Segurança: só aceita se for o próprio usuário da sessão
+        if (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $requested_id) {
+            $filter_user_id = $requested_id;
+        }
+    }
+    header('Content-Type: text/plain; charset=utf-8');
+}
+
 // --- CONFIGURAÇÕES ---
 $service_account_file = 'credentials.json';
 
@@ -261,8 +284,16 @@ if (!$access_token) {
 }
 
 // 1. Buscar usuários com ID de planilha configurado
-$sql_users = "SELECT id, google_sheets_id FROM usuarios WHERE google_sheets_id IS NOT NULL AND google_sheets_id != ''";
-$res_users = $mysqliFinancas->query($sql_users);
+if ($filter_user_id !== null) {
+    $sql_users = "SELECT id, google_sheets_id FROM usuarios WHERE id = ? AND google_sheets_id IS NOT NULL AND google_sheets_id != ''";
+    $stmt_users = $mysqliFinancas->prepare($sql_users);
+    $stmt_users->bind_param("i", $filter_user_id);
+    $stmt_users->execute();
+    $res_users = $stmt_users->get_result();
+} else {
+    $sql_users = "SELECT id, google_sheets_id FROM usuarios WHERE google_sheets_id IS NOT NULL AND google_sheets_id != ''";
+    $res_users = $mysqliFinancas->query($sql_users);
+}
 
 if ($res_users->num_rows === 0) {
     echo "Nenhum usuário com planilha configurada.\n";
