@@ -99,6 +99,7 @@ $conta_atual = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
 
 // Filtros Avançados
 $categoria_filtro = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
+$incluir_subcats = isset($_GET['incluir_subcats']) ? (int)$_GET['incluir_subcats'] : 1;
 $data_inicio_filtro = isset($_GET['data_inicio']) ? trim($_GET['data_inicio']) : '';
 $data_fim_filtro = isset($_GET['data_fim']) ? trim($_GET['data_fim']) : '';
 $descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
@@ -183,9 +184,30 @@ if ($conta_atual > 0) {
 }
 
 if ($categoria_filtro > 0) {
-    $conditions[] = "t.idcategoria = ?";
-    $params[] = $categoria_filtro;
-    $types .= "i";
+    if ($incluir_subcats) {
+        // Coleta recursivamente todos os IDs filhos da categoria selecionada
+        $ids_categoria = [$categoria_filtro];
+        $fila = [$categoria_filtro];
+        while (!empty($fila)) {
+            $id_atual = array_shift($fila);
+            foreach ($all_cats as $c) {
+                if ($c['id_pai'] == $id_atual) {
+                    $ids_categoria[] = $c['id'];
+                    $fila[] = $c['id'];
+                }
+            }
+        }
+        $placeholders = implode(',', array_fill(0, count($ids_categoria), '?'));
+        $conditions[] = "t.idcategoria IN ($placeholders)";
+        foreach ($ids_categoria as $cid) {
+            $params[] = $cid;
+            $types .= "i";
+        }
+    } else {
+        $conditions[] = "t.idcategoria = ?";
+        $params[] = $categoria_filtro;
+        $types .= "i";
+    }
 }
 
 if (!empty($descricao_filtro)) {
@@ -302,36 +324,87 @@ if (!in_array($ano_vigente, $anos_disponiveis)) {
     rsort($anos_disponiveis);
 }
 
-// Funções para hierarquia de categorias no select
+// Funções para hierarquia de categorias
 function buildCategoryTree(array $elements, $parentId = null) {
     $branch = array();
     foreach ($elements as $element) {
         if ($element['id_pai'] == $parentId) {
             $children = buildCategoryTree($elements, $element['id']);
-            if ($children) {
-                $element['children'] = $children;
-            } else {
-                $element['children'] = [];
-            }
+            $element['children'] = $children ?: [];
             $branch[] = $element;
         }
     }
     return $branch;
 }
 
-function renderCategoryOptions($categorias, $level = 0, $selected_id = 0) {
-    foreach ($categorias as $cat) {
-        $indent = str_repeat("&nbsp;&nbsp;&nbsp;&nbsp;", $level);
-        $prefix = $level > 0 ? "↳ " : "";
-        $selected = $cat['id'] == $selected_id ? 'selected' : '';
-        echo "<option class='text-gray-900' value='{$cat['id']}' {$selected}>{$indent}{$prefix}" . htmlspecialchars($cat['nome']) . "</option>";
-        if (!empty($cat['children'])) {
-            renderCategoryOptions($cat['children'], $level + 1, $selected_id);
+function buildCatTreeHtml(array $nodes, $selected_id = 0, $level = 0) {
+    $html = '';
+    foreach ($nodes as $cat) {
+        $hasChildren = !empty($cat['children']);
+        $id = $cat['id'];
+        $nome = htmlspecialchars($cat['nome']);
+        $nomeJs = addslashes($cat['nome']);
+        $cor = htmlspecialchars($cat['cor'] ?? '#ccc');
+        $icone = htmlspecialchars($cat['icone'] ?? '');
+        $isSelected = ($id == $selected_id);
+        $pl = $level > 0 ? 'style="padding-left:' . ($level * 12 + 12) . 'px"' : 'style="padding-left:12px"';
+        $selectedClass = $isSelected ? 'bg-cyan-50 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10';
+
+        $html .= "<div class='flex flex-col'>";
+
+        if ($hasChildren) {
+            // Linha com botão de expand + botão de seleção separado
+            $html .= "<div class='flex items-center rounded-xl $selectedClass transition-colors'>";
+            // Área clicável p/ expandir
+            $html .= "<button type='button' onclick='toggleCatChildren($id)' class='flex items-center gap-2 flex-1 py-2 text-sm font-medium text-left' $pl>";
+            $html .= buildCatIconHtml($cor, $icone);
+            $html .= "<span>$nome</span>";
+            $html .= "<svg id='cat-icon-$id' class='w-3.5 h-3.5 ml-auto mr-2 text-slate-400 dark:text-white/40 transition-transform duration-200' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
+            $html .= "</button>";
+            // Botão de selecionar a categoria pai
+            $html .= "<button type='button' onclick=\"selectCategoria($id, '$nomeJs')\" class='p-2 mr-1 rounded-lg text-slate-400 dark:text-white/40 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0' title='Selecionar esta categoria'>";
+            $html .= "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg>";
+            $html .= "</button>";
+            $html .= "</div>";
+            // Filhos ocultos inicialmente
+            $html .= "<div id='cat-children-$id' class='hidden'>";
+            $html .= buildCatTreeHtml($cat['children'], $selected_id, $level + 1);
+            $html .= "</div>";
+        } else {
+            // Categoria folha — clicar seleciona diretamente
+            $html .= "<button type='button' onclick=\"selectCategoria($id, '$nomeJs')\" class='flex items-center gap-2 py-2 text-sm font-medium rounded-xl $selectedClass transition-colors w-full text-left' $pl>";
+            $html .= buildCatIconHtml($cor, $icone);
+            $html .= "<span>$nome</span>";
+            if ($isSelected) {
+                $html .= "<svg class='w-4 h-4 ml-auto mr-2 text-cyan-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg>";
+            }
+            $html .= "</button>";
         }
+
+        $html .= "</div>";
     }
+    return $html;
+}
+
+function buildCatIconHtml($cor, $icone) {
+    $html = "<span class='w-5 h-5 rounded-full flex items-center justify-center shrink-0' style='background-color:$cor'>";
+    if ($icone) {
+        $html .= "<i class='ph-fill $icone text-white' style='font-size:10px'></i>";
+    }
+    $html .= "</span>";
+    return $html;
 }
 
 $tree_categorias = buildCategoryTree($all_cats);
+
+// Nome da categoria selecionada para exibir no botão
+$nome_categoria_filtro = 'Todas as Categorias';
+foreach ($all_cats as $c) {
+    if ($c['id'] == $categoria_filtro) {
+        $nome_categoria_filtro = $c['nome'];
+        break;
+    }
+}
 ?>
 <?php 
 $page_title = "Transações - Minhas Finanças";
@@ -356,10 +429,30 @@ include 'header.php';
                     <?php endforeach; ?>
                 </select>
 
-                <select name="categoria" onchange="this.form.submit()" class="flex-1 min-w-[180px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <option class="text-gray-900" value="0">Todas as Categorias</option>
-                    <?php renderCategoryOptions($tree_categorias, 0, $categoria_filtro); ?>
-                </select>
+                <!-- Seletor de Categoria Hierárquico -->
+                <div class="relative flex-1 min-w-[180px]" id="cat-selector-wrapper">
+                    <input type="hidden" name="categoria" id="input-categoria-filtro" value="<?php echo $categoria_filtro; ?>">
+                    <button type="button" onclick="toggleCatDropdown()" id="btn-cat-selector" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 flex items-center justify-between gap-2 truncate">
+                        <span id="label-cat-filtro" class="truncate"><?php echo htmlspecialchars($nome_categoria_filtro); ?></span>
+                        <svg class="w-4 h-4 shrink-0 text-slate-400 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+
+                    <!-- Dropdown Hierárquico -->
+                    <div id="cat-dropdown" class="hidden absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto z-[100] bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl">
+                        <div class="p-2">
+                            <!-- Opção: Todas -->
+                            <button type="button" onclick="selectCategoria(0, 'Todas as Categorias')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 text-sm font-medium transition-colors flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-3 h-3 text-slate-500 dark:text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                </span>
+                                Todas as Categorias
+                            </button>
+                            <div id="cat-tree-root" class="mt-1 space-y-0.5">
+                                <?php echo buildCatTreeHtml($tree_categorias, $categoria_filtro); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
@@ -428,6 +521,18 @@ include 'header.php';
                             <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                         </div>
                     </div>
+
+                    <!-- Checkbox: Incluir Subcategorias -->
+                    <div id="row-incluir-subcats" class="mt-3 flex items-center gap-3 <?php echo $categoria_filtro > 0 ? '' : 'hidden'; ?>">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <div class="relative">
+                                <input type="checkbox" name="incluir_subcats" value="1" id="chk-incluir-subcats" class="sr-only peer" <?php echo $incluir_subcats ? 'checked' : ''; ?>>
+                                <div class="w-9 h-5 bg-slate-200 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                            </div>
+                            <span class="text-xs font-medium text-slate-600 dark:text-white/70">Incluir subcategorias</span>
+                        </label>
+                    </div>
+
                     <div class="mt-4 flex justify-end space-x-3">
                         <?php if($has_advanced_filter): ?>
                             <a href="transacoes.php" class="px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-white/50 dark:hover:bg-white/5 rounded-xl transition-colors">Limpar Filtros</a>
@@ -579,6 +684,7 @@ include 'header.php';
 <script>
     let anoDropdown = <?php echo $ano_atual; ?>;
 
+    // ── Date Selector ──────────────────────────────────────────────
     function toggleDateSelect() {
         const selector = document.getElementById('date-selector');
         if (selector.classList.contains('hidden')) {
@@ -601,14 +707,82 @@ include 'header.php';
         document.getElementById('ordem-input').closest('form').submit();
     }
 
+    // ── Category Hierarchical Dropdown ─────────────────────────────
+    function toggleCatDropdown() {
+        const dd = document.getElementById('cat-dropdown');
+        dd.classList.toggle('hidden');
+    }
+
+    function toggleCatChildren(id) {
+        const children = document.getElementById('cat-children-' + id);
+        const icon = document.getElementById('cat-icon-' + id);
+        if (children) {
+            children.classList.toggle('hidden');
+            if (icon) icon.classList.toggle('rotate-180');
+        }
+    }
+
+    function selectCategoria(id, nome) {
+        document.getElementById('input-categoria-filtro').value = id;
+        document.getElementById('label-cat-filtro').textContent = nome;
+        // Mostrar/ocultar checkbox de subcategorias
+        const rowSubcats = document.getElementById('row-incluir-subcats');
+        if (rowSubcats) {
+            if (id > 0) {
+                rowSubcats.classList.remove('hidden');
+            } else {
+                rowSubcats.classList.add('hidden');
+            }
+        }
+        // Fechar dropdown e submeter o form imediatamente
+        document.getElementById('cat-dropdown').classList.add('hidden');
+        document.getElementById('ordem-input').closest('form').submit();
+    }
+
+    // Auto-expandir ancestrais se já há uma categoria selecionada
+    (function autoExpandSelectedCat() {
+        <?php if ($categoria_filtro > 0): ?>
+        // Mapa id -> id_pai vindo do PHP
+        const catParentMap = <?php
+            $map = [];
+            foreach ($all_cats as $c) {
+                if ($c['id_pai']) $map[$c['id']] = (int)$c['id_pai'];
+            }
+            echo json_encode($map);
+        ?>;
+        let cur = <?php echo $categoria_filtro; ?>;
+        const toExpand = [];
+        while (catParentMap[cur]) {
+            cur = catParentMap[cur];
+            toExpand.push(cur);
+        }
+        toExpand.forEach(function(pid) {
+            const el = document.getElementById('cat-children-' + pid);
+            const icon = document.getElementById('cat-icon-' + pid);
+            if (el) el.classList.remove('hidden');
+            if (icon) icon.classList.add('rotate-180');
+        });
+        <?php endif; ?>
+    })();
+
+    // Fechar dropdowns ao clicar fora
     document.addEventListener('click', function(event) {
         const formFiltros = document.getElementById('ordem-input').closest('form');
+
+        // Date selector
         if (formFiltros && !formFiltros.contains(event.target)) {
             const selector = document.getElementById('date-selector');
             if (selector && !selector.classList.contains('hidden')) {
                 selector.classList.add('opacity-0');
                 setTimeout(() => selector.classList.add('hidden'), 200);
             }
+        }
+
+        // Category dropdown
+        const catWrapper = document.getElementById('cat-selector-wrapper');
+        const catDropdown = document.getElementById('cat-dropdown');
+        if (catWrapper && catDropdown && !catWrapper.contains(event.target)) {
+            catDropdown.classList.add('hidden');
         }
     });
 </script>
