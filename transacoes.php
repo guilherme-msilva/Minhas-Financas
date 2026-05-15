@@ -439,7 +439,7 @@ include 'header.php';
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide">Transações</h1>
-            <button onclick="exportCSV()" title="Exportar CSV" class="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md">
+            <button onclick="exportCSV()" title="Exportar CSV" class="flex items-center gap-2 px-4 py-2 bg-[#217346] hover:bg-[#1a5c38] text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 <span class="hidden sm:inline">Exportar CSV</span>
             </button>
