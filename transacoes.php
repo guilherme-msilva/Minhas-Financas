@@ -306,6 +306,19 @@ foreach ($transacoes as $t) {
     }
 }
 
+// Totais para o painel de resumo
+$total_receitas = 0;
+$total_despesas = 0;
+foreach ($transacoes_agrupadas as $t) {
+    if ($t['idcategoria'] == -1) continue; // Ignora transferências nos totais
+    if ($t['valor'] > 0) {
+        $total_receitas += $t['valor'];
+    } else {
+        $total_despesas += $t['valor'];
+    }
+}
+$saldo_periodo = $total_receitas + $total_despesas;
+
 $meses = [
     1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril', 
     5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto', 
@@ -424,7 +437,13 @@ include 'header.php';
     <?php include 'menu.php'; ?>
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide mb-6">Transações</h1>
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide">Transações</h1>
+            <button onclick="exportCSV()" title="Exportar CSV" class="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span class="hidden sm:inline">Exportar CSV</span>
+            </button>
+        </div>
         
         <!-- Filtros -->
         <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
@@ -555,8 +574,33 @@ include 'header.php';
             </form>
         </div>
 
+        <!-- Painel de Resumo do Período -->
+        <div class="mb-6 grid grid-cols-3 gap-3">
+            <!-- Receitas -->
+            <div class="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl p-4 flex flex-col items-start">
+                <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1">Receitas</span>
+                <span class="text-lg sm:text-xl font-bold text-emerald-700 dark:text-emerald-300 leading-tight">
+                    R$ <?php echo number_format($total_receitas, 2, ',', '.'); ?>
+                </span>
+            </div>
+            <!-- Despesas -->
+            <div class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl p-4 flex flex-col items-start">
+                <span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">Despesas</span>
+                <span class="text-lg sm:text-xl font-bold text-red-700 dark:text-red-300 leading-tight">
+                    R$ <?php echo number_format(abs($total_despesas), 2, ',', '.'); ?>
+                </span>
+            </div>
+            <!-- Saldo -->
+            <div class="<?php echo $saldo_periodo >= 0 ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20' : 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20'; ?> border rounded-2xl p-4 flex flex-col items-start">
+                <span class="text-xs font-semibold <?php echo $saldo_periodo >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'; ?> uppercase tracking-wide mb-1">Saldo</span>
+                <span class="text-lg sm:text-xl font-bold <?php echo $saldo_periodo >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'; ?> leading-tight">
+                    <?php echo ($saldo_periodo >= 0 ? '' : '-') . 'R$ ' . number_format(abs($saldo_periodo), 2, ',', '.'); ?>
+                </span>
+            </div>
+        </div>
+
         <!-- Lista de Transações -->
-        <div class="space-y-4">
+        <div class="space-y-4" id="lista-transacoes">
             <?php 
             $data_atual = '';
             if (count($transacoes_agrupadas) > 0): 
@@ -795,5 +839,49 @@ include 'header.php';
             catDropdown.classList.add('hidden');
         }
     });
+
+    // ── Exportar CSV ───────────────────────────────────────────────
+    const csvData = <?php
+        $csv_rows = [];
+        foreach ($transacoes_agrupadas as $t) {
+            $data_fmt  = date('d/m/Y', strtotime($t['data']));
+            $descricao = $t['descricao'];
+            $valor     = number_format($t['valor'], 2, ',', '.');
+            if ($t['idcategoria'] == -1) {
+                $categoria = 'Transferência';
+            } else {
+                $categoria = $t['categoria_nome'] ?? '';
+            }
+            $conta = $t['conta_nome'] ?? '';
+            $csv_rows[] = [
+                'data'      => $data_fmt,
+                'descricao' => $descricao,
+                'valor'     => $valor,
+                'categoria' => $categoria,
+                'conta'     => $conta,
+            ];
+        }
+        echo json_encode($csv_rows, JSON_UNESCAPED_UNICODE);
+    ?>;
+
+    function exportCSV() {
+        const header = 'Data Ocorrência;Descrição;Valor;Categoria;Conta';
+        const lines = csvData.map(r =>
+            [r.data, r.descricao, r.valor, r.categoria, r.conta]
+                .map(v => '"' + String(v).replace(/"/g, '""') + '"')
+                .join(';')
+        );
+        const content = '\uFEFF' + header + '\n' + lines.join('\n'); // BOM para Excel UTF-8
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'transacoes_<?php echo str_pad($mes_atual,2,'0',STR_PAD_LEFT) . '_' . $ano_atual; ?>.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 </script>
 </html>
+
