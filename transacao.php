@@ -950,25 +950,25 @@ include 'header.php';
             body.classList.add(`theme-${tipo}`);
             
             const title = document.getElementById('header-title');
-            const seta = document.getElementById('icon-seta');
+            const setaPath = document.querySelector('#icon-seta path');
             const linhaCat = document.getElementById('linha-categoria');
             const linhaDest = document.getElementById('linha-conta-destino');
             
             if(tipo === 'despesa') {
                 title.textContent = "Despesa";
-                seta.setAttribute('d', 'M19 14l-7 7m0 0l-7-7m7 7V3');
+                setaPath.setAttribute('d', 'M19 14l-7 7m0 0l-7-7m7 7V3');
                 linhaCat.classList.remove('hidden');
                 linhaDest.classList.add('hidden');
                 document.getElementById('label-conta-origem').textContent = "Conta";
             } else if(tipo === 'receita') {
                 title.textContent = "Receita";
-                seta.setAttribute('d', 'M5 10l7-7m0 0l7 7m-7-7v18');
+                setaPath.setAttribute('d', 'M5 10l7-7m0 0l7 7m-7-7v18');
                 linhaCat.classList.remove('hidden');
                 linhaDest.classList.add('hidden');
                 document.getElementById('label-conta-origem').textContent = "Conta";
             } else {
                 title.textContent = "Transferência";
-                seta.setAttribute('d', 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4');
+                setaPath.setAttribute('d', 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4');
                 linhaCat.classList.add('hidden');
                 linhaDest.classList.remove('hidden');
                 document.getElementById('label-conta-origem').textContent = "Conta Origem";
