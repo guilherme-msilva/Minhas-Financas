@@ -126,6 +126,15 @@ foreach ($all_cats as $c) {
     $cats_map[$c['id']] = $c;
 }
 
+// Pré-resolver ícone e cor hierárquicos para todas as categorias
+foreach ($all_cats as &$c) {
+    $atributos = resolveAtributosCategoria($c['id'], $cats_map);
+    $c['icone_resolvido'] = $atributos['icone'];
+    $c['cor_resolvida']   = $atributos['cor'];
+    $cats_map[$c['id']] = $c; // atualiza o map com os campos resolvidos
+}
+unset($c);
+
 function resolveAtributosCategoria($id_categoria, $cats_map) {
     $atual = $id_categoria;
     $icone = '';
@@ -344,8 +353,8 @@ function buildCatTreeHtml(array $nodes, $selected_id = 0, $level = 0) {
         $id = $cat['id'];
         $nome = htmlspecialchars($cat['nome']);
         $nomeJs = addslashes($cat['nome']);
-        $cor = htmlspecialchars($cat['cor'] ?? '#ccc');
-        $icone = htmlspecialchars($cat['icone'] ?? '');
+        $cor = htmlspecialchars($cat['cor_resolvida'] ?? '#ccc');
+        $icone = htmlspecialchars($cat['icone_resolvido'] ?? '');
         $isSelected = ($id == $selected_id);
         $pl = $level > 0 ? 'style="padding-left:' . ($level * 12 + 12) . 'px"' : 'style="padding-left:12px"';
         $selectedClass = $isSelected ? 'bg-cyan-50 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10';
@@ -448,7 +457,7 @@ include 'header.php';
                     <div id="cat-dropdown" class="hidden absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto z-[100] bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl">
                         <div class="p-2">
                             <!-- Opção: Todas -->
-                            <button type="button" onclick="selectCategoria(0, 'Todas as Categorias')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 text-sm font-medium transition-colors flex items-center gap-2">
+                            <button type="button" onclick="selectCategoria(0, 'Categorias')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 text-sm font-medium transition-colors flex items-center gap-2">
                                 <span class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/20 flex items-center justify-center shrink-0">
                                     <svg class="w-3 h-3 text-slate-500 dark:text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                                 </span>
@@ -526,6 +535,7 @@ include 'header.php';
                     <div id="row-incluir-subcats" class="mt-3 flex items-center gap-3 <?php echo $categoria_filtro > 0 ? '' : 'hidden'; ?>">
                         <label class="flex items-center gap-2 cursor-pointer select-none">
                             <div class="relative">
+                                <input type="hidden" name="incluir_subcats" value="0">
                                 <input type="checkbox" name="incluir_subcats" value="1" id="chk-incluir-subcats" class="sr-only peer" <?php echo $incluir_subcats ? 'checked' : ''; ?>>
                                 <div class="w-9 h-5 bg-slate-200 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
                             </div>
