@@ -7,6 +7,61 @@ if (!isset($_SESSION['user_id'])) {
 require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
+// ── Ações em Lote (POST) ─────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
+    $bulk_action = $_POST['bulk_action'];
+    $ids_raw = isset($_POST['ids']) && is_array($_POST['ids']) ? $_POST['ids'] : [];
+    $ids = array_values(array_filter(array_map('intval', $ids_raw), fn($id) => $id > 0));
+
+    if (!empty($ids)) {
+        $ph   = implode(',', array_fill(0, count($ids), '?'));
+        $types_ids = str_repeat('i', count($ids));
+
+        if ($bulk_action === 'consolidar') {
+            // Consolida apenas as selecionadas (não afeta recorrências relacionadas)
+            $stmt_b = $mysqliFinancas->prepare("UPDATE transacoes SET consolidada = 1 WHERE id IN ($ph) AND iduser = ? AND consolidada = 0");
+            $params_b = array_merge($ids, [$user_id]);
+            $stmt_b->bind_param($types_ids . 'i', ...$params_b);
+            $stmt_b->execute();
+
+        } elseif ($bulk_action === 'alterar_categoria') {
+            $id_cat_bulk = (int)($_POST['id_categoria'] ?? 0);
+            if ($id_cat_bulk > 0) {
+                // Ignora transferências (idcategoria = -1)
+                $stmt_b = $mysqliFinancas->prepare("UPDATE transacoes SET idcategoria = ? WHERE id IN ($ph) AND iduser = ? AND idcategoria != -1");
+                $params_b = array_merge([$id_cat_bulk], $ids, [$user_id]);
+                $stmt_b->bind_param('i' . $types_ids . 'i', ...$params_b);
+                $stmt_b->execute();
+            }
+
+        } elseif ($bulk_action === 'excluir') {
+            // Exclui apenas os IDs selecionados (não afeta cadeia de recorrência)
+            // Para transferências selecionadas: também exclui a perna filha
+            $stmt_del_child = $mysqliFinancas->prepare("DELETE FROM transacoes WHERE idpai IN ($ph) AND iduser = ?");
+            $params_c = array_merge($ids, [$user_id]);
+            $stmt_del_child->bind_param($types_ids . 'i', ...$params_c);
+            $stmt_del_child->execute();
+
+            $stmt_del = $mysqliFinancas->prepare("DELETE FROM transacoes WHERE id IN ($ph) AND iduser = ?");
+            $stmt_del->bind_param($types_ids . 'i', ...$params_c);
+            $stmt_del->execute();
+        }
+    }
+
+    // Redireciona preservando os filtros ativos
+    $qs = http_build_query(array_filter([
+        'mes'            => $_POST['mes_atual'] ?? '',
+        'ano'            => $_POST['ano_atual'] ?? '',
+        'conta'          => $_POST['conta_atual'] ?? '',
+        'categoria'      => $_POST['categoria_atual'] ?? '',
+        'tipo'           => $_POST['tipo_atual'] ?? '',
+        'ordem'          => $_POST['ordem_atual'] ?? '',
+        'incluir_subcats'=> $_POST['incluir_subcats_atual'] ?? '',
+    ], fn($v) => $v !== '' && $v !== '0' || $v === '0'));
+    header('Location: transacoes.php' . ($qs ? '?' . $qs : ''));
+    exit;
+}
+
 // Ação Rápida: Consolidar
 if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['id'])) {
     $id_cons = (int)$_GET['id'];
@@ -439,10 +494,16 @@ include 'header.php';
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide">Transações</h1>
-            <button onclick="exportCSV()" title="Exportar CSV" class="flex items-center gap-2 px-4 py-2 bg-[#217346]/70 hover:bg-[#217346]/90 backdrop-blur-md border border-[#2ecc71]/40 hover:border-[#2ecc71]/70 text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-[0_0_16px_rgba(33,115,70,0.45)]">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                <span class="hidden sm:inline">Exportar CSV</span>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="btn-modo-selecao" onclick="toggleModoSelecao()" title="Selecionar" class="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 backdrop-blur-md border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl text-sm font-medium transition-all shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3 3L22 4M16 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+                    <span class="hidden sm:inline">Selecionar</span>
+                </button>
+                <button onclick="exportCSV()" title="Exportar CSV" class="flex items-center gap-2 px-4 py-2 bg-[#217346]/70 hover:bg-[#217346]/90 backdrop-blur-md border border-[#2ecc71]/40 hover:border-[#2ecc71]/70 text-white rounded-xl text-sm font-medium transition-all shadow-sm hover:shadow-[0_0_16px_rgba(33,115,70,0.45)]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span class="hidden sm:inline">Exportar CSV</span>
+                </button>
+            </div>
         </div>
         
         <!-- Filtros -->
@@ -599,8 +660,29 @@ include 'header.php';
             </div>
         </div>
 
+        <!-- Formulário oculto para ações em lote -->
+        <form id="bulk-form" method="POST" action="transacoes.php" class="hidden">
+            <input type="hidden" name="bulk_action" id="bulk-action-input">
+            <input type="hidden" name="id_categoria" id="bulk-categoria-input" value="">
+            <div id="bulk-ids-container"></div>
+            <input type="hidden" name="mes_atual" value="<?php echo $mes_atual; ?>">
+            <input type="hidden" name="ano_atual" value="<?php echo $ano_atual; ?>">
+            <input type="hidden" name="conta_atual" value="<?php echo $conta_atual; ?>">
+            <input type="hidden" name="categoria_atual" value="<?php echo $categoria_filtro; ?>">
+            <input type="hidden" name="tipo_atual" value="<?php echo $tipo_filtro; ?>">
+            <input type="hidden" name="ordem_atual" value="<?php echo $ordem_atual; ?>">
+            <input type="hidden" name="incluir_subcats_atual" value="<?php echo $incluir_subcats; ?>">
+        </form>
+
         <!-- Lista de Transações -->
         <div class="space-y-4" id="lista-transacoes">
+            <!-- Linha Selecionar Todos (visível apenas no modo seleção) -->
+            <div id="row-select-all" class="hidden flex items-center justify-between px-1 pb-1">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" id="chk-select-all" onchange="toggleSelectAll(this.checked)" class="w-4 h-4 rounded accent-cyan-500">
+                    <span class="text-sm text-slate-500 dark:text-white/60 font-medium">Selecionar todos</span>
+                </label>
+            </div>
             <?php 
             $data_atual = '';
             if (count($transacoes_agrupadas) > 0): 
@@ -619,7 +701,20 @@ include 'header.php';
             <?php   endif; ?>
                     
                     <!-- Card da Transação -->
-                    <div class="backdrop-blur-xl border rounded-2xl p-4 flex items-center justify-between transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-400/10 dark:border-yellow-400/30 shadow-sm dark:shadow-[0_0_15px_rgba(250,204,21,0.1)] dark:hover:bg-yellow-400/20' : 'bg-white/60 border-gray-200 hover:bg-white/70 dark:bg-white/10 dark:border-white/10 dark:hover:bg-white/20 shadow-sm'; ?>">
+                    <div class="bulk-card backdrop-blur-xl border rounded-2xl p-4 flex items-center transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-400/10 dark:border-yellow-400/30 shadow-sm dark:shadow-[0_0_15px_rgba(250,204,21,0.1)] dark:hover:bg-yellow-400/20' : 'bg-white/60 border-gray-200 hover:bg-white/70 dark:bg-white/10 dark:border-white/10 dark:hover:bg-white/20 shadow-sm'; ?>"
+                         data-id="<?php echo $t['id']; ?>"
+                         data-consolidada="<?php echo $t['consolidada']; ?>"
+                         data-is-transferencia="<?php echo ($t['idcategoria'] == -1) ? '1' : '0'; ?>"
+                         onclick="handleCardClick(event, <?php echo $t['id']; ?>)">
+
+                        <!-- Checkbox de Seleção (oculto fora do modo) -->
+                        <div class="bulk-checkbox hidden shrink-0 mr-3" onclick="event.stopPropagation()">
+                            <input type="checkbox" class="card-chk w-5 h-5 rounded accent-cyan-500 cursor-pointer"
+                                   data-id="<?php echo $t['id']; ?>"
+                                   onchange="onCardCheckChange(<?php echo $t['id']; ?>, this.checked)">
+                        </div>
+
+                        <div class="flex items-center justify-between flex-1 min-w-0">
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
                             <!-- Ícone/Cor -->
                             <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? '#3b82f6' : ($t['idcategoria'] == -1 ? ($t['valor'] < 0 ? '#ef4444' : '#10b981') : $t['categoria_cor_resolvida']); ?>">
@@ -721,7 +816,8 @@ include 'header.php';
                                 </a>
                             </div>
                         </div>
-                    </div>
+                        </div><!-- /flex items-center justify-between -->
+                    </div><!-- /bulk-card -->
 
             <?php 
                 endforeach; 
@@ -731,6 +827,50 @@ include 'header.php';
                     <p class="text-slate-500 dark:text-white/50">Nenhuma transação encontrada neste mês.</p>
                 </div>
             <?php endif; ?>
+        </div><!-- /lista-transacoes -->
+    </div><!-- /max-w-4xl -->
+
+    <!-- ── Toolbar Flutuante de Ações em Lote ── -->
+    <div id="bulk-toolbar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-4 py-3 bg-slate-900/90 dark:bg-slate-800/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl text-white">
+        <span id="bulk-count-label" class="text-sm font-semibold text-white/80 mr-2 whitespace-nowrap">0 selecionadas</span>
+
+        <button onclick="bulkConsolidar()" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/80 hover:bg-emerald-500 rounded-xl text-sm font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="hidden sm:inline">Consolidar</span>
+        </button>
+
+        <button onclick="openBulkCategoria()" class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/80 hover:bg-cyan-500 rounded-xl text-sm font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            <span class="hidden sm:inline">Categoria</span>
+        </button>
+
+        <button onclick="bulkExcluir()" class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/80 hover:bg-red-500 rounded-xl text-sm font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            <span class="hidden sm:inline">Excluir</span>
+        </button>
+
+        <button onclick="toggleModoSelecao()" class="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors ml-1" title="Cancelar seleção">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </div>
+
+    <!-- ── Modal: Alterar Categoria em Lote ── -->
+    <div id="modal-bulk-categoria" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] flex items-end sm:items-center justify-center p-4" onclick="closeBulkCategoria()">
+        <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between shrink-0">
+                <h3 class="text-slate-800 dark:text-white font-semibold text-base">Alterar Categoria</h3>
+                <button onclick="closeBulkCategoria()" class="text-slate-400 hover:text-slate-700 dark:text-white/50 dark:hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <p id="bulk-cat-aviso" class="hidden mx-5 mt-4 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-400/20 rounded-xl px-3 py-2">
+                As transferências selecionadas serão ignoradas nesta operação.
+            </p>
+            <div class="flex-1 overflow-y-auto p-3">
+                <div class="space-y-0.5">
+                    <?php echo buildCatTreeHtml($tree_categorias, 0); ?>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -882,6 +1022,145 @@ include 'header.php';
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
+    // ── Bulk Selection ──────────────────────────────────────────────
+    let bulkMode   = false;
+    let selectedIds = new Set();
+
+    function toggleModoSelecao() {
+        bulkMode = !bulkMode;
+        const btn = document.getElementById('btn-modo-selecao');
+        const rowAll = document.getElementById('row-select-all');
+        const checkboxes = document.querySelectorAll('.bulk-checkbox');
+        const cards = document.querySelectorAll('.bulk-card');
+
+        if (bulkMode) {
+            btn.classList.add('bg-cyan-500/20', 'border-cyan-400/50', 'text-cyan-700', 'dark:text-cyan-300');
+            rowAll.classList.remove('hidden');
+            checkboxes.forEach(c => c.classList.remove('hidden'));
+            cards.forEach(c => c.style.cursor = 'pointer');
+        } else {
+            // Reset
+            btn.classList.remove('bg-cyan-500/20', 'border-cyan-400/50', 'text-cyan-700', 'dark:text-cyan-300');
+            rowAll.classList.add('hidden');
+            checkboxes.forEach(c => c.classList.add('hidden'));
+            cards.forEach(c => {
+                c.style.cursor = '';
+                c.classList.remove('ring-2', 'ring-cyan-400', 'ring-offset-1');
+            });
+            document.querySelectorAll('.card-chk').forEach(chk => chk.checked = false);
+            document.getElementById('chk-select-all').checked = false;
+            selectedIds.clear();
+            updateToolbar();
+        }
+    }
+
+    function handleCardClick(event, id) {
+        if (!bulkMode) return; // fora do modo, clique normal (links funcionam)
+        // Evitar disparar quando clicar nos botões de ação internos
+        if (event.target.closest('a') || event.target.closest('button')) return;
+        const chk = document.querySelector(`.card-chk[data-id="${id}"]`);
+        if (chk) {
+            chk.checked = !chk.checked;
+            onCardCheckChange(id, chk.checked);
+        }
+    }
+
+    function onCardCheckChange(id, checked) {
+        const card = document.querySelector(`.bulk-card[data-id="${id}"]`);
+        if (checked) {
+            selectedIds.add(id);
+            card && card.classList.add('ring-2', 'ring-cyan-400', 'ring-offset-1', 'dark:ring-offset-slate-900');
+        } else {
+            selectedIds.delete(id);
+            card && card.classList.remove('ring-2', 'ring-cyan-400', 'ring-offset-1', 'dark:ring-offset-slate-900');
+        }
+        // Sync select-all checkbox
+        const allChks = document.querySelectorAll('.card-chk');
+        document.getElementById('chk-select-all').checked =
+            allChks.length > 0 && [...allChks].every(c => c.checked);
+        updateToolbar();
+    }
+
+    function toggleSelectAll(checked) {
+        document.querySelectorAll('.card-chk').forEach(chk => {
+            const id = parseInt(chk.dataset.id);
+            chk.checked = checked;
+            onCardCheckChange(id, checked);
+        });
+    }
+
+    function updateToolbar() {
+        const toolbar = document.getElementById('bulk-toolbar');
+        const label   = document.getElementById('bulk-count-label');
+        const n = selectedIds.size;
+        if (n > 0 && bulkMode) {
+            toolbar.classList.remove('hidden');
+            label.textContent = n + (n === 1 ? ' selecionada' : ' selecionadas');
+        } else {
+            toolbar.classList.add('hidden');
+        }
+    }
+
+    function submitBulkForm(action, idCategoria = null) {
+        const form = document.getElementById('bulk-form');
+        document.getElementById('bulk-action-input').value = action;
+        document.getElementById('bulk-categoria-input').value = idCategoria ?? '';
+        // Popula os IDs
+        const container = document.getElementById('bulk-ids-container');
+        container.innerHTML = '';
+        selectedIds.forEach(id => {
+            const inp = document.createElement('input');
+            inp.type  = 'hidden';
+            inp.name  = 'ids[]';
+            inp.value = id;
+            container.appendChild(inp);
+        });
+        form.submit();
+    }
+
+    function bulkConsolidar() {
+        if (selectedIds.size === 0) return;
+        submitBulkForm('consolidar');
+    }
+
+    // ── Modal Categoria Bulk ────────────────────────────────────────
+    let bulkCatModalOpen = false;
+
+    function openBulkCategoria() {
+        if (selectedIds.size === 0) return;
+        // Verificar se há transferências entre os selecionados
+        let temTransferencia = false;
+        selectedIds.forEach(id => {
+            const card = document.querySelector(`.bulk-card[data-id="${id}"]`);
+            if (card && card.dataset.isTransferencia === '1') temTransferencia = true;
+        });
+        const aviso = document.getElementById('bulk-cat-aviso');
+        aviso.classList.toggle('hidden', !temTransferencia);
+        bulkCatModalOpen = true;
+        document.getElementById('modal-bulk-categoria').classList.remove('hidden');
+    }
+
+    function closeBulkCategoria() {
+        bulkCatModalOpen = false;
+        document.getElementById('modal-bulk-categoria').classList.add('hidden');
+    }
+
+    // Override de selectCategoria quando o modal de bulk está aberto
+    const _origSelectCategoria = selectCategoria;
+    function selectCategoria(id, nome) {
+        if (bulkCatModalOpen) {
+            closeBulkCategoria();
+            if (id > 0) submitBulkForm('alterar_categoria', id);
+        } else {
+            _origSelectCategoria(id, nome);
+        }
+    }
+
+    function bulkExcluir() {
+        if (selectedIds.size === 0) return;
+        const n = selectedIds.size;
+        if (!confirm(`Excluir ${n} transaç${n === 1 ? 'ão' : 'ões'} selecionada${n === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`)) return;
+        submitBulkForm('excluir');
+    }
 </script>
 </html>
-
