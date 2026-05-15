@@ -429,16 +429,23 @@ include 'header.php';
                     <?php endforeach; ?>
                 </select>
 
+                <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                    <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
+                    <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
+                    <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
+                    <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
+                </select>
+
                 <!-- Seletor de Categoria Hierárquico -->
-                <div class="relative flex-1 min-w-[180px]" id="cat-selector-wrapper">
+                <div class="relative w-full sm:flex-1 sm:min-w-[180px]" id="cat-selector-wrapper">
                     <input type="hidden" name="categoria" id="input-categoria-filtro" value="<?php echo $categoria_filtro; ?>">
-                    <button type="button" onclick="toggleCatDropdown()" id="btn-cat-selector" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 flex items-center justify-between gap-2 truncate">
+                    <button type="button" onclick="toggleCatDropdown()" id="btn-cat-selector" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 flex items-center justify-between gap-2">
                         <span id="label-cat-filtro" class="truncate"><?php echo htmlspecialchars($nome_categoria_filtro); ?></span>
                         <svg class="w-4 h-4 shrink-0 text-slate-400 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
 
                     <!-- Dropdown Hierárquico -->
-                    <div id="cat-dropdown" class="hidden absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto z-[100] bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl">
+                    <div id="cat-dropdown" class="hidden absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto z-[100] bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl">
                         <div class="p-2">
                             <!-- Opção: Todas -->
                             <button type="button" onclick="selectCategoria(0, 'Todas as Categorias')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 text-sm font-medium transition-colors flex items-center gap-2">
@@ -453,13 +460,6 @@ include 'header.php';
                         </div>
                     </div>
                 </div>
-
-                <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                    <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
-                    <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
-                    <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
-                    <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
-                </select>
 
                 <!-- Seletor de Mês/Ano (Estilo Dashboard) -->
                 <div class="relative w-full sm:w-auto z-50">
