@@ -414,7 +414,7 @@ function buildCategoryTree(array $elements, $parentId = null) {
     return $branch;
 }
 
-function buildCatTreeHtml(array $nodes, $selected_id = 0, $level = 0) {
+function buildCatTreeHtml(array $nodes, $selected_id = 0, $level = 0, $prefix = '') {
     $html = '';
     foreach ($nodes as $cat) {
         $hasChildren = !empty($cat['children']);
@@ -426,29 +426,28 @@ function buildCatTreeHtml(array $nodes, $selected_id = 0, $level = 0) {
         $isSelected = ($id == $selected_id);
         $pl = $level > 0 ? 'style="padding-left:' . ($level * 12 + 12) . 'px"' : 'style="padding-left:12px"';
         $selectedClass = $isSelected ? 'bg-cyan-50 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10';
+        // Função JS de toggle depende do prefixo
+        $toggleFn = $prefix ? "toggleBulkCatChildren($id)" : "toggleCatChildren($id)";
+        $childrenId = "{$prefix}cat-children-$id";
+        $iconId     = "{$prefix}cat-icon-$id";
 
         $html .= "<div class='flex flex-col'>";
 
         if ($hasChildren) {
-            // Linha com botão de expand + botão de seleção separado
             $html .= "<div class='flex items-center rounded-xl $selectedClass transition-colors'>";
-            // Área clicável p/ expandir
-            $html .= "<button type='button' onclick='toggleCatChildren($id)' class='flex items-center gap-2 flex-1 py-2 text-sm font-medium text-left' $pl>";
+            $html .= "<button type='button' onclick='$toggleFn' class='flex items-center gap-2 flex-1 py-2 text-sm font-medium text-left' $pl>";
             $html .= buildCatIconHtml($cor, $icone);
             $html .= "<span>$nome</span>";
-            $html .= "<svg id='cat-icon-$id' class='w-3.5 h-3.5 ml-auto mr-2 text-slate-400 dark:text-white/40 transition-transform duration-200' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
+            $html .= "<svg id='$iconId' class='w-3.5 h-3.5 ml-auto mr-2 text-slate-400 dark:text-white/40 transition-transform duration-200' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'></path></svg>";
             $html .= "</button>";
-            // Botão de selecionar a categoria pai
             $html .= "<button type='button' onclick=\"selectCategoria($id, '$nomeJs')\" class='p-2 mr-1 rounded-lg text-slate-400 dark:text-white/40 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0' title='Selecionar esta categoria'>";
             $html .= "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg>";
             $html .= "</button>";
             $html .= "</div>";
-            // Filhos ocultos inicialmente
-            $html .= "<div id='cat-children-$id' class='hidden'>";
-            $html .= buildCatTreeHtml($cat['children'], $selected_id, $level + 1);
+            $html .= "<div id='$childrenId' class='hidden'>";
+            $html .= buildCatTreeHtml($cat['children'], $selected_id, $level + 1, $prefix);
             $html .= "</div>";
         } else {
-            // Categoria folha — clicar seleciona diretamente
             $html .= "<button type='button' onclick=\"selectCategoria($id, '$nomeJs')\" class='flex items-center gap-2 py-2 text-sm font-medium rounded-xl $selectedClass transition-colors w-full text-left' $pl>";
             $html .= buildCatIconHtml($cor, $icone);
             $html .= "<span>$nome</span>";
@@ -868,7 +867,7 @@ include 'header.php';
             </p>
             <div class="flex-1 overflow-y-auto p-3">
                 <div class="space-y-0.5">
-                    <?php echo buildCatTreeHtml($tree_categorias, 0); ?>
+                    <?php echo buildCatTreeHtml($tree_categorias, 0, 0, 'bulk-'); ?>
                 </div>
             </div>
         </div>
@@ -910,6 +909,15 @@ include 'header.php';
     function toggleCatChildren(id) {
         const children = document.getElementById('cat-children-' + id);
         const icon = document.getElementById('cat-icon-' + id);
+        if (children) {
+            children.classList.toggle('hidden');
+            if (icon) icon.classList.toggle('rotate-180');
+        }
+    }
+
+    function toggleBulkCatChildren(id) {
+        const children = document.getElementById('bulk-cat-children-' + id);
+        const icon = document.getElementById('bulk-cat-icon-' + id);
         if (children) {
             children.classList.toggle('hidden');
             if (icon) icon.classList.toggle('rotate-180');
