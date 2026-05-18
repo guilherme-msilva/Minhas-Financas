@@ -925,6 +925,13 @@ include 'header.php';
     }
 
     function selectCategoria(id, nome) {
+        // Se o modal de bulk estiver aberto, opera em modo bulk
+        if (bulkCatModalOpen) {
+            closeBulkCategoria();
+            if (id > 0) submitBulkForm('alterar_categoria', id);
+            return;
+        }
+        // Caso contrário, aplica o filtro de categoria
         document.getElementById('input-categoria-filtro').value = id;
         document.getElementById('label-cat-filtro').textContent = nome;
         // Mostrar/ocultar checkbox de subcategorias
@@ -1153,16 +1160,7 @@ include 'header.php';
         document.getElementById('modal-bulk-categoria').classList.add('hidden');
     }
 
-    // Override de selectCategoria quando o modal de bulk está aberto
-    const _origSelectCategoria = selectCategoria;
-    function selectCategoria(id, nome) {
-        if (bulkCatModalOpen) {
-            closeBulkCategoria();
-            if (id > 0) submitBulkForm('alterar_categoria', id);
-        } else {
-            _origSelectCategoria(id, nome);
-        }
-    }
+    // selectCategoria já lida com o modo bulk internamente (ver definição acima)
 
     function bulkExcluir() {
         if (selectedIds.size === 0) return;
