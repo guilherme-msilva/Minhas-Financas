@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once 'conexao.php';
 $user_id = $_SESSION['user_id'];
 
-// â”€â”€ AÃ§Ãµes em Lote (POST) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Ações em Lote (POST) ─────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
     $bulk_action = $_POST['bulk_action'];
     $ids_raw = isset($_POST['ids']) && is_array($_POST['ids']) ? $_POST['ids'] : [];
@@ -18,7 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
         $types_ids = str_repeat('i', count($ids));
 
         if ($bulk_action === 'consolidar') {
-            // Consolida apenas as selecionadas (nÃ£o afeta recorrÃªncias relacionadas)
+            // Consolida apenas as selecionadas (não afeta recorrências relacionadas)
             $stmt_b = $mysqliFinancas->prepare("UPDATE transacoes SET consolidada = 1 WHERE id IN ($ph) AND iduser = ? AND consolidada = 0");
             $params_b = array_merge($ids, [$user_id]);
             $stmt_b->bind_param($types_ids . 'i', ...$params_b);
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
         } elseif ($bulk_action === 'alterar_categoria') {
             $id_cat_bulk = (int)($_POST['id_categoria'] ?? 0);
             if ($id_cat_bulk > 0) {
-                // Ignora transferÃªncias (idcategoria = -1)
+                // Ignora transferências (idcategoria = -1)
                 $stmt_b = $mysqliFinancas->prepare("UPDATE transacoes SET idcategoria = ? WHERE id IN ($ph) AND iduser = ? AND idcategoria != -1");
                 $params_b = array_merge([$id_cat_bulk], $ids, [$user_id]);
                 $stmt_b->bind_param('i' . $types_ids . 'i', ...$params_b);
@@ -35,8 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
             }
 
         } elseif ($bulk_action === 'excluir') {
-            // Exclui apenas os IDs selecionados (nÃ£o afeta cadeia de recorrÃªncia)
-            // Para transferÃªncias selecionadas: tambÃ©m exclui a perna filha
+            // Exclui apenas os IDs selecionados (não afeta cadeia de recorrência)
+            // Para transferências selecionadas: também exclui a perna filha
             $stmt_del_child = $mysqliFinancas->prepare("DELETE FROM transacoes WHERE idpai IN ($ph) AND iduser = ?");
             $params_c = array_merge($ids, [$user_id]);
             $stmt_del_child->bind_param($types_ids . 'i', ...$params_c);
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
     exit;
 }
 
-// AÃ§Ã£o RÃ¡pida: Consolidar
+// Ação Rápida: Consolidar
 if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['id'])) {
     $id_cons = (int)$_GET['id'];
     
@@ -73,7 +73,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
     $res = $stmt->get_result();
     if ($t = $res->fetch_assoc()) {
         if ($t['consolidada']) {
-            // JÃ¡ estÃ¡ consolidada, bloqueio de desconsolidar
+            // Já está consolidada, bloqueio de desconsolidar
             header("Location: transacoes.php");
             exit;
         }
@@ -90,7 +90,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
             $stmt_up->execute();
         }
         
-        // Se consolidou, verifica se Ã© recorrente para "spawnar" a prÃ³xima
+        // Se consolidou, verifica se é recorrente para "spawnar" a próxima
         if ($novo_status == 1) {
             $id_to_fetch = $t['idcategoria'] == -1 ? ($t['idpai'] ? $t['idpai'] : $id_cons) : $id_cons;
             $stmt_full = $mysqliFinancas->prepare("SELECT * FROM transacoes WHERE id = ? AND iduser = ?");
@@ -98,12 +98,12 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
             $stmt_full->execute();
             if ($t_full = $stmt_full->get_result()->fetch_assoc()) {
                 if (!empty($t_full['id_grupo_recorrencia']) && ($t_full['parcela_fim'] > 1 || $t_full['parcela_fim'] == -1)) {
-                    // Verifica se jÃ¡ existe uma futura pendente
+                    // Verifica se já existe uma futura pendente
                     $stmt_check = $mysqliFinancas->prepare("SELECT id FROM transacoes WHERE id_grupo_recorrencia = ? AND consolidada = 0 AND iduser = ?");
                     $stmt_check->bind_param("si", $t_full['id_grupo_recorrencia'], $user_id);
                     $stmt_check->execute();
                     if ($stmt_check->get_result()->num_rows == 0) {
-                        // Spawna a prÃ³xima
+                        // Spawna a próxima
                         $dia_vencimento = (int)date('d', strtotime($t_full['data']));
                         $prox_data_obj = new DateTime($t_full['data']);
                         $prox_data_obj->modify('first day of next month');
@@ -146,7 +146,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
     exit;
 }
 
-// Filtros e OrdenaÃ§Ã£o
+// Filtros e Ordenação
 $ordenacao = isset($_GET['ordenacao']) ? $_GET['ordenacao'] : 'data_desc';
 $valid_ordenacoes = ['data_desc', 'data_asc', 'valor_desc', 'valor_asc'];
 if (!in_array($ordenacao, $valid_ordenacoes)) $ordenacao = 'data_desc';
@@ -160,14 +160,14 @@ $data_fim_filtro = isset($_GET['data_fim']) && trim($_GET['data_fim']) !== '' ? 
 $descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
 $tipo_filtro = isset($_GET['tipo']) ? $_GET['tipo'] : 'todas';
 
-// Busca contas do usuÃ¡rio para popular o select de filtro
+// Busca contas do usuário para popular o select de filtro
 $stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? and status = 1 ORDER BY nome");
 $stmt_contas_filtro->bind_param("i", $user_id);
 $stmt_contas_filtro->execute();
 $contas_filtro = $stmt_contas_filtro->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt_contas_filtro->close();
 
-// Mapear categorias para resoluÃ§Ã£o hierÃ¡rquica de Ã­cones e cores
+// Mapear categorias para resolução hierárquica de ícones e cores
 $stmt_cats = $mysqliFinancas->prepare("SELECT id, nome, id_pai, icone, cor FROM categorias WHERE id_user = ? ORDER BY nome");
 $stmt_cats->bind_param("i", $user_id);
 $stmt_cats->execute();
@@ -179,7 +179,7 @@ foreach ($all_cats as $c) {
     $cats_map[$c['id']] = $c;
 }
 
-// PrÃ©-resolver Ã­cone e cor hierÃ¡rquicos para todas as categorias
+// Pré-resolver ícone e cor hierárquicos para todas as categorias
 foreach ($all_cats as &$c) {
     $atributos = resolveAtributosCategoria($c['id'], $cats_map);
     $c['icone_resolvido'] = $atributos['icone'];
@@ -210,7 +210,7 @@ function resolveAtributosCategoria($id_categoria, $cats_map) {
     return ['icone' => $icone, 'cor' => $cor];
 }
 
-// ConstruÃ§Ã£o DinÃ¢mica da Query
+// Construção Dinâmica da Query
 $conditions = ["t.iduser = ?"];
 $params = [$user_id];
 $types = "i";
@@ -301,7 +301,7 @@ $stmt->execute();
 $transacoes = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Agrupamento das TransferÃªncias (Para nÃ£o mostrar 2 linhas separadas)
+// Agrupamento das Transferências (Para não mostrar 2 linhas separadas)
 $transacoes_agrupadas = [];
 $transferencias_filhas = [];
 
@@ -316,7 +316,7 @@ foreach ($transacoes as $t) {
 foreach ($transacoes as $t) {
     if ($t['idcategoria'] == -1) {
         if ($conta_atual > 0) {
-            // Se estÃ¡ filtrado por conta, mostramos a perna que retornou sem pular a entrada
+            // Se está filtrado por conta, mostramos a perna que retornou sem pular a entrada
             if ($t['idpai']) {
                 $t['is_transferencia_entrada'] = true;
                 $t['conta_oposta_nome'] = $t['conta_origem_nome_db'] ?? 'Desconhecida';
@@ -331,10 +331,10 @@ foreach ($transacoes as $t) {
             $transacoes_agrupadas[] = $t;
         } else {
             if ($t['idpai']) {
-                // Ã‰ a perna filha (Entrada), pula para nÃ£o duplicar na lista
+                // É a perna filha (Entrada), pula para não duplicar na lista
                 continue;
             } else {
-                // Ã‰ a perna pai (SaÃ­da)
+                // É a perna pai (Saída)
                 $filha = $transferencias_filhas[$t['id']] ?? null;
                 $t['conta_destino_nome'] = $filha ? $filha['conta_nome'] : ($t['conta_destino_nome_db'] ?? 'Desconhecida');
                 $t['conta_destino_img'] = $filha ? $filha['conta_img'] : ($t['conta_destino_img_db'] ?? null);
@@ -354,7 +354,7 @@ foreach ($transacoes as $t) {
 $total_receitas = 0;
 $total_despesas = 0;
 foreach ($transacoes_agrupadas as $t) {
-    if ($t['idcategoria'] == -1) continue; // Ignora transferÃªncias nos totais
+    if ($t['idcategoria'] == -1) continue; // Ignora transferências nos totais
     if ($t['valor'] > 0) {
         $total_receitas += $t['valor'];
     } else {
@@ -364,14 +364,14 @@ foreach ($transacoes_agrupadas as $t) {
 $saldo_periodo = $total_receitas + $total_despesas;
 
 $meses = [
-    1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'MarÃ§o', 4 => 'Abril', 
+    1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril', 
     5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto', 
     9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro'
 ];
 
 
 
-// FunÃ§Ãµes para hierarquia de categorias
+// Funções para hierarquia de categorias
 function buildCategoryTree(array $elements, $parentId = null) {
     $branch = array();
     foreach ($elements as $element) {
@@ -396,7 +396,7 @@ function buildCatTreeHtml(array $nodes, $selected_id = 0, $level = 0, $prefix = 
         $isSelected = ($id == $selected_id);
         $pl = $level > 0 ? 'style="padding-left:' . ($level * 12 + 12) . 'px"' : 'style="padding-left:12px"';
         $selectedClass = $isSelected ? 'bg-cyan-50 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-700 dark:text-white/80 hover:bg-slate-100 dark:hover:bg-white/10';
-        // FunÃ§Ã£o JS de toggle depende do prefixo
+        // Função JS de toggle depende do prefixo
         $toggleFn = $prefix ? "toggleBulkCatChildren($id)" : "toggleCatChildren($id)";
         $childrenId = "{$prefix}cat-children-$id";
         $iconId     = "{$prefix}cat-icon-$id";
@@ -443,7 +443,7 @@ function buildCatIconHtml($cor, $icone) {
 
 $tree_categorias = buildCategoryTree($all_cats);
 
-// Nome da categoria selecionada para exibir no botÃ£o
+// Nome da categoria selecionada para exibir no botão
 $nome_categoria_filtro = 'Categorias';
 foreach ($all_cats as $c) {
     if ($c['id'] == $categoria_filtro) {
@@ -453,7 +453,7 @@ foreach ($all_cats as $c) {
 }
 ?>
 <?php 
-$page_title = "TransaÃ§Ãµes - Minhas FinanÃ§as";
+$page_title = "Transações - Minhas Finanças";
 $extra_head = '<script src="https://unpkg.com/@phosphor-icons/web"></script>';
 include 'header.php'; 
 ?>
@@ -462,7 +462,7 @@ include 'header.php';
 
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide">TransaÃ§Ãµes</h1>
+            <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide">Transações</h1>
             <div class="flex items-center gap-2">
                 <button id="btn-modo-selecao" onclick="toggleModoSelecao()" title="Selecionar" class="flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 backdrop-blur-md border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl text-sm font-medium transition-all shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3 3L22 4M16 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
@@ -489,10 +489,10 @@ include 'header.php';
                     </select>
 
                     <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                        <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>TransaÃ§Ãµes</option>
+                        <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
                         <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
                         <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
-                        <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>TransferÃªncias</option>
+                        <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
                     </select>
 
                     <!-- Categoria -->
@@ -518,7 +518,7 @@ include 'header.php';
                     </div>
                 </div>
 
-                <!-- Linha 2: Data InÃ­cio / Data Fim / OrdenaÃ§Ã£o / Filtrar -->
+                <!-- Linha 2: Data Início / Data Fim / Ordenação / Filtrar -->
                 <div class="flex flex-wrap items-end gap-3">
                     <div class="flex-1 min-w-[140px]">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
@@ -529,7 +529,7 @@ include 'header.php';
                         <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
                     <div class="flex-1 min-w-[180px]">
-                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">OrdenaÃ§Ã£o</label>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Ordenação</label>
                         <select name="ordenacao" onchange="this.form.submit()" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                             <option class="text-gray-900" value="data_desc"  <?php echo $ordenacao == 'data_desc'  ? 'selected' : ''; ?>>Data (Decrescente)</option>
                             <option class="text-gray-900" value="data_asc"   <?php echo $ordenacao == 'data_asc'   ? 'selected' : ''; ?>>Data (Crescente)</option>
@@ -545,10 +545,10 @@ include 'header.php';
                     </div>
                 </div>
 
-                <!-- Linha 3: Busca por descriÃ§Ã£o + Incluir subcategorias + Limpar -->
+                <!-- Linha 3: Busca por descrição + Incluir subcategorias + Limpar -->
                 <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-200 dark:border-white/10">
                     <div class="flex-1 min-w-[200px]">
-                        <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Buscar na descriÃ§Ã£o (ex: Mercado, Uber...)" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Buscar na descrição (ex: Mercado, Uber...)" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
                     <div id="row-incluir-subcats" class="flex items-center <?php echo $categoria_filtro > 0 ? '' : 'hidden'; ?>">
                         <label class="flex items-center gap-2 cursor-pointer select-none">
@@ -566,7 +566,7 @@ include 'header.php';
             </form>
         </div>
 
-        <!-- Painel de Resumo do Período -->
+        <!-- Painel de Resumo do Per�odo -->
         <div class="mb-6 grid grid-cols-3 gap-3">
             <!-- Receitas -->
             <div class="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl p-4 flex flex-col items-start">
@@ -591,7 +591,7 @@ include 'header.php';
             </div>
         </div>
 
-        <!-- FormulÃ¡rio oculto para aÃ§Ãµes em lote -->
+        <!-- Formulário oculto para ações em lote -->
         <form id="bulk-form" method="POST" action="transacoes.php" class="hidden">
             <input type="hidden" name="bulk_action" id="bulk-action-input">
             <input type="hidden" name="id_categoria" id="bulk-categoria-input" value="">
@@ -605,9 +605,9 @@ include 'header.php';
             <input type="hidden" name="incluir_subcats_atual" value="<?php echo $incluir_subcats; ?>">
         </form>
 
-        <!-- Lista de TransaÃ§Ãµes -->
+        <!-- Lista de Transações -->
         <div class="space-y-4" id="lista-transacoes">
-            <!-- Linha Selecionar Todos (visÃ­vel apenas no modo seleÃ§Ã£o) -->
+            <!-- Linha Selecionar Todos (visível apenas no modo seleção) -->
             <div id="row-select-all" class="hidden flex items-center justify-between px-1 pb-1">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" id="chk-select-all" onchange="toggleSelectAll(this.checked)" class="w-4 h-4 rounded accent-cyan-500">
@@ -622,7 +622,7 @@ include 'header.php';
                     if ($data_atual != $t['data']): 
                         $data_atual = $t['data'];
                         $dia = date('d', strtotime($data_atual));
-                        $dia_semana = ['Dom','Seg','Ter','Qua','Qui','Sex','SÃ¡b'][date('w', strtotime($data_atual))];
+                        $dia_semana = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][date('w', strtotime($data_atual))];
                         $mes_extenso = $meses[(int)date('m', strtotime($data_atual))];
                         $ano_extenso = date('Y', strtotime($data_atual));
             ?>
@@ -631,14 +631,14 @@ include 'header.php';
                         </div>
             <?php   endif; ?>
                     
-                    <!-- Card da TransaÃ§Ã£o -->
+                    <!-- Card da Transação -->
                     <div class="bulk-card backdrop-blur-xl border rounded-2xl p-4 flex items-center transition-all <?php echo !$t['consolidada'] ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-400/10 dark:border-yellow-400/30 shadow-sm dark:shadow-[0_0_15px_rgba(250,204,21,0.1)] dark:hover:bg-yellow-400/20' : 'bg-white/60 border-gray-200 hover:bg-white/70 dark:bg-white/10 dark:border-white/10 dark:hover:bg-white/20 shadow-sm'; ?>"
                          data-id="<?php echo $t['id']; ?>"
                          data-consolidada="<?php echo $t['consolidada']; ?>"
                          data-is-transferencia="<?php echo ($t['idcategoria'] == -1) ? '1' : '0'; ?>"
                          onclick="handleCardClick(event, <?php echo $t['id']; ?>)">
 
-                        <!-- Checkbox de SeleÃ§Ã£o (oculto fora do modo) -->
+                        <!-- Checkbox de Seleção (oculto fora do modo) -->
                         <div class="bulk-checkbox hidden shrink-0 mr-3" onclick="event.stopPropagation()">
                             <input type="checkbox" class="card-chk w-5 h-5 rounded accent-cyan-500 cursor-pointer"
                                    data-id="<?php echo $t['id']; ?>"
@@ -647,7 +647,7 @@ include 'header.php';
 
                         <div class="flex items-center justify-between flex-1 min-w-0">
                         <div class="flex items-center space-x-4 flex-1 min-w-0">
-                            <!-- Ãcone/Cor -->
+                            <!-- Ícone/Cor -->
                             <div class="w-10 h-10 rounded-full flex items-center justify-center shadow-inner shrink-0" style="background-color: <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? '#3b82f6' : ($t['idcategoria'] == -1 ? ($t['valor'] < 0 ? '#ef4444' : '#10b981') : $t['categoria_cor_resolvida']); ?>">
                                 <?php if($t['idcategoria'] == -1): ?>
                                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
@@ -686,7 +686,7 @@ include 'header.php';
                                     
                                     <?php if($t['idcategoria'] == -1): ?>
                                         <?php if(isset($t['is_transferencia_entrada'])): ?>
-                                            <span class="mx-1">â¬…</span> 
+                                            <span class="mx-1">⬅</span> 
                                             <?php if(!empty($t['conta_oposta_img'])): ?>
                                                 <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-gray-200 dark:border-white/10">
                                             <?php else: ?>
@@ -694,7 +694,7 @@ include 'header.php';
                                             <?php endif; ?>
                                             <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
                                         <?php elseif(isset($t['is_transferencia_saida'])): ?>
-                                            <span class="mx-1">âž”</span> 
+                                            <span class="mx-1">➔</span> 
                                             <?php if(!empty($t['conta_oposta_img'])): ?>
                                                 <img src="img/<?php echo htmlspecialchars($t['conta_oposta_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-gray-200 dark:border-white/10">
                                             <?php else: ?>
@@ -702,7 +702,7 @@ include 'header.php';
                                             <?php endif; ?>
                                             <?php echo htmlspecialchars($t['conta_oposta_nome']); ?>
                                         <?php elseif(isset($t['conta_destino_nome'])): ?>
-                                            <span class="mx-1">âž”</span> 
+                                            <span class="mx-1">➔</span> 
                                             <?php if(!empty($t['conta_destino_img'])): ?>
                                                 <img src="img/<?php echo htmlspecialchars($t['conta_destino_img']); ?>" class="w-3.5 h-3.5 rounded-full object-cover mr-1.5 inline-block shrink-0 border border-gray-200 dark:border-white/10">
                                             <?php else: ?>
@@ -711,7 +711,7 @@ include 'header.php';
                                             <?php echo htmlspecialchars($t['conta_destino_nome']); ?>
                                         <?php endif; ?>
                                     <?php elseif($t['idcategoria'] != -1 && $t['categoria_nome']): ?>
-                                        <span class="mx-1">â€¢</span> <?php echo htmlspecialchars($t['categoria_nome']); ?>
+                                        <span class="mx-1">•</span> <?php echo htmlspecialchars($t['categoria_nome']); ?>
                                     <?php endif; ?>
                                     
                                     <?php if(!$t['consolidada']): ?>
@@ -721,7 +721,7 @@ include 'header.php';
                             </div>
                         </div>
                         
-                        <!-- Valor e AÃ§Ãµes -->
+                        <!-- Valor e Ações -->
                         <div class="flex items-center space-x-3 shrink-0">
                             <span class="font-bold text-lg whitespace-nowrap <?php echo ($t['idcategoria'] == -1 && $conta_atual == 0) ? 'text-blue-600 dark:text-blue-400' : ($t['valor'] < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'); ?>">
                                 <?php 
@@ -730,7 +730,7 @@ include 'header.php';
                             </span>
                             
                             <div class="flex space-x-1">
-                                <!-- BotÃ£o Consolidar Rapido -->
+                                <!-- Botão Consolidar Rapido -->
                                 <?php if(!$t['consolidada']): ?>
                                     <a href="transacoes.php?action=consolidate&id=<?php echo $t['id']; ?>&mes=<?php echo $mes_atual; ?>&ano=<?php echo $ano_atual; ?>" 
                                        class="p-2 rounded-lg transition-colors text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 dark:text-emerald-400 dark:bg-emerald-400/10 dark:hover:bg-emerald-400/20 dark:hover:text-emerald-300"
@@ -741,7 +741,7 @@ include 'header.php';
                                     </a>
                                 <?php endif; ?>
 
-                                <!-- BotÃ£o Editar -->
+                                <!-- Botão Editar -->
                                 <a href="transacao.php?id=<?php echo $t['id']; ?>" class="p-2 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50 dark:text-cyan-400 dark:hover:text-cyan-300 dark:hover:bg-white/10 rounded-lg transition-colors" title="Editar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </a>
@@ -755,13 +755,13 @@ include 'header.php';
             else: 
             ?>
                 <div class="text-center p-8 bg-white/60 dark:bg-white/5 rounded-3xl border border-gray-200 dark:border-white/10">
-                    <p class="text-slate-500 dark:text-white/50">Nenhuma transaÃ§Ã£o encontrada neste mÃªs.</p>
+                    <p class="text-slate-500 dark:text-white/50">Nenhuma transação encontrada neste mês.</p>
                 </div>
             <?php endif; ?>
         </div><!-- /lista-transacoes -->
     </div><!-- /max-w-4xl -->
 
-    <!-- â”€â”€ Toolbar Flutuante de AÃ§Ãµes em Lote â”€â”€ -->
+    <!-- ── Toolbar Flutuante de Ações em Lote ── -->
     <div id="bulk-toolbar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[200] flex items-center gap-2 px-4 py-3 bg-slate-900/90 dark:bg-slate-800/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl text-white">
         <span id="bulk-count-label" class="text-sm font-semibold text-white/80 mr-2 whitespace-nowrap">0 selecionadas</span>
 
@@ -780,12 +780,12 @@ include 'header.php';
             <span class="hidden sm:inline">Excluir</span>
         </button>
 
-        <button onclick="toggleModoSelecao()" class="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors ml-1" title="Cancelar seleÃ§Ã£o">
+        <button onclick="toggleModoSelecao()" class="p-1.5 bg-white/10 hover:bg-white/20 rounded-xl transition-colors ml-1" title="Cancelar seleção">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
     </div>
 
-    <!-- â”€â”€ Modal: Alterar Categoria em Lote â”€â”€ -->
+    <!-- ── Modal: Alterar Categoria em Lote ── -->
     <div id="modal-bulk-categoria" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] flex items-end sm:items-center justify-center p-4" onclick="closeBulkCategoria()">
         <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col" onclick="event.stopPropagation()">
             <div class="p-5 border-b border-gray-100 dark:border-white/10 flex items-center justify-between shrink-0">
@@ -795,7 +795,7 @@ include 'header.php';
                 </button>
             </div>
             <p id="bulk-cat-aviso" class="hidden mx-5 mt-4 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-400/20 rounded-xl px-3 py-2">
-                As transferÃªncias selecionadas serÃ£o ignoradas nesta operaÃ§Ã£o.
+                As transferências selecionadas serão ignoradas nesta operação.
             </p>
             <div class="flex-1 overflow-y-auto p-3">
                 <div class="space-y-0.5">
@@ -808,7 +808,7 @@ include 'header.php';
 </body>
 <script>
 
-    // â”€â”€ Category Hierarchical Dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Category Hierarchical Dropdown ─────────────────────────────
     function toggleCatDropdown() {
         const dd = document.getElementById('cat-dropdown');
         dd.classList.toggle('hidden');
@@ -839,7 +839,7 @@ include 'header.php';
             if (id > 0) submitBulkForm('alterar_categoria', id);
             return;
         }
-        // Caso contrÃ¡rio, aplica o filtro de categoria
+        // Caso contrário, aplica o filtro de categoria
         document.getElementById('input-categoria-filtro').value = id;
         document.getElementById('label-cat-filtro').textContent = nome;
         // Mostrar/ocultar checkbox de subcategorias
@@ -856,7 +856,7 @@ include 'header.php';
         document.getElementById('form-filtros').submit();
     }
 
-    // Auto-expandir ancestrais se jÃ¡ hÃ¡ uma categoria selecionada
+    // Auto-expandir ancestrais se já há uma categoria selecionada
     (function autoExpandSelectedCat() {
         <?php if ($categoria_filtro > 0): ?>
         // Mapa id -> id_pai vindo do PHP
@@ -895,7 +895,7 @@ include 'header.php';
     });
 
 
-    // â”€â”€ Exportar CSV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Exportar CSV ───────────────────────────────────────────────
     const csvData = <?php
         $csv_rows = [];
         foreach ($transacoes_agrupadas as $t) {
@@ -903,7 +903,7 @@ include 'header.php';
             $descricao = $t['descricao'];
             $valor     = number_format($t['valor'], 2, ',', '.');
             if ($t['idcategoria'] == -1) {
-                $categoria = 'TransferÃªncia';
+                $categoria = 'Transferência';
             } else {
                 $categoria = $t['categoria_nome'] ?? '';
             }
@@ -920,7 +920,7 @@ include 'header.php';
     ?>;
 
     function exportCSV() {
-        const header = 'Data OcorrÃªncia;DescriÃ§Ã£o;Valor;Categoria;Conta';
+        const header = 'Data Ocorrência;Descrição;Valor;Categoria;Conta';
         const lines = csvData.map(r =>
             [r.data, r.descricao, r.valor, r.categoria, r.conta]
                 .map(v => '"' + String(v).replace(/"/g, '""') + '"')
@@ -937,7 +937,7 @@ include 'header.php';
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
-    // â”€â”€ Bulk Selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Bulk Selection ──────────────────────────────────────────────
     let bulkMode   = false;
     let selectedIds = new Set();
 
@@ -971,7 +971,7 @@ include 'header.php';
 
     function handleCardClick(event, id) {
         if (!bulkMode) return; // fora do modo, clique normal (links funcionam)
-        // Evitar disparar quando clicar nos botÃµes de aÃ§Ã£o internos
+        // Evitar disparar quando clicar nos botões de ação internos
         if (event.target.closest('a') || event.target.closest('button')) return;
         const chk = document.querySelector(`.card-chk[data-id="${id}"]`);
         if (chk) {
@@ -1038,12 +1038,12 @@ include 'header.php';
         submitBulkForm('consolidar');
     }
 
-    // â”€â”€ Modal Categoria Bulk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Modal Categoria Bulk ────────────────────────────────────────
     let bulkCatModalOpen = false;
 
     function openBulkCategoria() {
         if (selectedIds.size === 0) return;
-        // Verificar se hÃ¡ transferÃªncias entre os selecionados
+        // Verificar se há transferências entre os selecionados
         let temTransferencia = false;
         selectedIds.forEach(id => {
             const card = document.querySelector(`.bulk-card[data-id="${id}"]`);
@@ -1060,12 +1060,12 @@ include 'header.php';
         document.getElementById('modal-bulk-categoria').classList.add('hidden');
     }
 
-    // selectCategoria jÃ¡ lida com o modo bulk internamente (ver definiÃ§Ã£o acima)
+    // selectCategoria já lida com o modo bulk internamente (ver definição acima)
 
     function bulkExcluir() {
         if (selectedIds.size === 0) return;
         const n = selectedIds.size;
-        if (!confirm(`Excluir ${n} transaÃ§${n === 1 ? 'Ã£o' : 'Ãµes'} selecionada${n === 1 ? '' : 's'}? Esta aÃ§Ã£o nÃ£o pode ser desfeita.`)) return;
+        if (!confirm(`Excluir ${n} transaç${n === 1 ? 'ão' : 'ões'} selecionada${n === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`)) return;
         submitBulkForm('excluir');
     }
 </script>
