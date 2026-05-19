@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
         'categoria'      => $_POST['categoria_atual'] ?? '',
         'tipo'           => $_POST['tipo_atual'] ?? '',
         'ordem'          => $_POST['ordem_atual'] ?? '',
+        'ordem_campo'    => $_POST['ordem_campo_atual'] ?? '',
         'incluir_subcats'=> $_POST['incluir_subcats_atual'] ?? '',
     ], fn($v) => $v !== '' && $v !== '0' || $v === '0'));
     header('Location: transacoes.php' . ($qs ? '?' . $qs : ''));
@@ -150,6 +151,7 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
 $mes_atual = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
 $ano_atual = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
 $ordem_atual = isset($_GET['ordem']) && strtoupper($_GET['ordem']) == 'ASC' ? 'ASC' : 'DESC';
+$ordem_campo = isset($_GET['ordem_campo']) && $_GET['ordem_campo'] === 'valor' ? 'valor' : 'data';
 $conta_atual = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
 
 // Filtros Avançados
@@ -290,6 +292,10 @@ if ($tipo_filtro == 'receitas') {
 
 $where_clause = implode(" AND ", $conditions);
 
+$order_by_clause = $ordem_campo === 'valor'
+    ? "ABS(t.valor) $ordem_atual, t.data DESC"
+    : "t.data $ordem_atual, t.id ASC";
+
 $sql = "
     SELECT t.id, t.data, t.valor, t.descricao, t.consolidada, t.idcategoria, t.idpai, t.parcela_recorrencia, t.parcela_fim, t.id_grupo_recorrencia, 
            c.nome as categoria_nome, c.cor as categoria_cor, c.icone as categoria_icone, co.nome as conta_nome, co.img as conta_img, co.cor as conta_cor,
@@ -303,7 +309,7 @@ $sql = "
     LEFT JOIN categorias c ON t.idcategoria = c.id
     LEFT JOIN contas co ON t.idconta = co.id
     WHERE $where_clause
-    ORDER BY t.data $ordem_atual, t.id ASC
+    ORDER BY $order_by_clause
 ";
 
 $stmt = $mysqliFinancas->prepare($sql);
@@ -509,6 +515,7 @@ include 'header.php';
         <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
             <form method="GET" class="flex flex-wrap items-center justify-start gap-3 w-full">
                 <input type="hidden" id="ordem-input" name="ordem" value="<?php echo $ordem_atual; ?>">
+                <input type="hidden" id="ordem-campo-input" name="ordem_campo" value="<?php echo $ordem_campo; ?>">
                 
                 <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
                     <option class="text-gray-900" value="0">Contas</option>
@@ -586,6 +593,24 @@ include 'header.php';
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
                     <?php else: ?>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path></svg>
+                    <?php endif; ?>
+                </button>
+
+                <?php
+                    $is_sorting_by_valor = ($ordem_campo === 'valor');
+                    $btn_valor_active_cls = $is_sorting_by_valor ? 'bg-violet-100 dark:bg-violet-500/20 border-violet-400/50 text-violet-700 dark:text-violet-300 shadow-[0_0_10px_rgba(139,92,246,0.2)]' : 'bg-white/50 dark:bg-white/10 border-gray-200 dark:border-white/10 text-slate-800 dark:text-white hover:bg-white/60 dark:hover:bg-white/20';
+                    $next_ordem_campo = $is_sorting_by_valor ? 'data' : 'valor';
+                    // When switching to valor sorting, reset order to DESC (highest first)
+                    $next_ordem_for_valor = $is_sorting_by_valor ? $ordem_atual : 'DESC';
+                ?>
+                <button type="button"
+                    onclick="document.getElementById('ordem-campo-input').value='<?php echo $next_ordem_campo; ?>'; document.getElementById('ordem-input').value='<?php echo $next_ordem_for_valor; ?>'; this.form.submit();"
+                    class="p-2 rounded-xl transition-colors border <?php echo $btn_valor_active_cls; ?>"
+                    title="<?php echo $is_sorting_by_valor ? 'Ordenando por Valor (clique para voltar à data)' : 'Ordenar por Valor'; ?>">
+                    <?php if($is_sorting_by_valor && $ordem_atual == 'DESC'): ?>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h7M3 18h10"></path></svg>
+                    <?php else: ?>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H3"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h10M3 18h7"></path></svg>
                     <?php endif; ?>
                 </button>
                 
@@ -670,6 +695,7 @@ include 'header.php';
             <input type="hidden" name="categoria_atual" value="<?php echo $categoria_filtro; ?>">
             <input type="hidden" name="tipo_atual" value="<?php echo $tipo_filtro; ?>">
             <input type="hidden" name="ordem_atual" value="<?php echo $ordem_atual; ?>">
+            <input type="hidden" name="ordem_campo_atual" value="<?php echo $ordem_campo; ?>">
             <input type="hidden" name="incluir_subcats_atual" value="<?php echo $incluir_subcats; ?>">
         </form>
 
