@@ -476,18 +476,18 @@ include 'header.php';
         </div>
         
         <!-- Filtros -->
-        <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
+        <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl px-5 py-4 sm:p-6 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
             <form method="GET" id="form-filtros" class="flex flex-col gap-3 w-full">
 
                 <!-- Linha 1: Data Inicial / Data Final / Filtrar -->
-                <div class="flex flex-col sm:flex-row sm:items-end gap-3">
-                    <div class="w-full sm:flex-1 sm:min-w-[140px]">
+                <div class="flex flex-col sm:flex-row sm:items-end gap-3 w-full min-w-0">
+                    <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px]">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
-                        <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full max-w-full min-w-0 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-3 sm:px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
-                    <div class="w-full sm:flex-1 sm:min-w-[140px]">
+                    <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px]">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
-                        <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full max-w-full min-w-0 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-3 sm:px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
                     <div class="w-full sm:w-auto sm:shrink-0">
                         <button type="submit" class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
