@@ -479,22 +479,26 @@ include 'header.php';
         <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl p-4 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
             <form method="GET" id="form-filtros" class="flex flex-col gap-3 w-full">
 
-                <!-- Linha 1: Conta / Tipo / Categoria -->
+                <!-- Linha 1: Data Inicial / Data Final / Filtrar -->
+                <div class="flex flex-wrap items-end gap-3">
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
+                        <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                    </div>
+                    <div class="flex-1 min-w-[140px]">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
+                        <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                    </div>
+                    <div class="shrink-0">
+                        <button type="submit" class="flex items-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Linha 2: Categorias / Contas / Transações / Ordenação -->
                 <div class="flex flex-wrap items-center gap-3">
-                    <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                        <option class="text-gray-900" value="0">Contas</option>
-                        <?php foreach($contas_filtro as $c): ?>
-                            <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                        <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
-                        <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
-                        <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
-                        <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
-                    </select>
-
                     <!-- Categoria -->
                     <div class="relative flex-1 min-w-[160px]" id="cat-selector-wrapper">
                         <input type="hidden" name="categoria" id="input-categoria-filtro" value="<?php echo $categoria_filtro; ?>">
@@ -516,33 +520,27 @@ include 'header.php';
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Linha 2: Data Início / Data Fim / Ordenação / Filtrar -->
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex-1 min-w-[140px]">
-                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
-                        <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
-                    </div>
-                    <div class="flex-1 min-w-[140px]">
-                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
-                        <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
-                    </div>
-                    <div class="flex-1 min-w-[180px]">
-                        <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Ordenação</label>
-                        <select name="ordenacao" onchange="this.form.submit()" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                            <option class="text-gray-900" value="data_desc"  <?php echo $ordenacao == 'data_desc'  ? 'selected' : ''; ?>>Data (Decrescente)</option>
-                            <option class="text-gray-900" value="data_asc"   <?php echo $ordenacao == 'data_asc'   ? 'selected' : ''; ?>>Data (Crescente)</option>
-                            <option class="text-gray-900" value="valor_desc" <?php echo $ordenacao == 'valor_desc' ? 'selected' : ''; ?>>Valor (Decrescente)</option>
-                            <option class="text-gray-900" value="valor_asc"  <?php echo $ordenacao == 'valor_asc'  ? 'selected' : ''; ?>>Valor (Crescente)</option>
-                        </select>
-                    </div>
-                    <div class="shrink-0">
-                        <button type="submit" class="flex items-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            Filtrar
-                        </button>
-                    </div>
+                    <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                        <option class="text-gray-900" value="0">Contas</option>
+                        <?php foreach($contas_filtro as $c): ?>
+                            <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                        <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
+                        <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
+                        <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
+                        <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
+                    </select>
+
+                    <select name="ordenacao" onchange="this.form.submit()" class="flex-1 min-w-[160px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                        <option class="text-gray-900" value="data_desc"  <?php echo $ordenacao == 'data_desc'  ? 'selected' : ''; ?>>Data (Decrescente)</option>
+                        <option class="text-gray-900" value="data_asc"   <?php echo $ordenacao == 'data_asc'   ? 'selected' : ''; ?>>Data (Crescente)</option>
+                        <option class="text-gray-900" value="valor_desc" <?php echo $ordenacao == 'valor_desc' ? 'selected' : ''; ?>>Valor (Decrescente)</option>
+                        <option class="text-gray-900" value="valor_asc"  <?php echo $ordenacao == 'valor_asc'  ? 'selected' : ''; ?>>Valor (Crescente)</option>
+                    </select>
                 </div>
 
                 <!-- Linha 3: Busca por descrição + Incluir subcategorias + Limpar -->
