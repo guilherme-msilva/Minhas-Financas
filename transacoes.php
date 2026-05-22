@@ -497,15 +497,31 @@ include 'header.php';
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
                         <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full max-w-full min-w-0 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-3 sm:px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
-                    <div class="w-full sm:w-auto sm:shrink-0 flex items-center gap-2">
-                        <button type="submit" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            Filtrar
-                        </button>
-                        <button type="button" onclick="toggleFiltrosAvancados()" id="btn-toggle-filtros" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl text-sm font-medium transition-all shadow-sm">
-                            <svg id="icon-toggle-filtros" class="w-4 h-4 transition-transform duration-300 <?php echo $has_advanced_filters ? 'rotate-180' : ''; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            <span id="text-toggle-filtros"><?php echo $has_advanced_filters ? 'Menos Filtros' : 'Mais Filtros'; ?></span>
-                        </button>
+                    <div class="w-full sm:w-auto sm:shrink-0 flex items-center justify-between sm:justify-start gap-2">
+                        <!-- Navegação de Mês (Setas) -->
+                        <div class="flex items-center gap-1.5 <?php echo $qualquer_data ? 'opacity-40 pointer-events-none' : ''; ?> transition-all">
+                            <!-- Retroceder Mês -->
+                            <button type="button" onclick="navegarMes(-1)" title="Mês Anterior" class="flex items-center justify-center w-10 h-10 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl transition-all shadow-sm active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <!-- Avançar Mês -->
+                            <button type="button" onclick="navegarMes(1)" title="Mês Posterior" class="flex items-center justify-center w-10 h-10 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl transition-all shadow-sm active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Filtrar e Alternar Filtros Avançados -->
+                        <div class="flex items-center gap-2 flex-1 sm:flex-none">
+                            <button type="submit" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 h-10 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                Filtrar
+                            </button>
+                            <button type="button" onclick="toggleFiltrosAvancados()" id="btn-toggle-filtros" title="Mais Filtros" class="flex items-center justify-center w-10 h-10 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl transition-all shadow-sm active:scale-95">
+                                <svg id="icon-toggle-filtros" class="w-5 h-5 transition-transform duration-300 <?php echo $has_advanced_filters ? 'rotate-180' : ''; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -842,11 +858,11 @@ include 'header.php';
         if (filtersExpanded) {
             adv.classList.remove('hidden');
             icon.classList.add('rotate-180');
-            text.textContent = 'Menos Filtros';
+            if (text) text.textContent = 'Menos Filtros';
         } else {
             adv.classList.add('hidden');
             icon.classList.remove('rotate-180');
-            text.textContent = 'Mais Filtros';
+            if (text) text.textContent = 'Mais Filtros';
         }
     }
 
@@ -1109,6 +1125,43 @@ include 'header.php';
         const n = selectedIds.size;
         if (!confirm(`Excluir ${n} transaç${n === 1 ? 'ão' : 'ões'} selecionada${n === 1 ? '' : 's'}? Esta ação não pode ser desfeita.`)) return;
         submitBulkForm('excluir');
+    }
+
+    // ── Navegação de Mês ────────────────────────────────────────────
+    function navegarMes(direcao) {
+        const inputInicio = document.querySelector('input[name="data_inicio"]');
+        const inputFim = document.querySelector('input[name="data_fim"]');
+        if (!inputInicio || !inputFim) return;
+
+        let dataInicioVal = inputInicio.value;
+
+        let date;
+        if (dataInicioVal) {
+            const parts = dataInicioVal.split('-');
+            date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+        } else {
+            const today = new Date();
+            date = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+
+        // Deslocar o mês
+        date.setMonth(date.getMonth() + direcao);
+
+        // Primeiro e último dia do novo mês correspondente
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+        // Formatar no padrão YYYY-MM-DD
+        const pad = (num) => String(num).padStart(2, '0');
+        const dateStartStr = `${firstDay.getFullYear()}-${pad(firstDay.getMonth() + 1)}-${pad(firstDay.getDate())}`;
+        const dateEndStr = `${lastDay.getFullYear()}-${pad(lastDay.getMonth() + 1)}-${pad(lastDay.getDate())}`;
+
+        // Atualizar os inputs
+        inputInicio.value = dateStartStr;
+        inputFim.value = dateEndStr;
+
+        // Submeter formulário para carregar o novo mês
+        document.getElementById('form-filtros').submit();
     }
 </script>
 </html>
