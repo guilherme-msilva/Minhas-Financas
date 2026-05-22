@@ -57,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['bulk_action'])) {
         'tipo'           => $_POST['tipo_atual'] ?? '',
         'ordenacao'      => $_POST['ordenacao_atual'] ?? '',
         'incluir_subcats'=> $_POST['incluir_subcats_atual'] ?? '',
+        'qualquer_data'  => $_POST['qualquer_data_atual'] ?? '',
     ], fn($v) => $v !== '' && $v !== '0' || $v === '0'));
     header('Location: transacoes.php' . ($qs ? '?' . $qs : ''));
     exit;
@@ -142,7 +143,8 @@ if (isset($_GET['action']) && $_GET['action'] == 'consolidate' && isset($_GET['i
     // Redireciona para remover a querystring action=
     $di_redir = isset($_GET['data_inicio']) ? $_GET['data_inicio'] : date('Y-m-01');
     $df_redir = isset($_GET['data_fim']) ? $_GET['data_fim'] : date('Y-m-d');
-    header("Location: transacoes.php?data_inicio=$di_redir&data_fim=$df_redir");
+    $qd_redir = isset($_GET['qualquer_data']) ? (int)$_GET['qualquer_data'] : 0;
+    header("Location: transacoes.php?data_inicio=$di_redir&data_fim=$df_redir" . ($qd_redir ? "&qualquer_data=1" : ""));
     exit;
 }
 
@@ -159,9 +161,10 @@ $data_inicio_filtro = isset($_GET['data_inicio']) && trim($_GET['data_inicio']) 
 $data_fim_filtro = isset($_GET['data_fim']) && trim($_GET['data_fim']) !== '' ? trim($_GET['data_fim']) : date('Y-m-d');
 $descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
 $tipo_filtro = isset($_GET['tipo']) ? $_GET['tipo'] : 'todas';
+$qualquer_data = isset($_GET['qualquer_data']) ? (int)$_GET['qualquer_data'] : 0;
 
 // Verifica se há filtros avançados ativos
-$has_advanced_filters = ($conta_atual > 0 || $categoria_filtro > 0 || $tipo_filtro !== 'todas' || !empty($descricao_filtro) || $ordenacao !== 'data_desc');
+$has_advanced_filters = ($conta_atual > 0 || $categoria_filtro > 0 || $tipo_filtro !== 'todas' || !empty($descricao_filtro) || $ordenacao !== 'data_desc' || $qualquer_data == 1);
 
 // Busca contas do usuário para popular o select de filtro
 $stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? and status = 1 ORDER BY nome");
@@ -218,13 +221,15 @@ $conditions = ["t.iduser = ?"];
 $params = [$user_id];
 $types = "i";
 
-$conditions[] = "t.data >= ?";
-$params[] = $data_inicio_filtro;
-$types .= "s";
+if (!$qualquer_data) {
+    $conditions[] = "t.data >= ?";
+    $params[] = $data_inicio_filtro;
+    $types .= "s";
 
-$conditions[] = "t.data <= ?";
-$params[] = $data_fim_filtro;
-$types .= "s";
+    $conditions[] = "t.data <= ?";
+    $params[] = $data_fim_filtro;
+    $types .= "s";
+}
 
 if ($conta_atual > 0) {
     $conditions[] = "t.idconta = ?";
@@ -482,13 +487,13 @@ include 'header.php';
         <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl px-5 py-4 sm:p-6 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
             <form method="GET" id="form-filtros" class="flex flex-col gap-3 w-full">
 
-        <!-- Linha 1: Data Inicial / Data Final / Filtrar + Mais Filtros -->
+                <!-- Linha 1: Data Inicial / Data Final / Filtrar + Mais Filtros -->
                 <div class="flex flex-col sm:flex-row sm:items-end gap-3 w-full min-w-0">
-                    <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px]">
+                    <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px] <?php echo $qualquer_data ? 'opacity-40 pointer-events-none' : ''; ?> transition-all">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
                         <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full max-w-full min-w-0 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-3 sm:px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
-                    <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px]">
+                    <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px] <?php echo $qualquer_data ? 'opacity-40 pointer-events-none' : ''; ?> transition-all">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
                         <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full max-w-full min-w-0 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-3 sm:px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
@@ -552,10 +557,20 @@ include 'header.php';
                         </select>
                     </div>
 
-                    <!-- Linha 3: Busca por descrição + Incluir subcategorias + Limpar -->
+                    <!-- Linha 3: Busca por descrição + Qualquer Data + Incluir subcategorias + Limpar -->
                     <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-200 dark:border-white/10">
                         <div class="flex-1 min-w-[200px]">
                             <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Buscar na descrição (ex: Mercado, Uber...)" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        <div class="flex items-center">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <div class="relative">
+                                    <input type="hidden" name="qualquer_data" value="0">
+                                    <input type="checkbox" name="qualquer_data" value="1" id="chk-qualquer-data" onchange="this.form.submit()" class="sr-only peer" <?php echo $qualquer_data ? 'checked' : ''; ?>>
+                                    <div class="w-9 h-5 bg-slate-200 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                                </div>
+                                <span class="text-xs font-medium text-slate-600 dark:text-white/70 whitespace-nowrap">Qualquer Data</span>
+                            </label>
                         </div>
                         <div id="row-incluir-subcats" class="flex items-center <?php echo $categoria_filtro > 0 ? '' : 'hidden'; ?>">
                             <label class="flex items-center gap-2 cursor-pointer select-none">
@@ -611,6 +626,7 @@ include 'header.php';
             <input type="hidden" name="tipo_atual" value="<?php echo $tipo_filtro; ?>">
             <input type="hidden" name="ordenacao_atual" value="<?php echo $ordenacao; ?>">
             <input type="hidden" name="incluir_subcats_atual" value="<?php echo $incluir_subcats; ?>">
+            <input type="hidden" name="qualquer_data_atual" value="<?php echo $qualquer_data; ?>">
         </form>
 
         <!-- Lista de Transações -->
