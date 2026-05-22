@@ -160,6 +160,9 @@ $data_fim_filtro = isset($_GET['data_fim']) && trim($_GET['data_fim']) !== '' ? 
 $descricao_filtro = isset($_GET['descricao']) ? trim($_GET['descricao']) : '';
 $tipo_filtro = isset($_GET['tipo']) ? $_GET['tipo'] : 'todas';
 
+// Verifica se há filtros avançados ativos
+$has_advanced_filters = ($conta_atual > 0 || $categoria_filtro > 0 || $tipo_filtro !== 'todas' || !empty($descricao_filtro) || $ordenacao !== 'data_desc');
+
 // Busca contas do usuário para popular o select de filtro
 $stmt_contas_filtro = $mysqliFinancas->prepare("SELECT id, nome FROM contas WHERE id_user = ? and status = 1 ORDER BY nome");
 $stmt_contas_filtro->bind_param("i", $user_id);
@@ -479,7 +482,7 @@ include 'header.php';
         <div class="relative z-50 mb-8 bg-white/60 dark:bg-white/10 backdrop-blur-xl px-5 py-4 sm:p-6 rounded-3xl border border-gray-200 dark:border-white/20 shadow-lg">
             <form method="GET" id="form-filtros" class="flex flex-col gap-3 w-full">
 
-                <!-- Linha 1: Data Inicial / Data Final / Filtrar -->
+        <!-- Linha 1: Data Inicial / Data Final / Filtrar + Mais Filtros -->
                 <div class="flex flex-col sm:flex-row sm:items-end gap-3 w-full min-w-0">
                     <div class="w-full min-w-0 sm:flex-1 sm:min-w-[140px]">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
@@ -489,76 +492,83 @@ include 'header.php';
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
                         <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full max-w-full min-w-0 bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-3 sm:px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
-                    <div class="w-full sm:w-auto sm:shrink-0">
-                        <button type="submit" class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
+                    <div class="w-full sm:w-auto sm:shrink-0 flex items-center gap-2">
+                        <button type="submit" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             Filtrar
                         </button>
+                        <button type="button" onclick="toggleFiltrosAvancados()" id="btn-toggle-filtros" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-white/60 dark:bg-white/10 hover:bg-white/80 dark:hover:bg-white/20 border border-gray-200 dark:border-white/20 text-slate-700 dark:text-white rounded-xl text-sm font-medium transition-all shadow-sm">
+                            <svg id="icon-toggle-filtros" class="w-4 h-4 transition-transform duration-300 <?php echo $has_advanced_filters ? 'rotate-180' : ''; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            <span id="text-toggle-filtros"><?php echo $has_advanced_filters ? 'Menos Filtros' : 'Mais Filtros'; ?></span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Linha 2: Categorias / Contas / Transações / Ordenação -->
-                <div class="flex flex-wrap items-center gap-3">
-                    <!-- Categoria -->
-                    <div class="relative flex-1 min-w-[160px]" id="cat-selector-wrapper">
-                        <input type="hidden" name="categoria" id="input-categoria-filtro" value="<?php echo $categoria_filtro; ?>">
-                        <button type="button" onclick="toggleCatDropdown()" id="btn-cat-selector" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 flex items-center justify-between gap-2">
-                            <span id="label-cat-filtro" class="truncate"><?php echo htmlspecialchars($nome_categoria_filtro); ?></span>
-                            <svg class="w-4 h-4 shrink-0 text-slate-400 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div id="cat-dropdown" class="hidden absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto z-[100] bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl">
-                            <div class="p-2">
-                                <button type="button" onclick="selectCategoria(0, 'Categorias')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 text-sm font-medium transition-colors flex items-center gap-2">
-                                    <span class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/20 flex items-center justify-center shrink-0">
-                                        <svg class="w-3 h-3 text-slate-500 dark:text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                                    </span>
-                                    Categorias
-                                </button>
-                                <div id="cat-tree-root" class="mt-1 space-y-0.5">
-                                    <?php echo buildCatTreeHtml($tree_categorias, $categoria_filtro); ?>
+                <!-- Painel Filtros Avançados: Colapsável (Linhas 2 e 3) -->
+                <div id="filtros-avancados" class="flex flex-col gap-3 <?php echo $has_advanced_filters ? '' : 'hidden'; ?>">
+                    <!-- Linha 2: Categorias / Contas / Transações / Ordenação -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <!-- Categoria -->
+                        <div class="relative flex-1 min-w-[160px]" id="cat-selector-wrapper">
+                            <input type="hidden" name="categoria" id="input-categoria-filtro" value="<?php echo $categoria_filtro; ?>">
+                            <button type="button" onclick="toggleCatDropdown()" id="btn-cat-selector" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 flex items-center justify-between gap-2">
+                                <span id="label-cat-filtro" class="truncate"><?php echo htmlspecialchars($nome_categoria_filtro); ?></span>
+                                <svg class="w-4 h-4 shrink-0 text-slate-400 dark:text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <div id="cat-dropdown" class="hidden absolute top-full left-0 mt-2 w-72 max-h-80 overflow-y-auto z-[100] bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl">
+                                <div class="p-2">
+                                    <button type="button" onclick="selectCategoria(0, 'Categorias')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white/70 text-sm font-medium transition-colors flex items-center gap-2">
+                                        <span class="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/20 flex items-center justify-center shrink-0">
+                                            <svg class="w-3 h-3 text-slate-500 dark:text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                        </span>
+                                        Categorias
+                                    </button>
+                                    <div id="cat-tree-root" class="mt-1 space-y-0.5">
+                                        <?php echo buildCatTreeHtml($tree_categorias, $categoria_filtro); ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                            <option class="text-gray-900" value="0">Contas</option>
+                            <?php foreach($contas_filtro as $c): ?>
+                                <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                            <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
+                            <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
+                            <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
+                            <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
+                        </select>
+
+                        <select name="ordenacao" onchange="this.form.submit()" class="flex-1 min-w-[160px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
+                            <option class="text-gray-900" value="data_desc"  <?php echo $ordenacao == 'data_desc'  ? 'selected' : ''; ?>>Data (Decrescente)</option>
+                            <option class="text-gray-900" value="data_asc"   <?php echo $ordenacao == 'data_asc'   ? 'selected' : ''; ?>>Data (Crescente)</option>
+                            <option class="text-gray-900" value="valor_desc" <?php echo $ordenacao == 'valor_desc' ? 'selected' : ''; ?>>Valor (Decrescente)</option>
+                            <option class="text-gray-900" value="valor_asc"  <?php echo $ordenacao == 'valor_asc'  ? 'selected' : ''; ?>>Valor (Crescente)</option>
+                        </select>
                     </div>
 
-                    <select name="conta" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                        <option class="text-gray-900" value="0">Contas</option>
-                        <?php foreach($contas_filtro as $c): ?>
-                            <option class="text-gray-900" value="<?php echo $c['id']; ?>" <?php echo $conta_atual == $c['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['nome']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <select name="tipo" onchange="this.form.submit()" class="flex-1 min-w-[140px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                        <option class="text-gray-900" value="todas" <?php echo $tipo_filtro == 'todas' ? 'selected' : ''; ?>>Transações</option>
-                        <option class="text-gray-900" value="receitas" <?php echo $tipo_filtro == 'receitas' ? 'selected' : ''; ?>>Receitas</option>
-                        <option class="text-gray-900" value="despesas" <?php echo $tipo_filtro == 'despesas' ? 'selected' : ''; ?>>Despesas</option>
-                        <option class="text-gray-900" value="transferencias" <?php echo $tipo_filtro == 'transferencias' ? 'selected' : ''; ?>>Transferências</option>
-                    </select>
-
-                    <select name="ordenacao" onchange="this.form.submit()" class="flex-1 min-w-[160px] bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400 appearance-none">
-                        <option class="text-gray-900" value="data_desc"  <?php echo $ordenacao == 'data_desc'  ? 'selected' : ''; ?>>Data (Decrescente)</option>
-                        <option class="text-gray-900" value="data_asc"   <?php echo $ordenacao == 'data_asc'   ? 'selected' : ''; ?>>Data (Crescente)</option>
-                        <option class="text-gray-900" value="valor_desc" <?php echo $ordenacao == 'valor_desc' ? 'selected' : ''; ?>>Valor (Decrescente)</option>
-                        <option class="text-gray-900" value="valor_asc"  <?php echo $ordenacao == 'valor_asc'  ? 'selected' : ''; ?>>Valor (Crescente)</option>
-                    </select>
-                </div>
-
-                <!-- Linha 3: Busca por descrição + Incluir subcategorias + Limpar -->
-                <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-200 dark:border-white/10">
-                    <div class="flex-1 min-w-[200px]">
-                        <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Buscar na descrição (ex: Mercado, Uber...)" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                    <!-- Linha 3: Busca por descrição + Incluir subcategorias + Limpar -->
+                    <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-200 dark:border-white/10">
+                        <div class="flex-1 min-w-[200px]">
+                            <input type="text" name="descricao" value="<?php echo htmlspecialchars($descricao_filtro); ?>" placeholder="Buscar na descrição (ex: Mercado, Uber...)" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
+                        </div>
+                        <div id="row-incluir-subcats" class="flex items-center <?php echo $categoria_filtro > 0 ? '' : 'hidden'; ?>">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <div class="relative">
+                                    <input type="hidden" name="incluir_subcats" value="0">
+                                    <input type="checkbox" name="incluir_subcats" value="1" id="chk-incluir-subcats" class="sr-only peer" <?php echo $incluir_subcats ? 'checked' : ''; ?>>
+                                    <div class="w-9 h-5 bg-slate-200 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                                </div>
+                                <span class="text-xs font-medium text-slate-600 dark:text-white/70 whitespace-nowrap">Incluir subcategorias</span>
+                            </label>
+                        </div>
+                        <a href="transacoes.php" class="text-sm text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-white/50 dark:hover:bg-white/5 px-3 py-2 rounded-xl transition-colors whitespace-nowrap">Limpar Filtros</a>
                     </div>
-                    <div id="row-incluir-subcats" class="flex items-center <?php echo $categoria_filtro > 0 ? '' : 'hidden'; ?>">
-                        <label class="flex items-center gap-2 cursor-pointer select-none">
-                            <div class="relative">
-                                <input type="hidden" name="incluir_subcats" value="0">
-                                <input type="checkbox" name="incluir_subcats" value="1" id="chk-incluir-subcats" class="sr-only peer" <?php echo $incluir_subcats ? 'checked' : ''; ?>>
-                                <div class="w-9 h-5 bg-slate-200 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
-                            </div>
-                            <span class="text-xs font-medium text-slate-600 dark:text-white/70 whitespace-nowrap">Incluir subcategorias</span>
-                        </label>
-                    </div>
-                    <a href="transacoes.php" class="text-sm text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-white/50 dark:hover:bg-white/5 px-3 py-2 rounded-xl transition-colors whitespace-nowrap">Limpar Filtros</a>
                 </div>
 
             </form>
@@ -805,6 +815,24 @@ include 'header.php';
 
 </body>
 <script>
+
+    // ── Toggle Filtros Avançados ───────────────────────────────────
+    let filtersExpanded = <?php echo $has_advanced_filters ? 'true' : 'false'; ?>;
+    function toggleFiltrosAvancados() {
+        const adv = document.getElementById('filtros-avancados');
+        const icon = document.getElementById('icon-toggle-filtros');
+        const text = document.getElementById('text-toggle-filtros');
+        filtersExpanded = !filtersExpanded;
+        if (filtersExpanded) {
+            adv.classList.remove('hidden');
+            icon.classList.add('rotate-180');
+            text.textContent = 'Menos Filtros';
+        } else {
+            adv.classList.add('hidden');
+            icon.classList.remove('rotate-180');
+            text.textContent = 'Mais Filtros';
+        }
+    }
 
     // ── Category Hierarchical Dropdown ─────────────────────────────
     function toggleCatDropdown() {
