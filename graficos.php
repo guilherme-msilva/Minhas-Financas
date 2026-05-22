@@ -15,7 +15,7 @@ $categoria_filtro = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
 $conta_atual = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
 $tipo_filtro = isset($_GET['tipo']) ? $_GET['tipo'] : 'despesas';
 
-$valid_tipos_grafico = ['pizza', 'barra', 'linha', 'saldo'];
+$valid_tipos_grafico = ['pizza', 'barra', 'linha', 'comparacao', 'saldo'];
 if (!in_array($tipo_grafico, $valid_tipos_grafico)) $tipo_grafico = 'pizza';
 
 // Busca contas
@@ -321,6 +321,58 @@ if ($tipo_grafico === 'pizza') {
     ]);
     $has_data = count($db_data) > 0;
 
+} elseif ($tipo_grafico === 'comparacao') {
+    $conditions = ["t.iduser = ?", "t.idcategoria != -1", "t.data >= ?", "t.data <= ?"];
+    $params = [$user_id, $data_inicio_filtro, $data_fim_filtro];
+    $types = "iss";
+    
+    if ($conta_atual > 0) {
+        $conditions[] = "t.idconta = ?";
+        $params[] = $conta_atual;
+        $types .= "i";
+    }
+    if (!empty($ids_categoria_selecionados)) {
+        $conditions[] = "t.idcategoria IN (" . implode(',', $ids_categoria_selecionados) . ")";
+    }
+    
+    $where_sql = implode(" AND ", $conditions);
+    $sql_comp = "SELECT t.data, SUM(IF(t.valor < 0, ABS(t.valor), 0)) as total_despesas, SUM(IF(t.valor > 0, t.valor, 0)) as total_receitas FROM transacoes t WHERE $where_sql GROUP BY t.data ORDER BY t.data ASC";
+    
+    $stmt = $mysqliFinancas->prepare($sql_comp);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    
+    $db_data = [];
+    while ($row = $res->fetch_assoc()) {
+        $db_data[$row['data']] = ['despesas' => $row['total_despesas'], 'receitas' => $row['total_receitas']];
+    }
+    $stmt->close();
+    
+    $labels = [];
+    $data_despesas = [];
+    $data_receitas = [];
+    
+    $start = new DateTime($data_inicio_filtro);
+    $end = new DateTime($data_fim_filtro);
+    $end->modify('+1 day');
+    $interval = new DateInterval('P1D');
+    $daterange = new DatePeriod($start, $interval, $end);
+    
+    foreach ($daterange as $date) {
+        $dtStr = $date->format('Y-m-d');
+        $labels[] = $date->format('d/m/Y');
+        $data_despesas[] = isset($db_data[$dtStr]) ? $db_data[$dtStr]['despesas'] : 0;
+        $data_receitas[] = isset($db_data[$dtStr]) ? $db_data[$dtStr]['receitas'] : 0;
+    }
+    
+    $json_chart_data = json_encode([
+        'labels' => $labels,
+        'data_despesas' => $data_despesas,
+        'data_receitas' => $data_receitas
+    ]);
+    $has_data = count($db_data) > 0;
+
 } elseif ($tipo_grafico === 'saldo') {
     // 1. Saldo Base das Contas
     $sql_baseline = "SELECT COALESCE(SUM(saldo_inicial), 0) FROM contas WHERE id_user = ?";
@@ -420,6 +472,7 @@ include 'header.php';
                             <option class="text-gray-900" value="pizza" <?php echo $tipo_grafico == 'pizza' ? 'selected' : ''; ?>>Despesas/Receitas (Pizza)</option>
                             <option class="text-gray-900" value="barra" <?php echo $tipo_grafico == 'barra' ? 'selected' : ''; ?>>Despesas/Receitas (Barra)</option>
                             <option class="text-gray-900" value="linha" <?php echo $tipo_grafico == 'linha' ? 'selected' : ''; ?>>Despesas/Receitas (Linha)</option>
+                            <option class="text-gray-900" value="comparacao" <?php echo $tipo_grafico == 'comparacao' ? 'selected' : ''; ?>>Receita x Despesa (Linha)</option>
                             <option class="text-gray-900" value="saldo" <?php echo $tipo_grafico == 'saldo' ? 'selected' : ''; ?>>Saldo em Contas (Linha)</option>
                         </select>
                     </div>
@@ -479,6 +532,7 @@ include 'header.php';
                             if ($tipo_grafico == 'pizza') echo 'Distribuição por Categoria';
                             else if ($tipo_grafico == 'barra') echo 'Série Diária (Barras)';
                             else if ($tipo_grafico == 'linha') echo 'Evolução Diária (Linha)';
+                            else if ($tipo_grafico == 'comparacao') echo 'Receita x Despesa Diária';
                             else if ($tipo_grafico == 'saldo') echo 'Evolução de Saldo Diário';
                         ?>
                     </h3>
@@ -714,6 +768,69 @@ include 'header.php';
                         scales: {
                             x: { grid: { display: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { family: 'Outfit' } } },
                             y: { grid: { color: gridColor }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { family: 'Outfit' }, callback: function(value) { return 'R$ ' + value; } }, beginAtZero: true }
+                        }
+                    }
+                });
+
+            } else if (tipoGrafico === 'comparacao') {
+                currentChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [
+                            {
+                                label: 'Receitas',
+                                data: chartData.data_receitas,
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16,185,129,0.1)',
+                                borderWidth: 3,
+                                pointBackgroundColor: tooltipBg,
+                                pointBorderColor: '#10b981',
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Despesas',
+                                data: chartData.data_despesas,
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239,68,68,0.1)',
+                                borderWidth: 3,
+                                pointBackgroundColor: tooltipBg,
+                                pointBorderColor: '#ef4444',
+                                pointBorderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                fill: true,
+                                tension: 0.4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: true, position: 'top', labels: { color: textColor, font: { family: 'Outfit' } } },
+                            tooltip: {
+                                backgroundColor: tooltipBg,
+                                titleColor: textColor,
+                                bodyColor: textColor,
+                                borderColor: gridColor,
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 12,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': R$ ' + context.raw.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { family: 'Outfit' } } },
+                            y: { grid: { color: gridColor }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { family: 'Outfit' }, callback: function(value) { return 'R$ ' + value; } } }
                         }
                     }
                 });
