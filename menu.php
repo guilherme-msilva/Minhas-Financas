@@ -7,7 +7,7 @@ $c_cat      = in_array($current_page, ['categorias.php', 'categoria.php']) ? $ac
 $c_conta    = in_array($current_page, ['contas.php', 'conta.php']) ? $active_class : $inactive_class;
 $c_trans    = in_array($current_page, ['transacoes.php', 'transacao.php']) ? $active_class : $inactive_class;
 $c_orc      = in_array($current_page, ['orcamento.php']) ? $active_class : $inactive_class;
-$c_analise  = in_array($current_page, ['relatorio.php', 'grafico.php']) ? $active_class : $inactive_class;
+$c_analise  = in_array($current_page, ['relatorio.php', 'graficos.php']) ? $active_class : $inactive_class;
 $c_imp      = in_array($current_page, ['importacoes.php']) ? $active_class : $inactive_class;
 $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $inactive_class;
 ?>
@@ -36,7 +36,7 @@ $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $i
                         </button>
                         <div class="absolute left-0 mt-0 w-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden z-50 transform origin-top-left group-hover:scale-100 scale-95 pt-1">
                             <a href="relatorio.php" class="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $current_page == 'relatorio.php' ? 'bg-slate-100 dark:bg-white/10 font-semibold' : ''; ?>">Relatórios</a>
-                            <a href="grafico.php" class="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $current_page == 'grafico.php' ? 'bg-slate-100 dark:bg-white/10 font-semibold' : ''; ?>">Gráficos</a>
+                            <a href="graficos.php" class="block px-4 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $current_page == 'graficos.php' ? 'bg-slate-100 dark:bg-white/10 font-semibold' : ''; ?>">Gráficos</a>
                         </div>
                     </div>
                 </div>
@@ -64,6 +64,6 @@ $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $i
         <a href="transacoes.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_trans); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Transações</a>
         <a href="orcamento.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_orc); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Orçamento</a>
         <a href="relatorio.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_analise); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Relatórios</a>
-        <a href="grafico.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_analise); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Gráficos</a>
+        <a href="graficos.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_analise); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Gráficos</a>
     </div>
 </nav>
