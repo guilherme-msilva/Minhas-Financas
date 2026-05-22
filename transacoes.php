@@ -480,17 +480,17 @@ include 'header.php';
             <form method="GET" id="form-filtros" class="flex flex-col gap-3 w-full">
 
                 <!-- Linha 1: Data Inicial / Data Final / Filtrar -->
-                <div class="flex flex-wrap items-end gap-3">
-                    <div class="flex-1 min-w-[140px]">
+                <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+                    <div class="w-full sm:flex-1 sm:min-w-[140px]">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Inicial</label>
                         <input type="date" name="data_inicio" value="<?php echo htmlspecialchars($data_inicio_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
-                    <div class="flex-1 min-w-[140px]">
+                    <div class="w-full sm:flex-1 sm:min-w-[140px]">
                         <label class="block text-xs font-medium text-slate-500 dark:text-white/50 mb-1">Data Final</label>
                         <input type="date" name="data_fim" value="<?php echo htmlspecialchars($data_fim_filtro); ?>" class="w-full bg-white/50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white rounded-xl px-4 py-2 focus:outline-none focus:border-cyan-400">
                     </div>
-                    <div class="shrink-0">
-                        <button type="submit" class="flex items-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
+                    <div class="w-full sm:w-auto sm:shrink-0">
+                        <button type="submit" class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl font-medium shadow-lg transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             Filtrar
                         </button>
