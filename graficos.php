@@ -199,13 +199,26 @@ function buildGraphDataLocal($agrupadas, $cats_map_grafico, $cats_grafico) {
 
     $color_index_root = 0;
     $total_roots = count(array_filter($totais_por_raiz, fn($val) => $val > 0));
-    foreach ($totais_por_raiz as $id_raiz => $total) {
-        if ($total > 0) {
-            $cor = generateHarmonicColor($color_index_root++, $total_roots);
-            $dados_grafico['root']['labels'][] = $cats_map_grafico[$id_raiz]['nome'];
-            $dados_grafico['root']['data'][] = $total;
-            $dados_grafico['root']['backgroundColor'][] = $cor;
-            $dados_grafico['root']['ids'][] = $id_raiz;
+    
+    if ($total_roots === 1) {
+        $single_root_id = null;
+        foreach ($totais_por_raiz as $id_raiz => $total) {
+            if ($total > 0) { $single_root_id = $id_raiz; break; }
+        }
+        $drill = $dados_grafico['drilldown'][$single_root_id];
+        $dados_grafico['root']['labels'] = $drill['labels'];
+        $dados_grafico['root']['data'] = $drill['data'];
+        $dados_grafico['root']['backgroundColor'] = $drill['backgroundColor'];
+        $dados_grafico['root']['ids'] = $drill['ids'];
+    } else {
+        foreach ($totais_por_raiz as $id_raiz => $total) {
+            if ($total > 0) {
+                $cor = generateHarmonicColor($color_index_root++, $total_roots);
+                $dados_grafico['root']['labels'][] = $cats_map_grafico[$id_raiz]['nome'];
+                $dados_grafico['root']['data'][] = $total;
+                $dados_grafico['root']['backgroundColor'][] = $cor;
+                $dados_grafico['root']['ids'][] = $id_raiz;
+            }
         }
     }
     return $dados_grafico;
