@@ -440,6 +440,14 @@ foreach ($categorias as $cat) {
     if ($cat['id'] == $id_categoria) $nome_categoria = $cat['nome'];
 }
 $nome_conta = 'Selecionar';
+foreach ($contas as $conta) {
+    if ($conta['id'] == $id_conta) $nome_conta = $conta['nome'];
+}
+$nome_conta_destino = 'Selecionar';
+foreach ($contas as $conta) {
+    if ($conta['id'] == $id_conta_destino) $nome_conta_destino = $conta['nome'];
+}
+?>
 <?php 
 $page_title = "Nova Transação - Minhas Finanças";
 $extra_head = '<script src="https://unpkg.com/@phosphor-icons/web"></script>
