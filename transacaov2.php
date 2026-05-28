@@ -482,9 +482,10 @@ $extra_head = '<script src="https://unpkg.com/@phosphor-icons/web"></script>
     
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    button { touch-action: manipulation; }
 </style>';
 $body_id = 'app-body';
-$body_class = 'min-h-screen bg-slate-50 text-slate-800 dark:bg-[#0f172a] dark:text-[#f8fafc] transition-colors duration-300 theme-' . $tipo;
+$body_class = 'min-h-screen bg-slate-50 text-slate-800 dark:bg-[#0f172a] dark:text-[#f8fafc] transition-colors duration-300 theme-' . $tipo . ' overscroll-none';
 include 'header.php'; 
 ?>
 
@@ -513,7 +514,7 @@ include 'header.php';
         <input type="hidden" name="is_recorrente" id="input-is-recorrente" value="0">
     </form>
 
-    <div class="max-w-md mx-auto relative h-[85vh] md:h-[80vh] flex flex-col mb-10 overflow-hidden">
+    <div class="max-w-md mx-auto relative h-[100dvh] md:h-[80vh] flex flex-col md:mb-10 overflow-hidden bg-slate-50 dark:bg-[#0f172a] md:bg-transparent">
         
         <?php if ($erro): ?>
             <div class="bg-red-50 dark:bg-red-500/20 border border-red-200 dark:border-red-500/50 text-red-600 dark:text-red-200 px-4 py-3 rounded-2xl mb-4 mx-4 text-sm z-50 relative shadow-sm">
@@ -608,7 +609,7 @@ include 'header.php';
                     </div>
                     
                     <!-- Account Dest (Transfer only) -->
-                    <div class="items-center space-x-4 pt-4 border-t border-slate-100 dark:border-slate-800 cursor-pointer hidden type-dependent dest-row hover:opacity-80 transition-opacity" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
+                    <div class="flex items-center space-x-4 pt-4 border-t border-slate-100 dark:border-slate-800 cursor-pointer hidden type-dependent dest-row hover:opacity-80 transition-opacity" id="linha-conta-destino" onclick="openPanel('panel-conta-destino')">
                          <div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0">
                             <i class="ph ph-bank text-xl"></i>
                         </div>
@@ -640,7 +641,7 @@ include 'header.php';
                          <span class="font-medium text-lg">Opções Avançadas</span>
                          <i class="ph ph-caret-down transition-transform duration-300 text-lg" id="icon-mais-opcoes"></i>
                      </button>
-                     <div id="mais-opcoes" class="hidden px-5 pb-5 space-y-5">
+                     <div id="mais-opcoes" class="hidden px-5 pb-5 pt-3 space-y-5">
                         
                         <!-- Notas -->
                         <div class="flex items-center space-x-4 pb-5 border-b border-slate-100 dark:border-slate-800">
