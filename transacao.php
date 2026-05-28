@@ -479,6 +479,7 @@ $extra_head = '<script src="https://unpkg.com/@phosphor-icons/web"></script>
     input[type="number"] {
         -moz-appearance: textfield;
     }
+    button { touch-action: manipulation; }
 </style>';
 $body_id = 'app-body';
 $body_class = 'min-h-screen relative pb-20 bg-slate-50 text-slate-800 dark:bg-[#0f172a] dark:text-[#f8fafc] transition-colors duration-300 theme-' . $tipo;
