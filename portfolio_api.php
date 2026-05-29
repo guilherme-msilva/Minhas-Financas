@@ -253,9 +253,11 @@ foreach ($investimentos as $inv) {
     }
 }
 
+date_default_timezone_set('America/Sao_Paulo');
 echo json_encode([
     'total_brl' => $total_portfolio_brl,
     'cotacao_usd' => $usd_brl,
+    'data_hora' => date('d/m/Y H:i:s'),
     'investimentos' => $processed_investments,
     'tree' => $tree,
     'categorias' => array_values($categorias)

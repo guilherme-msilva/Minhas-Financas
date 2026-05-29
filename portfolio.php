@@ -71,11 +71,11 @@ require_once 'menu.php';
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50/50 dark:bg-white/5 text-slate-500 dark:text-gray-400 text-xs uppercase tracking-wider">
-                            <th class="p-4 font-medium text-center w-20">Cat.</th>
-                            <th class="p-4 font-medium">Ticker / Nome</th>
-                            <th class="p-4 font-medium text-right">Qtd.</th>
-                            <th class="p-4 font-medium text-right">Cotação Atual</th>
-                            <th class="p-4 font-medium text-right">Total (BRL)</th>
+                            <th class="p-4 font-medium text-center w-20 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('cat')">Cat. ↕</th>
+                            <th class="p-4 font-medium cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('ticker')">Ticker / Nome ↕</th>
+                            <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('qtd')">Qtd. ↕</th>
+                            <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('cotacao')">Cotação Atual ↕</th>
+                            <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('total')">Total (BRL) ↕</th>
                             <th class="p-4 font-medium text-center">Ações</th>
                         </tr>
                     </thead>
@@ -251,7 +251,34 @@ function renderTable(investimentos) {
     });
 }
 
-function renderChart(labels, dataArr, bgColors, title, onClickCallback) {
+let currentSortCol = '';
+let currentSortAsc = true;
+
+function sortTable(col) {
+    if (currentSortCol === col) {
+        currentSortAsc = !currentSortAsc;
+    } else {
+        currentSortCol = col;
+        currentSortAsc = true;
+    }
+    
+    let invs = [...globalData.investimentos];
+    invs.sort((a, b) => {
+        let valA, valB;
+        if (col === 'cat') { valA = a.categoria_nome; valB = b.categoria_nome; }
+        else if (col === 'ticker') { valA = a.ticker; valB = b.ticker; }
+        else if (col === 'qtd') { valA = a.quantidade; valB = b.quantidade; }
+        else if (col === 'cotacao') { valA = a.preco_unidade || a.valor_manual || 0; valB = b.preco_unidade || b.valor_manual || 0; }
+        else if (col === 'total') { valA = a.valor_brl; valB = b.valor_brl; }
+        
+        if (valA < valB) return currentSortAsc ? -1 : 1;
+        if (valA > valB) return currentSortAsc ? 1 : -1;
+        return 0;
+    });
+    renderTable(invs);
+}
+
+function renderChart(labels, dataArr, usdArr, bgColors, title, onClickCallback) {
     const ctx = document.getElementById('portfolioChart').getContext('2d');
     if (currentChart) {
         currentChart.destroy();
@@ -280,6 +307,7 @@ function renderChart(labels, dataArr, bgColors, title, onClickCallback) {
             labels: labels,
             datasets: [{
                 data: dataArr,
+                usdData: usdArr,
                 backgroundColor: bgColors,
                 borderWidth: 2,
                 borderColor: isDark ? '#1e293b' : '#ffffff',
@@ -295,10 +323,19 @@ function renderChart(labels, dataArr, bgColors, title, onClickCallback) {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
+                            let index = context.dataIndex;
                             let label = context.label || '';
                             if (label) label += ': ';
-                            label += formatCurrency(context.raw);
-                            return label;
+                            
+                            let brlValue = formatCurrency(context.raw);
+                            let usdValue = context.dataset.usdData[index];
+                            let perc = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                            
+                            if (usdValue > 0) {
+                                return `${label}${brlValue} / ${formatCurrency(usdValue, 'USD')} (${perc}%)`;
+                            } else {
+                                return `${label}${brlValue} (${perc}%)`;
+                            }
                         }
                     }
                 }
@@ -313,16 +350,17 @@ function resetChart() {
     renderDynamicChart();
 }
 
-function traverseTreeForChart(node, path, labels, dataArr, bgColors, rootMacroCat) {
+function traverseTreeForChart(node, path, labels, dataArr, usdArr, bgColors, rootMacroCat) {
     if (expandedCategories.includes(path)) {
         if (node.subs && Object.keys(node.subs).length > 0) {
             for (let subName in node.subs) {
-                traverseTreeForChart(node.subs[subName], path + "|" + subName, labels, dataArr, bgColors, rootMacroCat);
+                traverseTreeForChart(node.subs[subName], path + "|" + subName, labels, dataArr, usdArr, bgColors, rootMacroCat);
             }
         } else if (node.assets && Object.keys(node.assets).length > 0) {
             for (let assetName in node.assets) {
                 labels.push(assetName);
                 dataArr.push(node.assets[assetName].value_brl);
+                usdArr.push(node.assets[assetName].value_usd);
                 bgColors.push(getMacroColor(rootMacroCat));
                 currentSliceMetadata.push({ path: path + "|" + assetName, isLeaf: true, parentPath: path });
             }
@@ -330,6 +368,7 @@ function traverseTreeForChart(node, path, labels, dataArr, bgColors, rootMacroCa
     } else {
         labels.push(path.split('|').pop());
         dataArr.push(node.value_brl);
+        usdArr.push(node.value_usd);
         bgColors.push(getMacroColor(rootMacroCat));
         let parentPath = path.includes('|') ? path.substring(0, path.lastIndexOf('|')) : null;
         currentSliceMetadata.push({ path: path, isLeaf: false, parentPath: parentPath });
@@ -355,11 +394,12 @@ function renderDynamicChart() {
     
     let labels = [];
     let dataArr = [];
+    let usdArr = [];
     let bgColors = [];
     currentSliceMetadata = [];
 
     for (let macroCat in globalData.tree) {
-        traverseTreeForChart(globalData.tree[macroCat], macroCat, labels, dataArr, bgColors, macroCat);
+        traverseTreeForChart(globalData.tree[macroCat], macroCat, labels, dataArr, usdArr, bgColors, macroCat);
     }
     
     if (expandedCategories.length > 0) {
@@ -370,7 +410,7 @@ function renderDynamicChart() {
         document.getElementById('chart_hint').classList.remove('hidden');
     }
 
-    renderChart(labels, dataArr, bgColors, 'Portfólio', (evt, activeElements) => {
+    renderChart(labels, dataArr, usdArr, bgColors, 'Portfólio', (evt, activeElements) => {
         if (activeElements.length > 0) {
             triggerChartClick(activeElements[0].index);
         }
@@ -400,6 +440,14 @@ function renderTotalsPanel() {
             }
         }
     }
+    
+    html += `
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-white/10 text-[10px] text-gray-400 leading-tight">
+            Cotação Dólar: ${formatCurrency(globalData.cotacao_usd)}<br>
+            Consulta: ${globalData.data_hora}
+        </div>
+    `;
+    
     document.getElementById('totais_categorias').innerHTML = html;
 }
 
