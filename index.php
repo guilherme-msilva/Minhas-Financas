@@ -11,6 +11,7 @@ $user_id = $_SESSION['user_id'];
 $mes = isset($_GET['mes']) ? (int)$_GET['mes'] : (int)date('m');
 $ano = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
 $projecao = isset($_GET['projecao']) && $_GET['projecao'] == '1';
+$investimentos = isset($_GET['investimentos']) && $_GET['investimentos'] == '1';
 
 $is_current_month = ($mes == (int)date('m') && $ano == (int)date('Y'));
 $data_inicio_mes = sprintf('%04d-%02d-01', $ano, $mes);
@@ -223,7 +224,7 @@ include 'header.php';
                 </div>
             </div>
             
-            <form id="form-filtros" method="GET" class="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto relative z-40">
+            <form id="form-filtros" method="GET" class="flex flex-col sm:flex-row flex-wrap items-center gap-4 w-full md:w-auto relative z-40">
                 <!-- Seletor Liquid Glass de Data -->
                 <div class="relative w-full sm:w-auto">
                     <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/60 hover:bg-white/70 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-md border border-gray-200 dark:border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between space-x-3 shadow-lg transition-colors cursor-pointer text-slate-800 dark:text-white font-medium text-sm focus:outline-none">
@@ -254,10 +255,18 @@ include 'header.php';
                 <input type="hidden" name="ano" id="input-ano" value="<?php echo $ano; ?>">
             
                 <div class="bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between w-full sm:w-auto space-x-3 shadow-lg">
-                    <span class="text-slate-700 dark:text-white/90 text-sm font-medium whitespace-nowrap">Projetar lançamentos futuros</span>
+                    <span class="text-slate-700 dark:text-white/90 text-sm font-medium whitespace-nowrap">Projetar lançamentos</span>
                     <label class="relative inline-flex items-center cursor-pointer shrink-0">
                       <input type="checkbox" name="projecao" value="1" onchange="document.getElementById('form-filtros').submit()" class="sr-only peer" <?php echo $projecao ? 'checked' : ''; ?>>
                       <div class="w-11 h-6 bg-slate-300 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+                </div>
+
+                <div class="bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between w-full sm:w-auto space-x-3 shadow-lg">
+                    <span class="text-slate-700 dark:text-white/90 text-sm font-medium whitespace-nowrap">Incluir Investimentos</span>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input type="checkbox" name="investimentos" value="1" id="toggle-investimentos" onchange="document.getElementById('form-filtros').submit()" class="sr-only peer" <?php echo $investimentos ? 'checked' : ''; ?>>
+                      <div class="w-11 h-6 bg-slate-300 dark:bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
                     </label>
                 </div>
             </form>
@@ -301,17 +310,23 @@ include 'header.php';
         </script>
 
         <!-- Painel Saldo Total -->
-        <div class="bg-white/60 dark:bg-white/10 backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-[2rem] p-8 md:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden mb-8 group">
+        <div class="bg-white/60 dark:bg-white/10 backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-[2rem] p-8 md:p-12 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden mb-6 group">
             <!-- Efeito de brilho hover -->
             <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400/0 to-blue-500/0 group-hover:from-cyan-400/5 group-hover:to-blue-500/5 transition-all duration-500"></div>
             
             <h2 class="text-slate-500 dark:text-white/70 text-lg font-medium mb-2 uppercase tracking-widest">Saldo Total Geral</h2>
+            
             <div class="flex items-end space-x-2 relative z-10">
-                <span class="text-slate-400 dark:text-white/60 text-3xl font-light pb-1 md:pb-2">R$</span>
-                <span class="text-slate-800 dark:text-white text-5xl md:text-7xl font-bold tracking-tight">
+                <span class="text-slate-400 dark:text-white/60 text-3xl font-light pb-1 md:pb-2" id="saldo_total_currency">R$</span>
+                <span class="text-slate-800 dark:text-white text-5xl md:text-7xl font-bold tracking-tight" id="saldo_total_valor">
                     <?php echo number_format($saldo_total, 2, ',', '.'); ?>
                 </span>
             </div>
+            
+            <div id="dash_portfolio_totals" class="mt-4 hidden relative z-10">
+                <!-- Preenchido via JS se investimentos estiver ativo -->
+            </div>
+
             <?php if($projecao): ?>
                 <p class="text-cyan-300/80 text-sm mt-3 flex items-center relative z-10">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -323,6 +338,14 @@ include 'header.php';
                     Posição atual de hoje
                 </p>
             <?php endif; ?>
+        </div>
+
+        <!-- Painel de Gráfico Contas VS Portfólio (Apenas quando ativo) -->
+        <div id="grafico_contas_portfolio_container" class="hidden mt-6 mb-6 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-lg relative">
+            <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl mb-4 ml-2">Distribuição de Patrimônio</h3>
+            <div class="relative h-[250px] md:h-[350px] w-full flex justify-center">
+                <canvas id="graficoContasPortfolio"></canvas>
+            </div>
         </div>
 
         <!-- Resumo Mensal Grid -->
@@ -382,7 +405,7 @@ include 'header.php';
 
         <!-- Saldos das Contas -->
         <?php if(count($contas_ativas) > 0): ?>
-            <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl mt-8 mb-4 ml-2">Saldos por Conta</h3>
+            <h3 class="text-slate-800 dark:text-white/80 font-medium text-xl mt-6 mb-4 ml-2">Saldos por Conta</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach($contas_ativas as $conta): ?>
                     <a href="transacoes.php?conta=<?php echo $conta['id']; ?>" class="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-lg hover:bg-white/70 dark:hover:bg-white/10 transition-all flex items-center space-x-4 cursor-pointer">
@@ -585,6 +608,137 @@ include 'header.php';
             </script>
         </div>
         <?php endif; ?>
+
+        <!-- Script de Integração do Portfólio no Dashboard -->
+        <script>
+            const formatCurrencyDash = (value, currency = 'BRL') => {
+                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(value);
+            };
+
+            const isInvestimentosActive = <?php echo $investimentos ? 'true' : 'false'; ?>;
+            const saldoTotalContas = <?php echo $saldo_total; ?>;
+
+            if (isInvestimentosActive) {
+                // Prepara a UI para carregar
+                const container = document.getElementById('dash_portfolio_totals');
+                container.classList.remove('hidden');
+                container.innerHTML = `<div class="text-sm text-cyan-500 animate-pulse mt-2 flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Consultando valores de mercado ao vivo...</div>`;
+                
+                // Busca os dados do Portfólio Assincronamente
+                fetch('portfolio_api.php')
+                .then(res => res.json())
+                .then(data => {
+                    const saldoPortfolio = data.total_brl || 0;
+                    const novoSaldoGeral = saldoTotalContas + saldoPortfolio;
+                    
+                    // Atualiza valor principal animando opacidade
+                    const valEl = document.getElementById('saldo_total_valor');
+                    const curEl = document.getElementById('saldo_total_currency');
+                    valEl.style.opacity = 0;
+                    setTimeout(() => {
+                        curEl.style.display = 'none';
+                        valEl.innerText = formatCurrencyDash(novoSaldoGeral);
+                        valEl.style.opacity = 1;
+                    }, 200);
+
+                    // Monta HTML de subtotais
+                    let htmlSubtotais = `
+                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-white/10 text-sm space-y-2 max-w-sm">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="font-medium text-slate-500 dark:text-gray-400">Total em Contas:</span>
+                                <span class="font-bold text-slate-700 dark:text-white">${formatCurrencyDash(saldoTotalContas)}</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="font-medium text-purple-500 dark:text-purple-400">Total Portfólio:</span>
+                                <span class="font-bold text-purple-600 dark:text-purple-300">${formatCurrencyDash(saldoPortfolio)}</span>
+                            </div>
+                            <div class="pl-4 border-l-2 border-gray-200 dark:border-white/10 space-y-2">
+                    `;
+                    
+                    // Categorias do Portfólio
+                    if (data.tree) {
+                        for (let macroCat in data.tree) {
+                            const node = data.tree[macroCat];
+                            let usdText = node.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrencyDash(node.value_usd, 'USD')})</span>` : '';
+                            htmlSubtotais += `
+                                <div class="flex justify-between items-end">
+                                    <span class="text-slate-600 dark:text-gray-300 text-xs">${macroCat}</span>
+                                    <span class="text-slate-700 dark:text-gray-200 font-medium text-xs">${formatCurrencyDash(node.value_brl)}${usdText}</span>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    htmlSubtotais += `
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 text-[10px] text-gray-400 leading-tight">
+                                Cotação Dólar: ${formatCurrencyDash(data.cotacao_usd)}<br>
+                                Consulta: ${data.data_hora}
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML = htmlSubtotais;
+
+                    // Exibir gráfico Contas x Portfólio
+                    document.getElementById('grafico_contas_portfolio_container').classList.remove('hidden');
+                    const ctxCP = document.getElementById('graficoContasPortfolio').getContext('2d');
+                    
+                    const isDark = document.documentElement.classList.contains('dark');
+                    new Chart(ctxCP, {
+                        type: 'pie',
+                        data: {
+                            labels: ['Saldos em Contas', 'Portfólio de Investimentos'],
+                            datasets: [{
+                                data: [saldoTotalContas, saldoPortfolio],
+                                backgroundColor: ['#0ea5e9', '#a855f7'], // blue-500 e purple-500
+                                borderWidth: 2,
+                                borderColor: isDark ? 'rgba(15, 23, 42, 0.5)' : '#ffffff',
+                                hoverOffset: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: window.innerWidth > 768 ? 'right' : 'bottom',
+                                    labels: {
+                                        color: isDark ? '#f8fafc' : '#1e293b',
+                                        font: { family: 'Outfit', size: 14 },
+                                        padding: 20
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                                    titleColor: isDark ? '#f8fafc' : '#1e293b',
+                                    bodyColor: isDark ? '#f8fafc' : '#1e293b',
+                                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15, 23, 42, 0.1)',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    cornerRadius: 12,
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) label += ': ';
+                                            const valor = context.raw;
+                                            const total = saldoTotalContas + saldoPortfolio;
+                                            const pct = total > 0 ? ((valor * 100) / total).toFixed(1) : 0;
+                                            label += formatCurrencyDash(valor) + ' (' + pct + '%)';
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                })
+                .catch(err => {
+                    console.error(err);
+                    container.innerHTML = `<div class="text-sm text-red-500 mt-2">Falha ao obter cotações do mercado.</div>`;
+                });
+            }
+        </script>
 
     </div>
 
