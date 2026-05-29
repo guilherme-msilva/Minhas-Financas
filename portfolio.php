@@ -45,6 +45,9 @@ require_once 'menu.php';
                 <h3 class="text-sm font-medium text-slate-500 dark:text-gray-400">Patrimônio Total</h3>
                 <p class="text-3xl font-bold text-slate-800 dark:text-white mt-2" id="total_portfolio">R$ 0,00</p>
                 <p class="text-xs text-slate-400 dark:text-gray-500 mt-2">Valor atualizado via cotações em tempo real</p>
+                <div id="totais_categorias" class="mt-4 pt-4 border-t border-gray-200 dark:border-white/10 text-sm space-y-2">
+                    <!-- Preenchido via JS -->
+                </div>
             </div>
             
             <div class="md:col-span-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg flex items-center justify-center">
@@ -189,6 +192,7 @@ function loadData() {
             
             renderTable(data.investimentos);
             populateCategorySelects(data.categorias);
+            renderTotalsPanel();
             renderDynamicChart();
             
             document.getElementById('loading').classList.add('hidden');
@@ -275,28 +279,36 @@ function resetChart() {
     renderDynamicChart();
 }
 
+function traverseTreeForChart(node, path, labels, dataArr, sliceMetadata) {
+    if (expandedCategories.includes(path)) {
+        if (node.subs && Object.keys(node.subs).length > 0) {
+            for (let subName in node.subs) {
+                traverseTreeForChart(node.subs[subName], path + "|" + subName, labels, dataArr, sliceMetadata);
+            }
+        } else if (node.assets && Object.keys(node.assets).length > 0) {
+            for (let assetName in node.assets) {
+                labels.push(`${assetName} (${path.split('|').pop()})`);
+                dataArr.push(node.assets[assetName].value_brl);
+                sliceMetadata.push({ path: path + "|" + assetName, isLeaf: true, parentPath: path });
+            }
+        }
+    } else {
+        labels.push(path.split('|').pop());
+        dataArr.push(node.value_brl);
+        let parentPath = path.includes('|') ? path.substring(0, path.lastIndexOf('|')) : null;
+        sliceMetadata.push({ path: path, isLeaf: false, parentPath: parentPath });
+    }
+}
+
 function renderDynamicChart() {
-    if (!globalData || Object.keys(globalData.chart_macro).length === 0) return;
+    if (!globalData || !globalData.tree) return;
     
     let labels = [];
     let dataArr = [];
     let sliceMetadata = [];
 
-    for (let macroCat in globalData.chart_macro) {
-        if (expandedCategories.includes(macroCat)) {
-            // Expandir subcategorias/ativos
-            const subData = globalData.chart_drilldown[macroCat];
-            for (let subCat in subData) {
-                labels.push(`${subCat} (${macroCat})`);
-                dataArr.push(subData[subCat]);
-                sliceMetadata.push({ isExpandedAsset: true, parentCat: macroCat });
-            }
-        } else {
-            // Mostrar a categoria macro agrupada
-            labels.push(macroCat);
-            dataArr.push(globalData.chart_macro[macroCat]);
-            sliceMetadata.push({ isExpandedAsset: false, parentCat: macroCat });
-        }
+    for (let macroCat in globalData.tree) {
+        traverseTreeForChart(globalData.tree[macroCat], macroCat, labels, dataArr, sliceMetadata);
     }
     
     if (expandedCategories.length > 0) {
@@ -312,18 +324,42 @@ function renderDynamicChart() {
             const idx = activeElements[0].index;
             const meta = sliceMetadata[idx];
             
-            if (meta.isExpandedAsset) {
-                // Clique em um ativo expandido: recolhe a categoria pai
-                expandedCategories = expandedCategories.filter(c => c !== meta.parentCat);
+            if (meta.isLeaf) {
+                expandedCategories = expandedCategories.filter(c => c !== meta.parentPath);
             } else {
-                // Clique em uma categoria macro: expande a categoria
-                if (!expandedCategories.includes(meta.parentCat)) {
-                    expandedCategories.push(meta.parentCat);
+                if (!expandedCategories.includes(meta.path)) {
+                    expandedCategories.push(meta.path);
                 }
             }
             renderDynamicChart();
         }
     });
+}
+
+function renderTotalsPanel() {
+    if (!globalData || !globalData.tree) return;
+    let html = '';
+    
+    for (let macroCat in globalData.tree) {
+        const node = globalData.tree[macroCat];
+        let usdText = node.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrency(node.value_usd, 'USD')})</span>` : '';
+        html += `<div class="flex justify-between items-end mt-2">
+                    <span class="font-bold text-slate-700 dark:text-gray-300">${macroCat}</span>
+                    <span class="font-bold text-slate-800 dark:text-white">${formatCurrency(node.value_brl)}${usdText}</span>
+                 </div>`;
+                 
+        if (node.subs && Object.keys(node.subs).length > 0) {
+            for (let subName in node.subs) {
+                const subNode = node.subs[subName];
+                let subUsdText = subNode.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrency(subNode.value_usd, 'USD')})</span>` : '';
+                html += `<div class="flex justify-between items-end pl-4 mt-1">
+                            <span class="text-slate-600 dark:text-gray-400 text-xs flex items-center before:content-[''] before:w-2 before:h-px before:bg-gray-300 dark:before:bg-gray-600 before:mr-2">${subName}</span>
+                            <span class="text-slate-700 dark:text-gray-300 text-xs">${formatCurrency(subNode.value_brl)}${subUsdText}</span>
+                         </div>`;
+            }
+        }
+    }
+    document.getElementById('totais_categorias').innerHTML = html;
 }
 
 function populateCategorySelects(categorias) {

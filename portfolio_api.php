@@ -173,8 +173,7 @@ $usd_brl = $quotes['USDBRL=X']['price'] ?? 5.00; // Fallback se falhar
 
 // Processar dados para retorno e para o gráfico
 $processed_investments = [];
-$chart_data_macro = []; // Categorias Pai
-$chart_data_drilldown = []; // Subcategorias e Ativos
+$tree = []; // Árvore hierárquica
 
 $total_portfolio_brl = 0;
 
@@ -186,6 +185,7 @@ foreach ($investimentos as $inv) {
     $macro_cat_nome = $categoria_nomes[$macro_cat_id] ?? $cat_nome;
 
     $ticker = strtoupper($inv['ticker']);
+    if (!$ticker) $ticker = $cat_nome;
     $qtd = (float)$inv['quantidade'];
     $valor_brl = 0;
     $valor_usd = 0;
@@ -225,32 +225,38 @@ foreach ($investimentos as $inv) {
     ];
     $processed_investments[] = $inv_data;
 
-    // Agrupar para gráfico Macro
-    if (!isset($chart_data_macro[$macro_cat_nome])) {
-        $chart_data_macro[$macro_cat_nome] = 0;
+    // Montar Árvore
+    if (!isset($tree[$macro_cat_nome])) {
+        $tree[$macro_cat_nome] = ['value_brl' => 0, 'value_usd' => 0, 'subs' => [], 'assets' => []];
     }
-    $chart_data_macro[$macro_cat_nome] += $valor_brl;
+    $tree[$macro_cat_nome]['value_brl'] += $valor_brl;
+    $tree[$macro_cat_nome]['value_usd'] += $valor_usd;
 
-    // Agrupar para Drilldown
-    if (!isset($chart_data_drilldown[$macro_cat_nome])) {
-        $chart_data_drilldown[$macro_cat_nome] = [];
+    if ($id_pai) {
+        if (!isset($tree[$macro_cat_nome]['subs'][$cat_nome])) {
+             $tree[$macro_cat_nome]['subs'][$cat_nome] = ['value_brl' => 0, 'value_usd' => 0, 'assets' => []];
+        }
+        $tree[$macro_cat_nome]['subs'][$cat_nome]['value_brl'] += $valor_brl;
+        $tree[$macro_cat_nome]['subs'][$cat_nome]['value_usd'] += $valor_usd;
+        
+        if (!isset($tree[$macro_cat_nome]['subs'][$cat_nome]['assets'][$ticker])) {
+             $tree[$macro_cat_nome]['subs'][$cat_nome]['assets'][$ticker] = ['value_brl' => 0, 'value_usd' => 0];
+        }
+        $tree[$macro_cat_nome]['subs'][$cat_nome]['assets'][$ticker]['value_brl'] += $valor_brl;
+        $tree[$macro_cat_nome]['subs'][$cat_nome]['assets'][$ticker]['value_usd'] += $valor_usd;
+    } else {
+        if (!isset($tree[$macro_cat_nome]['assets'][$ticker])) {
+             $tree[$macro_cat_nome]['assets'][$ticker] = ['value_brl' => 0, 'value_usd' => 0];
+        }
+        $tree[$macro_cat_nome]['assets'][$ticker]['value_brl'] += $valor_brl;
+        $tree[$macro_cat_nome]['assets'][$ticker]['value_usd'] += $valor_usd;
     }
-    
-    // Se a macro tiver filhos, agrupamos pelo filho primeiro, senao pelo ticker
-    $drill_label = $id_pai ? $cat_nome : $inv['ticker'];
-    if (!$drill_label) $drill_label = $cat_nome; // fallback renda fixa sem ticker
-
-    if (!isset($chart_data_drilldown[$macro_cat_nome][$drill_label])) {
-        $chart_data_drilldown[$macro_cat_nome][$drill_label] = 0;
-    }
-    $chart_data_drilldown[$macro_cat_nome][$drill_label] += $valor_brl;
 }
 
 echo json_encode([
     'total_brl' => $total_portfolio_brl,
     'cotacao_usd' => $usd_brl,
     'investimentos' => $processed_investments,
-    'chart_macro' => $chart_data_macro,
-    'chart_drilldown' => $chart_data_drilldown,
-    'categorias' => array_values($categorias) // Enviar categorias estruturadas pro frontend montar selects
+    'tree' => $tree,
+    'categorias' => array_values($categorias)
 ]);
