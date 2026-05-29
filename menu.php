@@ -100,9 +100,9 @@ $c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inac
                 <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
             <div id="mob_cadastros" class="hidden absolute bottom-full right-0 w-48 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl overflow-hidden z-50 pb-1 pt-1 text-left">
-                <a href="categorias.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias Base</a>
+                <a href="categorias.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias</a>
                 <a href="contas.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Contas Báncarias</a>
-                <a href="categorias_investimento.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categ. Investimentos</a>
+                <a href="categorias_investimento.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias de Investimentos</a>
             </div>
         </div>
     </div>
