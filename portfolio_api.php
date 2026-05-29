@@ -124,34 +124,49 @@ while ($inv = $invs_result->fetch_assoc()) {
     }
 }
 
-// Buscar cotações do Yahoo Finance
+// Buscar cotações do Yahoo Finance (endpoint v8/chart não requer auth, mas só aceita 1 por vez)
 $quotes = [];
 if (count($tickers_to_fetch) > 0) {
-    $symbols = implode(',', $tickers_to_fetch);
-    $url = "https://query1.finance.yahoo.com/v7/finance/quote?symbols=" . urlencode($symbols);
-    
-    // Inicializar cURL
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    // User-Agent é obrigatório em algumas APIs
-    curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    $response = curl_exec($ch);
-    curl_close($ch);
+    // Para otimizar, podemos usar curl_multi ou requisições sequenciais.
+    // Como é para uso pessoal, sequencial com timeout curto resolve.
+    $mh = curl_multi_init();
+    $curl_handles = [];
 
-    if ($response) {
-        $data = json_decode($response, true);
-        if (isset($data['quoteResponse']['result'])) {
-            foreach ($data['quoteResponse']['result'] as $q) {
-                $quotes[$q['symbol']] = [
-                    'price' => $q['regularMarketPrice'] ?? 0,
-                    'currency' => $q['currency'] ?? 'USD',
+    foreach ($tickers_to_fetch as $symbol) {
+        $url = "https://query2.finance.yahoo.com/v8/finance/chart/" . urlencode($symbol) . "?interval=1d&range=1d";
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+        
+        $curl_handles[$symbol] = $ch;
+        curl_multi_add_handle($mh, $ch);
+    }
+
+    $running = null;
+    do {
+        curl_multi_exec($mh, $running);
+    } while ($running);
+
+    foreach ($curl_handles as $symbol => $ch) {
+        $response = curl_multi_getcontent($ch);
+        if ($response) {
+            $data = json_decode($response, true);
+            if (isset($data['chart']['result'][0]['meta'])) {
+                $meta = $data['chart']['result'][0]['meta'];
+                $quotes[$symbol] = [
+                    'price' => $meta['regularMarketPrice'] ?? 0,
+                    'currency' => $meta['currency'] ?? 'USD',
                 ];
             }
         }
+        curl_multi_remove_handle($mh, $ch);
+        curl_close($ch);
     }
+    curl_multi_close($mh);
 }
 
 $usd_brl = $quotes['USDBRL=X']['price'] ?? 5.00; // Fallback se falhar
