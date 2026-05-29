@@ -54,9 +54,10 @@ require_once 'menu.php';
                 <div class="w-full max-w-sm">
                     <canvas id="portfolioChart"></canvas>
                 </div>
-                <div class="ml-4 flex flex-col justify-center">
-                    <button id="btn_drillup" onclick="resetChart()" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full transition-colors">← Voltar</button>
-                    <p class="text-xs text-gray-400 mt-2 text-center" id="chart_hint">Clique em uma fatia para ver os ativos</p>
+                <div class="ml-6 flex flex-col justify-center flex-1 max-w-[250px]">
+                    <button id="btn_drillup" onclick="resetChart()" class="hidden bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 text-xs px-3 py-1 rounded-full transition-colors mb-3 w-fit border border-gray-200 dark:border-white/10">← Voltar</button>
+                    <div id="chart_legend" class="flex flex-col gap-1 overflow-y-auto max-h-[300px] pr-2"></div>
+                    <p class="text-[10px] text-gray-400 mt-3" id="chart_hint">Clique em uma categoria para ver os ativos</p>
                 </div>
             </div>
         </div>
@@ -160,6 +161,17 @@ require_once 'menu.php';
 let globalData = null;
 let currentChart = null;
 let expandedCategories = [];
+let currentSliceMetadata = [];
+let macroCatColors = {};
+let colorIndex = 0;
+
+function getMacroColor(macroCat) {
+    if (!macroCatColors[macroCat]) {
+        macroCatColors[macroCat] = cores[colorIndex % cores.length];
+        colorIndex++;
+    }
+    return macroCatColors[macroCat];
+}
 
 const formatCurrency = (value, currency = 'BRL') => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(value);
@@ -234,11 +246,28 @@ function renderTable(investimentos) {
     });
 }
 
-function renderChart(labels, dataArr, title, onClickCallback) {
+function renderChart(labels, dataArr, bgColors, title, onClickCallback) {
     const ctx = document.getElementById('portfolioChart').getContext('2d');
     if (currentChart) {
         currentChart.destroy();
     }
+    
+    // Legenda customizada em HTML
+    const total = dataArr.reduce((a, b) => a + b, 0);
+    let legendHtml = '';
+    labels.forEach((label, i) => {
+        const perc = total > 0 ? ((dataArr[i] / total) * 100).toFixed(1) : 0;
+        legendHtml += `
+            <div class="flex items-center text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 p-1.5 rounded transition" onclick="triggerChartClick(${i})">
+                <span class="w-3 h-3 rounded-full mr-2 shrink-0 border border-black/10 dark:border-white/10" style="background-color: ${bgColors[i]}"></span>
+                <span class="text-slate-700 dark:text-gray-300 font-medium truncate flex-1 text-xs" title="${label}">${label}</span>
+                <span class="text-slate-500 dark:text-gray-400 text-xs ml-1 font-mono">(${perc}%)</span>
+            </div>
+        `;
+    });
+    document.getElementById('chart_legend').innerHTML = legendHtml;
+    
+    const isDark = document.documentElement.classList.contains('dark');
     
     currentChart = new Chart(ctx, {
         type: 'pie',
@@ -246,8 +275,9 @@ function renderChart(labels, dataArr, title, onClickCallback) {
             labels: labels,
             datasets: [{
                 data: dataArr,
-                backgroundColor: cores,
-                borderWidth: 0,
+                backgroundColor: bgColors,
+                borderWidth: 2,
+                borderColor: isDark ? '#1e293b' : '#ffffff',
                 hoverOffset: 4
             }]
         },
@@ -255,8 +285,7 @@ function renderChart(labels, dataArr, title, onClickCallback) {
             responsive: true,
             plugins: {
                 legend: {
-                    position: 'bottom',
-                    labels: { color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#475569' }
+                    display: false // Desabilita legenda padrão
                 },
                 tooltip: {
                     callbacks: {
@@ -279,24 +308,40 @@ function resetChart() {
     renderDynamicChart();
 }
 
-function traverseTreeForChart(node, path, labels, dataArr, sliceMetadata) {
+function traverseTreeForChart(node, path, labels, dataArr, bgColors, rootMacroCat) {
     if (expandedCategories.includes(path)) {
         if (node.subs && Object.keys(node.subs).length > 0) {
             for (let subName in node.subs) {
-                traverseTreeForChart(node.subs[subName], path + "|" + subName, labels, dataArr, sliceMetadata);
+                traverseTreeForChart(node.subs[subName], path + "|" + subName, labels, dataArr, bgColors, rootMacroCat);
             }
         } else if (node.assets && Object.keys(node.assets).length > 0) {
             for (let assetName in node.assets) {
                 labels.push(`${assetName} (${path.split('|').pop()})`);
                 dataArr.push(node.assets[assetName].value_brl);
-                sliceMetadata.push({ path: path + "|" + assetName, isLeaf: true, parentPath: path });
+                bgColors.push(getMacroColor(rootMacroCat));
+                currentSliceMetadata.push({ path: path + "|" + assetName, isLeaf: true, parentPath: path });
             }
         }
     } else {
         labels.push(path.split('|').pop());
         dataArr.push(node.value_brl);
+        bgColors.push(getMacroColor(rootMacroCat));
         let parentPath = path.includes('|') ? path.substring(0, path.lastIndexOf('|')) : null;
-        sliceMetadata.push({ path: path, isLeaf: false, parentPath: parentPath });
+        currentSliceMetadata.push({ path: path, isLeaf: false, parentPath: parentPath });
+    }
+}
+
+function triggerChartClick(idx) {
+    const meta = currentSliceMetadata[idx];
+    if (meta) {
+        if (meta.isLeaf) {
+            expandedCategories = expandedCategories.filter(c => c !== meta.parentPath);
+        } else {
+            if (!expandedCategories.includes(meta.path)) {
+                expandedCategories.push(meta.path);
+            }
+        }
+        renderDynamicChart();
     }
 }
 
@@ -305,10 +350,11 @@ function renderDynamicChart() {
     
     let labels = [];
     let dataArr = [];
-    let sliceMetadata = [];
+    let bgColors = [];
+    currentSliceMetadata = [];
 
     for (let macroCat in globalData.tree) {
-        traverseTreeForChart(globalData.tree[macroCat], macroCat, labels, dataArr, sliceMetadata);
+        traverseTreeForChart(globalData.tree[macroCat], macroCat, labels, dataArr, bgColors, macroCat);
     }
     
     if (expandedCategories.length > 0) {
@@ -319,19 +365,9 @@ function renderDynamicChart() {
         document.getElementById('chart_hint').classList.remove('hidden');
     }
 
-    renderChart(labels, dataArr, 'Portfólio', (evt, activeElements) => {
+    renderChart(labels, dataArr, bgColors, 'Portfólio', (evt, activeElements) => {
         if (activeElements.length > 0) {
-            const idx = activeElements[0].index;
-            const meta = sliceMetadata[idx];
-            
-            if (meta.isLeaf) {
-                expandedCategories = expandedCategories.filter(c => c !== meta.parentPath);
-            } else {
-                if (!expandedCategories.includes(meta.path)) {
-                    expandedCategories.push(meta.path);
-                }
-            }
-            renderDynamicChart();
+            triggerChartClick(activeElements[0].index);
         }
     });
 }
