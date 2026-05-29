@@ -71,7 +71,7 @@ require_once 'menu.php';
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-gray-50/50 dark:bg-white/5 text-slate-500 dark:text-gray-400 text-xs uppercase tracking-wider">
-                            <th class="p-4 font-medium">Categoria</th>
+                            <th class="p-4 font-medium text-center w-20">Cat.</th>
                             <th class="p-4 font-medium">Ticker / Nome</th>
                             <th class="p-4 font-medium text-right">Qtd.</th>
                             <th class="p-4 font-medium text-right">Cotação Atual</th>
@@ -202,10 +202,10 @@ function loadData() {
             globalData = data;
             document.getElementById('total_portfolio').innerText = formatCurrency(data.total_brl);
             
-            renderTable(data.investimentos);
             populateCategorySelects(data.categorias);
             renderTotalsPanel();
             renderDynamicChart();
+            renderTable(data.investimentos);
             
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
@@ -222,6 +222,11 @@ function renderTable(investimentos) {
     
     investimentos.forEach(inv => {
         let catText = inv.macro_categoria_nome !== inv.categoria_nome ? `${inv.macro_categoria_nome} > ${inv.categoria_nome}` : inv.categoria_nome;
+        let catLetter = inv.categoria_nome.charAt(0).toUpperCase();
+        let catColor = getMacroColor(inv.macro_categoria_nome);
+        
+        let catHtml = `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs mx-auto shadow-sm" style="background-color: ${catColor}" title="${catText}">${catLetter}</div>`;
+        
         let valorTotalStr = formatCurrency(inv.valor_brl);
         if (inv.valor_usd > 0) {
             valorTotalStr += ` <span class="text-xs text-gray-500 block">(${formatCurrency(inv.valor_usd, 'USD')})</span>`;
@@ -232,7 +237,7 @@ function renderTable(investimentos) {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50 dark:hover:bg-white/5 transition-colors';
         tr.innerHTML = `
-            <td class="p-4 text-slate-700 dark:text-gray-300 font-medium">${catText}</td>
+            <td class="p-4">${catHtml}</td>
             <td class="p-4 text-slate-800 dark:text-white font-bold">${inv.ticker}</td>
             <td class="p-4 text-slate-700 dark:text-gray-300 text-right">${formatNumber(inv.quantidade)}</td>
             <td class="p-4 text-slate-700 dark:text-gray-300 text-right">${cotacaoStr}</td>
@@ -316,7 +321,7 @@ function traverseTreeForChart(node, path, labels, dataArr, bgColors, rootMacroCa
             }
         } else if (node.assets && Object.keys(node.assets).length > 0) {
             for (let assetName in node.assets) {
-                labels.push(`${assetName} (${path.split('|').pop()})`);
+                labels.push(assetName);
                 dataArr.push(node.assets[assetName].value_brl);
                 bgColors.push(getMacroColor(rootMacroCat));
                 currentSliceMetadata.push({ path: path + "|" + assetName, isLeaf: true, parentPath: path });
