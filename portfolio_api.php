@@ -1,13 +1,13 @@
 <?php
 session_start();
-if (!isset($_SESSION['id'])) {
+if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['error' => 'Não autorizado']);
     exit;
 }
 
 require_once 'conexao.php';
-$id_user = $_SESSION['id'];
+$id_user = $_SESSION['user_id'];
 
 // Se for requisição POST, lidamos com CRUD ou Importação
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
