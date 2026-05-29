@@ -402,13 +402,19 @@ function importCSV(e) {
             document.getElementById('btn_import').disabled = false;
             if (res.success) {
                 closeImportModal();
+                let msg = `Importação concluída!\nLinhas inseridas: ${res.inserted}\nLinhas ignoradas: ${res.skipped}`;
+                if (res.errors && res.errors.length > 0) {
+                    msg += `\n\nErros ocorridos:\n` + res.errors.slice(0, 10).join('\n');
+                    if (res.errors.length > 10) msg += `\n...e mais ${res.errors.length - 10} erros.`;
+                }
+                alert(msg);
                 loadData();
             } else alert(res.error || 'Erro na importação');
         })
         .catch(err => {
             document.getElementById('btn_import').innerText = 'Importar';
             document.getElementById('btn_import').disabled = false;
-            alert('Erro de conexão');
+            alert('Erro de conexão ao tentar importar o arquivo.');
         });
 }
 

@@ -42,22 +42,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'import') {
         $id_categoria = (int)$_POST['id_categoria'];
         if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
-            $file = fopen($_FILES['csv_file']['tmp_name'], 'r');
-            while (($row = fgetcsv($file, 1000, ";")) !== FALSE) {
+            $content = file_get_contents($_FILES['csv_file']['tmp_name']);
+            $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", trim($content)));
+            
+            $inserted = 0;
+            $skipped = 0;
+            $errors = [];
+            
+            $is_first_line = true;
+            foreach ($lines as $index => $line) {
+                if (empty(trim($line))) continue;
+                
+                // Tenta dividir por ponto-e-virgula ou virgula
+                $row = str_getcsv($line, ';');
+                if (count($row) < 2) {
+                    $row = str_getcsv($line, ',');
+                }
+                
                 if (count($row) >= 2) {
                     $ticker = trim($row[0]);
-                    $quantidade = str_replace(',', '.', trim($row[1]));
-                    if ($ticker && is_numeric($quantidade)) {
-                        $mysqliFinancas->query("INSERT INTO investimentos (id_user, ticker, quantidade, id_categoria, valor_manual) 
-                                      VALUES ($id_user, '$ticker', $quantidade, $id_categoria, NULL)");
+                    $quantidade_str = trim($row[1]);
+                    // Se a primeira linha tiver palavras como "quantidade", "qty", etc, pula (cabeçalho)
+                    if ($is_first_line && !is_numeric(str_replace(',', '.', $quantidade_str))) {
+                        $is_first_line = false;
+                        continue; 
                     }
+                    $is_first_line = false;
+                    
+                    $quantidade = str_replace(',', '.', $quantidade_str);
+                    
+                    if ($ticker !== '' && is_numeric($quantidade)) {
+                        $sql = "INSERT INTO investimentos (id_user, ticker, quantidade, id_categoria, valor_manual) 
+                                VALUES ($id_user, '$ticker', $quantidade, $id_categoria, NULL)";
+                        if ($mysqliFinancas->query($sql)) {
+                            $inserted++;
+                        } else {
+                            $errors[] = "Erro no DB ao inserir linha " . ($index + 1) . ": $ticker";
+                        }
+                    } else {
+                        $skipped++;
+                        $errors[] = "Linha " . ($index + 1) . " ignorada (Ticker vazio ou Quantidade inválida): $line";
+                    }
+                } else {
+                    $skipped++;
+                    $errors[] = "Linha " . ($index + 1) . " não possui o formato esperado: $line";
                 }
             }
-            fclose($file);
-            echo json_encode(['success' => true]);
+            
+            echo json_encode(['success' => true, 'inserted' => $inserted, 'skipped' => $skipped, 'errors' => $errors]);
         } else {
             http_response_code(400);
-            echo json_encode(['error' => 'Falha no upload do arquivo']);
+            echo json_encode(['error' => 'Nenhum arquivo enviado ou erro no upload.']);
         }
         exit;
     }
