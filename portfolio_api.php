@@ -27,14 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sql = "UPDATE investimentos SET ticker='$ticker', quantidade=$quantidade, id_categoria=$id_categoria, valor_manual=$valor_manual 
                     WHERE id=$id AND id_user=$id_user";
         }
-        $conn->query($sql);
+        $mysqliFinancas->query($sql);
         echo json_encode(['success' => true]);
         exit;
     }
 
     if ($action === 'delete') {
         $id = (int)$_POST['id'];
-        $conn->query("DELETE FROM investimentos WHERE id=$id AND id_user=$id_user");
+        $mysqliFinancas->query("DELETE FROM investimentos WHERE id=$id AND id_user=$id_user");
         echo json_encode(['success' => true]);
         exit;
     }
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $ticker = trim($row[0]);
                     $quantidade = str_replace(',', '.', trim($row[1]));
                     if ($ticker && is_numeric($quantidade)) {
-                        $conn->query("INSERT INTO investimentos (id_user, ticker, quantidade, id_categoria, valor_manual) 
+                        $mysqliFinancas->query("INSERT INTO investimentos (id_user, ticker, quantidade, id_categoria, valor_manual) 
                                       VALUES ($id_user, '$ticker', $quantidade, $id_categoria, NULL)");
                     }
                 }
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Obter categorias e seus pais
-$cats_result = $conn->query("SELECT id, nome, id_pai FROM categorias_investimento");
+$cats_result = $mysqliFinancas->query("SELECT id, nome, id_pai FROM categorias_investimento");
 $categorias = [];
 $categoria_nomes = [];
 $categoria_pais = [];
@@ -75,7 +75,7 @@ while ($cat = $cats_result->fetch_assoc()) {
 }
 
 // Obter investimentos do usuário
-$invs_result = $conn->query("SELECT * FROM investimentos WHERE id_user = $id_user");
+$invs_result = $mysqliFinancas->query("SELECT * FROM investimentos WHERE id_user = $id_user");
 $investimentos = [];
 $tickers_to_fetch = ['USDBRL=X']; // Sempre buscar a cotação do dólar
 
