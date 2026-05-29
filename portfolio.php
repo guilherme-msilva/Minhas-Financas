@@ -52,7 +52,7 @@ require_once 'menu.php';
                     <canvas id="portfolioChart"></canvas>
                 </div>
                 <div class="ml-4 flex flex-col justify-center">
-                    <button id="btn_drillup" onclick="renderChartMacro()" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full transition-colors">← Voltar</button>
+                    <button id="btn_drillup" onclick="resetChart()" class="hidden bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-full transition-colors">← Voltar</button>
                     <p class="text-xs text-gray-400 mt-2 text-center" id="chart_hint">Clique em uma fatia para ver os ativos</p>
                 </div>
             </div>
@@ -156,6 +156,7 @@ require_once 'menu.php';
 <script>
 let globalData = null;
 let currentChart = null;
+let expandedCategories = [];
 
 const formatCurrency = (value, currency = 'BRL') => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(value);
@@ -188,7 +189,7 @@ function loadData() {
             
             renderTable(data.investimentos);
             populateCategorySelects(data.categorias);
-            renderChartMacro();
+            renderDynamicChart();
             
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('content').classList.remove('hidden');
@@ -236,7 +237,7 @@ function renderChart(labels, dataArr, title, onClickCallback) {
     }
     
     currentChart = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'pie',
         data: {
             labels: labels,
             datasets: [{
@@ -269,36 +270,60 @@ function renderChart(labels, dataArr, title, onClickCallback) {
     });
 }
 
-function renderChartMacro() {
-    if (!globalData || Object.keys(globalData.chart_macro).length === 0) return;
-    
-    const labels = Object.keys(globalData.chart_macro);
-    const dataArr = Object.values(globalData.chart_macro);
-    
-    document.getElementById('btn_drillup').classList.add('hidden');
-    document.getElementById('chart_hint').classList.remove('hidden');
-    
-    renderChart(labels, dataArr, 'Macro Categorias', (evt, activeElements) => {
-        if (activeElements.length > 0) {
-            const idx = activeElements[0].index;
-            const clickedCategory = labels[idx];
-            renderChartDrilldown(clickedCategory);
-        }
-    });
+function resetChart() {
+    expandedCategories = [];
+    renderDynamicChart();
 }
 
-function renderChartDrilldown(macroCategory) {
-    if (!globalData || !globalData.chart_drilldown[macroCategory]) return;
+function renderDynamicChart() {
+    if (!globalData || Object.keys(globalData.chart_macro).length === 0) return;
     
-    // Mostramos os ativos DAQUELA macro categoria, substituindo a visão macro temporariamente
-    const subData = globalData.chart_drilldown[macroCategory];
-    const labels = Object.keys(subData);
-    const dataArr = Object.values(subData);
+    let labels = [];
+    let dataArr = [];
+    let sliceMetadata = [];
+
+    for (let macroCat in globalData.chart_macro) {
+        if (expandedCategories.includes(macroCat)) {
+            // Expandir subcategorias/ativos
+            const subData = globalData.chart_drilldown[macroCat];
+            for (let subCat in subData) {
+                labels.push(`${subCat} (${macroCat})`);
+                dataArr.push(subData[subCat]);
+                sliceMetadata.push({ isExpandedAsset: true, parentCat: macroCat });
+            }
+        } else {
+            // Mostrar a categoria macro agrupada
+            labels.push(macroCat);
+            dataArr.push(globalData.chart_macro[macroCat]);
+            sliceMetadata.push({ isExpandedAsset: false, parentCat: macroCat });
+        }
+    }
     
-    document.getElementById('btn_drillup').classList.remove('hidden');
-    document.getElementById('chart_hint').classList.add('hidden');
-    
-    renderChart(labels, dataArr, macroCategory, null);
+    if (expandedCategories.length > 0) {
+        document.getElementById('btn_drillup').classList.remove('hidden');
+        document.getElementById('chart_hint').classList.add('hidden');
+    } else {
+        document.getElementById('btn_drillup').classList.add('hidden');
+        document.getElementById('chart_hint').classList.remove('hidden');
+    }
+
+    renderChart(labels, dataArr, 'Portfólio', (evt, activeElements) => {
+        if (activeElements.length > 0) {
+            const idx = activeElements[0].index;
+            const meta = sliceMetadata[idx];
+            
+            if (meta.isExpandedAsset) {
+                // Clique em um ativo expandido: recolhe a categoria pai
+                expandedCategories = expandedCategories.filter(c => c !== meta.parentCat);
+            } else {
+                // Clique em uma categoria macro: expande a categoria
+                if (!expandedCategories.includes(meta.parentCat)) {
+                    expandedCategories.push(meta.parentCat);
+                }
+            }
+            renderDynamicChart();
+        }
+    });
 }
 
 function populateCategorySelects(categorias) {
