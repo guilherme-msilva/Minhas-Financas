@@ -48,3 +48,35 @@ CREATE TABLE `usuarios` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `usuarios_unique` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `categorias_investimento` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nome` varchar(255) NOT NULL,
+  `id_pai` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO `categorias_investimento` (`id`, `nome`, `id_pai`) VALUES
+(1, 'Ações do Brasil', NULL),
+(2, 'Fundos de Investimento Imobiliário', NULL),
+(3, 'Investimentos no Exterior', NULL),
+(4, 'Stocks', 3),
+(5, 'ETFs', 3),
+(6, 'REITs', 3),
+(7, 'Cripto Ativos', NULL),
+(8, 'Renda Fixa', NULL),
+(9, 'Tesouro Direto', 8),
+(10, 'CDBs', 8),
+(11, 'Fundos de Renda Fixa', 8),
+(12, 'LCI', 8),
+(13, 'LCA', 8);
+
+CREATE TABLE `investimentos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_user` int(11) NOT NULL,
+  `ticker` varchar(100) NOT NULL,
+  `quantidade` decimal(15,6) DEFAULT 0.000000,
+  `id_categoria` int(11) NOT NULL,
+  `valor_manual` decimal(15,2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

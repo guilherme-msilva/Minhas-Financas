@@ -10,6 +10,7 @@ $c_orc      = in_array($current_page, ['orcamento.php']) ? $active_class : $inac
 $c_analise  = in_array($current_page, ['relatorio.php', 'graficos.php']) ? $active_class : $inactive_class;
 $c_imp      = in_array($current_page, ['importacoes.php']) ? $active_class : $inactive_class;
 $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $inactive_class;
+$c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inactive_class;
 ?>
 <nav class="relative md:sticky top-0 z-50 mb-8 rounded-b-2xl md:rounded-2xl mt-0 md:mt-4 mx-0 md:mx-4 bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/20 shadow-lg">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,6 +28,7 @@ $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $i
                     <a href="contas.php" class="<?php echo $c_conta; ?> px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Contas</a>
                     <a href="transacoes.php" class="<?php echo $c_trans; ?> px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Transações</a>
                     <a href="orcamento.php" class="<?php echo $c_orc; ?> px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Orçamento</a>
+                    <a href="portfolio.php" class="<?php echo $c_port; ?> px-3 py-2 rounded-xl text-sm font-medium transition-all duration-300">Investimentos</a>
 
                     <!-- Menu Análise com submenu hover -->
                     <div class="relative group">
@@ -63,6 +65,7 @@ $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $i
         <a href="contas.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_conta); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Contas</a>
         <a href="transacoes.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_trans); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Transações</a>
         <a href="orcamento.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_orc); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Orçamento</a>
+        <a href="portfolio.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_port); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Investimentos</a>
         <a href="relatorio.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_analise); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Relatórios</a>
         <a href="graficos.php" class="<?php echo str_replace('bg-white/60', 'bg-white/40', $c_analise); ?> px-2 py-1 mb-2 text-sm font-medium rounded-lg">Gráficos</a>
     </div>
