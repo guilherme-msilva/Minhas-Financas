@@ -50,14 +50,14 @@ require_once 'menu.php';
                 </div>
             </div>
             
-            <div class="md:col-span-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg flex items-center justify-center">
+            <div class="md:col-span-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg flex flex-col md:flex-row items-center justify-center">
                 <div class="w-full max-w-sm">
                     <canvas id="portfolioChart"></canvas>
                 </div>
-                <div class="ml-6 flex flex-col justify-center flex-1 max-w-[250px]">
+                <div class="mt-6 md:mt-0 md:ml-6 flex flex-col justify-center w-full md:flex-1 md:max-w-[250px]">
                     <button id="btn_drillup" onclick="resetChart()" class="hidden bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 text-xs px-3 py-1 rounded-full transition-colors mb-3 w-fit border border-gray-200 dark:border-white/10">← Voltar</button>
-                    <div id="chart_legend" class="flex flex-col gap-1 overflow-y-auto max-h-[300px] pr-2"></div>
-                    <p class="text-[10px] text-gray-400 mt-3" id="chart_hint">Clique em uma categoria para ver os ativos</p>
+                    <div id="chart_legend" class="flex flex-col gap-1 overflow-y-auto max-h-[300px] pr-2 w-full"></div>
+                    <p class="text-[10px] text-gray-400 mt-3 text-center md:text-left" id="chart_hint">Clique em uma categoria para ver os ativos</p>
                 </div>
             </div>
         </div>
