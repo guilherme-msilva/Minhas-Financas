@@ -426,7 +426,7 @@ function renderTotalsPanel() {
         let usdText = node.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrency(node.value_usd, 'USD')})</span>` : '';
         html += `<div class="flex justify-between items-end mt-2">
                     <span class="font-bold text-slate-700 dark:text-gray-300">${macroCat}</span>
-                    <span class="font-bold text-slate-800 dark:text-white">${usdText}${formatCurrency(node.value_brl)}</span>
+                    <span class="font-bold text-slate-800 dark:text-white">${usdText} ${formatCurrency(node.value_brl)}</span>
                  </div>`;
                  
         if (node.subs && Object.keys(node.subs).length > 0) {
@@ -435,7 +435,7 @@ function renderTotalsPanel() {
                 let subUsdText = subNode.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrency(subNode.value_usd, 'USD')})</span>` : '';
                 html += `<div class="flex justify-between items-end pl-4 mt-1">
                             <span class="text-slate-600 dark:text-gray-400 text-xs flex items-center before:content-[''] before:w-2 before:h-px before:bg-gray-300 dark:before:bg-gray-600 before:mr-2">${subName}</span>
-                            <span class="text-slate-700 dark:text-gray-300 text-xs">${subUsdText}${formatCurrency(subNode.value_brl)}</span>
+                            <span class="text-slate-700 dark:text-gray-300 text-xs">${subUsdText} ${formatCurrency(subNode.value_brl)}</span>
                          </div>`;
             }
         }
