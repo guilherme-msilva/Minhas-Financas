@@ -110,7 +110,7 @@ while ($cat = $cats_result->fetch_assoc()) {
 }
 
 // Obter investimentos do usuário
-$invs_result = $mysqliFinancas->query("SELECT * FROM investimentos WHERE id_user = $id_user ORDER BY id_categoria ASC");
+$invs_result = $mysqliFinancas->query("SELECT * FROM investimentos WHERE id_user = $id_user ORDER BY id_categoria ASC, ticker ASC");
 $investimentos = [];
 $tickers_to_fetch = ['USDBRL=X']; // Sempre buscar a cotação do dólar
 
