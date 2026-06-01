@@ -76,6 +76,7 @@ require_once 'menu.php';
                             <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('qtd')">Qtd. ↕</th>
                             <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('cotacao')">Cotação Atual ↕</th>
                             <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('total')">Total (BRL) ↕</th>
+                            <th class="p-4 font-medium text-right cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-700/50" onclick="sortTable('percentual')">% Part. ↕</th>
                             <th class="p-4 font-medium text-center">Ações</th>
                         </tr>
                     </thead>
@@ -234,6 +235,8 @@ function renderTable(investimentos) {
 
         let cotacaoStr = inv.valor_manual ? '<span class="text-gray-400 italic">Manual</span>' : formatCurrency(inv.preco_unidade, inv.moeda);
         
+        let percentual = globalData && globalData.total_brl > 0 ? ((inv.valor_brl / globalData.total_brl) * 100).toFixed(2) + '%' : '0.00%';
+
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-gray-50 dark:hover:bg-white/5 transition-colors';
         tr.innerHTML = `
@@ -242,6 +245,7 @@ function renderTable(investimentos) {
             <td class="p-4 text-slate-700 dark:text-gray-300 text-right">${formatNumber(inv.quantidade)}</td>
             <td class="p-4 text-slate-700 dark:text-gray-300 text-right">${cotacaoStr}</td>
             <td class="p-4 text-slate-800 dark:text-white font-bold text-right">${valorTotalStr}</td>
+            <td class="p-4 text-slate-700 dark:text-gray-300 font-medium text-right">${percentual}</td>
             <td class="p-4 text-center">
                 <button onclick='editAtivo(${JSON.stringify(inv)})' class="text-blue-500 hover:text-blue-700 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
                 <button onclick="deleteAtivo(${inv.id})" class="text-red-500 hover:text-red-700 p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
@@ -269,7 +273,7 @@ function sortTable(col) {
         else if (col === 'ticker') { valA = a.ticker; valB = b.ticker; }
         else if (col === 'qtd') { valA = a.quantidade; valB = b.quantidade; }
         else if (col === 'cotacao') { valA = a.preco_unidade || a.valor_manual || 0; valB = b.preco_unidade || b.valor_manual || 0; }
-        else if (col === 'total') { valA = a.valor_brl; valB = b.valor_brl; }
+        else if (col === 'total' || col === 'percentual') { valA = a.valor_brl; valB = b.valor_brl; }
         
         if (valA < valB) return currentSortAsc ? -1 : 1;
         if (valA > valB) return currentSortAsc ? 1 : -1;
@@ -423,19 +427,19 @@ function renderTotalsPanel() {
     
     for (let macroCat in globalData.tree) {
         const node = globalData.tree[macroCat];
-        let usdText = node.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrency(node.value_usd, 'USD')})</span>` : '';
+        let usdText = node.value_usd > 0 ? `<span class="text-xs text-gray-500">(${formatCurrency(node.value_usd, 'USD')})</span> ` : '';
         html += `<div class="flex justify-between items-end mt-2">
                     <span class="font-bold text-slate-700 dark:text-gray-300">${macroCat}</span>
-                    <span class="font-bold text-slate-800 dark:text-white">${formatCurrency(node.value_brl)}${usdText}</span>
+                    <span class="font-bold text-slate-800 dark:text-white">${usdText}${formatCurrency(node.value_brl)}</span>
                  </div>`;
                  
         if (node.subs && Object.keys(node.subs).length > 0) {
             for (let subName in node.subs) {
                 const subNode = node.subs[subName];
-                let subUsdText = subNode.value_usd > 0 ? ` <span class="text-xs text-gray-500">(${formatCurrency(subNode.value_usd, 'USD')})</span>` : '';
+                let subUsdText = subNode.value_usd > 0 ? `<span class="text-xs text-gray-500">(${formatCurrency(subNode.value_usd, 'USD')})</span> ` : '';
                 html += `<div class="flex justify-between items-end pl-4 mt-1">
                             <span class="text-slate-600 dark:text-gray-400 text-xs flex items-center before:content-[''] before:w-2 before:h-px before:bg-gray-300 dark:before:bg-gray-600 before:mr-2">${subName}</span>
-                            <span class="text-slate-700 dark:text-gray-300 text-xs">${formatCurrency(subNode.value_brl)}${subUsdText}</span>
+                            <span class="text-slate-700 dark:text-gray-300 text-xs">${subUsdText}${formatCurrency(subNode.value_brl)}</span>
                          </div>`;
             }
         }
