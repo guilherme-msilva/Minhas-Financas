@@ -285,7 +285,7 @@ include 'header.php';
                             <label class="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Categoria (Opcional)</label>
                             <input type="hidden" id="modal-idcategoria" name="idcategoria">
                             <div class="relative">
-                                <button type="button" onclick="document.getElementById('cat-dropdown').classList.toggle('hidden')" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors flex items-center justify-between">
+                                <button type="button" id="btn-toggle-cat" onclick="document.getElementById('cat-dropdown').classList.toggle('hidden')" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors flex items-center justify-between">
                                     <div class="flex items-center space-x-2" id="display-categoria-container">
                                         <div id="display-categoria-icon" class="w-5 h-5 rounded-full border border-dashed border-gray-400 dark:border-white/30 hidden items-center justify-center"></div>
                                         <span id="display-categoria" class="truncate">Não alterar categoria</span>
@@ -305,7 +305,7 @@ include 'header.php';
                             <label class="block text-sm font-medium text-slate-600 dark:text-gray-300 mb-1">Conta (Opcional)</label>
                             <input type="hidden" id="modal-idconta" name="idconta">
                             <div class="relative">
-                                <button type="button" onclick="document.getElementById('conta-dropdown').classList.toggle('hidden')" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors flex items-center justify-between">
+                                <button type="button" id="btn-toggle-conta" onclick="document.getElementById('conta-dropdown').classList.toggle('hidden')" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-colors flex items-center justify-between">
                                     <div class="flex items-center space-x-2" id="display-conta-container">
                                         <div id="display-conta-icon" class="w-5 h-5 rounded-full border border-dashed border-gray-400 dark:border-white/30 hidden"></div>
                                         <span id="display-conta" class="truncate">Não alterar conta</span>
@@ -405,13 +405,13 @@ include 'header.php';
         }
         
         document.addEventListener('click', function(event) {
-            const catBtn = event.target.closest('#display-categoria-container')?.parentElement;
+            const catBtn = event.target.closest('#btn-toggle-cat');
             const catDrop = event.target.closest('#cat-dropdown');
             if (!catBtn && !catDrop) {
                 document.getElementById('cat-dropdown')?.classList.add('hidden');
             }
             
-            const contaBtn = event.target.closest('#display-conta-container')?.parentElement;
+            const contaBtn = event.target.closest('#btn-toggle-conta');
             const contaDrop = event.target.closest('#conta-dropdown');
             if (!contaBtn && !contaDrop) {
                 document.getElementById('conta-dropdown')?.classList.add('hidden');
