@@ -52,10 +52,10 @@ $c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inac
                             <svg class="w-3.5 h-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div class="absolute left-0 mt-0 w-48 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 overflow-hidden z-50 transform origin-top-left group-hover:scale-100 scale-95 pt-1">
-                            <a href="categorias.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_cat; ?>">Categorias Base</a>
+                            <a href="categorias.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_cat; ?>">Categorias</a>
                             <a href="contas.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_conta; ?>">Contas Báncarias</a>
-                            <a href="categorias_investimento.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_cat_inv; ?>">Categ. Investimentos</a>
-                            <a href="categorizacao_automatica.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors border-t border-gray-100 dark:border-white/5 mt-1 pt-1 <?php echo $c_cat_auto; ?>">Categorização Auto</a>
+                            <a href="categorias_investimento.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_cat_inv; ?>">Categorias de Investimentos</a>
+                            <a href="categorizacao_automatica.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors border-t border-gray-100 dark:border-white/5 mt-1 pt-1 <?php echo $c_cat_auto; ?>">Auto Categorização</a>
                         </div>
                     </div>
                 </div>
