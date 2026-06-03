@@ -588,9 +588,15 @@ include 'header.php';
                         <input type="date" class="bg-transparent text-right text-slate-800 dark:text-white focus:outline-none w-32" id="ui-data" value="<?php echo htmlspecialchars($data); ?>">
                     </div>
                     
-                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5 relative">
                         <span class="text-slate-500 dark:text-gray-300 font-medium whitespace-nowrap mr-4">Descrição</span>
-                        <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>">
+                        <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>" autocomplete="off">
+                        
+                        <!-- Autocomplete Dropdown -->
+                        <div id="autocomplete-dropdown" class="hidden absolute top-full right-0 mt-1 w-[120%] sm:w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl p-2 z-[60] max-h-60 overflow-y-auto no-scrollbar">
+                            <div class="text-xs text-slate-400 dark:text-white/40 px-2 pb-1 mb-1 border-b border-gray-100 dark:border-white/5">Sugestões do histórico</div>
+                            <div id="autocomplete-list" class="space-y-1"></div>
+                        </div>
                     </div>
                     
                     <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
@@ -862,6 +868,70 @@ include 'header.php';
         </div>
 
     <script>
+        // Autocomplete da Descrição
+        let autocompleteTimer;
+        const descricaoInput = document.getElementById('ui-descricao');
+        const autocompleteDropdown = document.getElementById('autocomplete-dropdown');
+        const autocompleteList = document.getElementById('autocomplete-list');
+
+        descricaoInput.addEventListener('input', function() {
+            clearTimeout(autocompleteTimer);
+            const val = this.value.trim();
+            
+            if (val.length >= 3) {
+                autocompleteTimer = setTimeout(() => {
+                    fetch('api_autocomplete.php?q=' + encodeURIComponent(val))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success && data.matches.length > 0) {
+                                autocompleteList.innerHTML = '';
+                                data.matches.forEach(m => {
+                                    const catNome = m.categoria_nome || '-';
+                                    const contaNome = m.conta_nome || '-';
+                                    
+                                    const btn = document.createElement('button');
+                                    btn.type = 'button';
+                                    btn.className = 'w-full text-left p-2 bg-slate-50 dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-white/10 rounded-lg transition-colors flex flex-col border border-transparent hover:border-cyan-100 dark:hover:border-white/10';
+                                    btn.innerHTML = `
+                                        <span class="font-bold text-slate-800 dark:text-white text-sm mb-0.5 truncate w-full">${m.descricao}</span>
+                                        <span class="text-[10px] text-slate-500 dark:text-gray-400 flex items-center space-x-1 truncate w-full">
+                                            <span class="truncate">Cat: ${catNome}</span>
+                                            <span>•</span>
+                                            <span class="truncate">Conta: ${contaNome}</span>
+                                        </span>
+                                    `;
+                                    btn.onclick = () => {
+                                        descricaoInput.value = m.descricao;
+                                        autocompleteDropdown.classList.add('hidden');
+                                        
+                                        if (m.idcategoria) {
+                                            selectItem('categoria', m.idcategoria, m.categoria_nome);
+                                        }
+                                        if (m.idconta) {
+                                            if (document.getElementById('input-conta')) {
+                                                selectItem('conta', m.idconta, m.conta_nome);
+                                            }
+                                        }
+                                    };
+                                    autocompleteList.appendChild(btn);
+                                });
+                                autocompleteDropdown.classList.remove('hidden');
+                            } else {
+                                autocompleteDropdown.classList.add('hidden');
+                            }
+                        });
+                }, 300);
+            } else {
+                autocompleteDropdown.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('#ui-descricao') && !event.target.closest('#autocomplete-dropdown')) {
+                autocompleteDropdown?.classList.add('hidden');
+            }
+        });
+
         // Funções de Categorização Automática
         function autoCategorize() {
             const desc = document.getElementById('ui-descricao').value;
