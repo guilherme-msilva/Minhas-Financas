@@ -216,8 +216,8 @@ include 'header.php';
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         
         <!-- Cabeçalho e Toggle -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-            <div class="flex items-center space-x-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-4">
+            <div class="flex items-center space-x-4 shrink-0">
                 <div>
                     <h1 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
                     <p class="text-slate-500 dark:text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro.</p>
@@ -233,7 +233,7 @@ include 'header.php';
                 </button>
             </div>
             
-            <form id="form-filtros" method="GET" class="flex flex-col sm:flex-row flex-wrap items-center gap-4 w-full md:w-auto relative z-40">
+            <form id="form-filtros" method="GET" class="flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto relative z-40">
                 <!-- Seletor Liquid Glass de Data -->
                 <div class="relative w-full sm:w-auto">
                     <button type="button" onclick="toggleDateSelect()" class="w-full sm:w-auto bg-white/60 hover:bg-white/70 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-md border border-gray-200 dark:border-white/10 px-4 py-3 rounded-2xl flex items-center justify-between space-x-3 shadow-lg transition-colors cursor-pointer text-slate-800 dark:text-white font-medium text-sm focus:outline-none">
