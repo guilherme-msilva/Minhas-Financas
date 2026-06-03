@@ -11,22 +11,37 @@ require_once 'conexao.php';
 
 $user_id = $_SESSION['user_id'];
 $idcategoria = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
-$mes_str = isset($_GET['mes']) ? $_GET['mes'] : ''; // Formato: 2024-05
+$mes_str = isset($_GET['mes']) ? $_GET['mes'] : ''; // Formato: 2024-05 ou 'total'
+$data_inicio = isset($_GET['inicio']) ? $_GET['inicio'] : '';
+$data_fim = isset($_GET['fim']) ? $_GET['fim'] : '';
 $conta = isset($_GET['conta']) ? (int)$_GET['conta'] : 0;
 $tipo = isset($_GET['tipo']) ? $_GET['tipo'] : ''; // receitas ou despesas
 
-if (!$idcategoria || !$mes_str || !preg_match('/^\d{4}-\d{2}$/', $mes_str)) {
+if (!$idcategoria || !$mes_str) {
     echo json_encode(['success' => false, 'message' => 'Parâmetros inválidos']);
     exit;
 }
 
-list($ano, $mes) = explode('-', $mes_str);
-$ano = (int)$ano;
-$mes = (int)$mes;
-
-$conditions = ["t.iduser = ?", "t.idcategoria = ?", "YEAR(t.data) = ?", "MONTH(t.data) = ?"];
-$params = [$user_id, $idcategoria, $ano, $mes];
-$types = "iiii";
+if ($mes_str === 'total') {
+    if (!$data_inicio || !$data_fim) {
+        echo json_encode(['success' => false, 'message' => 'Datas inválidas para total']);
+        exit;
+    }
+    $conditions = ["t.iduser = ?", "t.idcategoria = ?", "t.data >= ?", "t.data <= ?"];
+    $params = [$user_id, $idcategoria, $data_inicio, $data_fim];
+    $types = "iiss";
+} else {
+    if (!preg_match('/^\d{4}-\d{2}$/', $mes_str)) {
+        echo json_encode(['success' => false, 'message' => 'Mês inválido']);
+        exit;
+    }
+    list($ano, $mes) = explode('-', $mes_str);
+    $ano = (int)$ano;
+    $mes = (int)$mes;
+    $conditions = ["t.iduser = ?", "t.idcategoria = ?", "YEAR(t.data) = ?", "MONTH(t.data) = ?"];
+    $params = [$user_id, $idcategoria, $ano, $mes];
+    $types = "iiii";
+}
 
 if ($conta > 0) {
     $conditions[] = "t.idconta = ?";

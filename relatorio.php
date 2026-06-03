@@ -65,6 +65,16 @@ function getCategoryPath($id, $cats_map) {
     return implode(' > ', $path);
 }
 
+function getCategoryLevel($id, $cats_map) {
+    $level = 0;
+    $curr = $id;
+    while ($curr && isset($cats_map[$curr]) && $cats_map[$curr]['id_pai']) {
+        $level++;
+        $curr = $cats_map[$curr]['id_pai'];
+    }
+    return $level;
+}
+
 // Árvore de Categoria UI
 function buildCategoryTree(array $elements, $parentId = null) {
     $branch = array();
@@ -203,6 +213,8 @@ function buildPivotData($stmt_sql, $types, $params, $cats_map, $meses_colunas) {
         if (!isset($dados[$idcat])) {
             $dados[$idcat] = [
                 'idcategoria' => $idcat,
+                'nome' => $cats_map[$idcat]['nome'] ?? 'Desconhecida',
+                'level' => getCategoryLevel($idcat, $cats_map),
                 'path' => getCategoryPath($idcat, $cats_map),
                 'total_geral' => 0,
                 'mensal' => array_fill_keys(array_keys($meses_colunas), 0)
@@ -394,8 +406,18 @@ include 'header.php';
                                 <tbody class="divide-y divide-gray-200 dark:divide-white/10 text-slate-600 dark:text-white/70 bg-white dark:bg-transparent">
                                     <?php foreach ($dados['linhas'] as $linha): ?>
                                         <tr class="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                            <td class="px-5 py-3.5 font-medium text-slate-800 dark:text-white print:text-black"><?php echo htmlspecialchars($linha['path']); ?></td>
-                                            <td class="px-5 py-3.5 text-right font-bold text-slate-800 dark:text-white border-r border-gray-200 dark:border-white/10">R$ <?php echo number_format($linha['total_geral'], 2, ',', '.'); ?></td>
+                                            <td class="px-5 py-3.5 font-medium text-slate-800 dark:text-white print:text-black">
+                                                <div style="padding-left: <?php echo $linha['level'] * 12; ?>px">
+                                                    <?php echo htmlspecialchars($linha['nome']); ?>
+                                                </div>
+                                            </td>
+                                            <?php if ($linha['total_geral'] > 0): ?>
+                                                <td class="px-5 py-3.5 text-right font-bold text-slate-800 dark:text-white border-r border-gray-200 dark:border-white/10 cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 text-cyan-600 dark:text-cyan-400 hover:underline underline-offset-2 transition-colors print:text-black print:no-underline" onclick="openDetalhesModal(<?php echo $linha['idcategoria']; ?>, 'total', '<?php echo strtolower($titulo); ?>', '<?php echo addslashes($linha['path']); ?>', 'Total do Período', '<?php echo htmlspecialchars($data_inicio_filtro); ?>', '<?php echo htmlspecialchars($data_fim_filtro); ?>')">
+                                                    R$ <?php echo number_format($linha['total_geral'], 2, ',', '.'); ?>
+                                                </td>
+                                            <?php else: ?>
+                                                <td class="px-5 py-3.5 text-right font-bold text-slate-800 dark:text-white border-r border-gray-200 dark:border-white/10">R$ <?php echo number_format($linha['total_geral'], 2, ',', '.'); ?></td>
+                                            <?php endif; ?>
                                             <?php foreach ($meses_colunas as $chave => $disp): ?>
                                                 <?php if ($linha['mensal'][$chave] > 0): ?>
                                                     <td class="px-5 py-3.5 text-right font-mono text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 text-cyan-600 dark:text-cyan-400 hover:underline underline-offset-2 transition-colors print:text-black print:no-underline" onclick="openDetalhesModal(<?php echo $linha['idcategoria']; ?>, '<?php echo $chave; ?>', '<?php echo strtolower($titulo); ?>', '<?php echo addslashes($linha['path']); ?>', '<?php echo $disp; ?>')">
@@ -482,7 +504,7 @@ include 'header.php';
         });
 
         // Modal de Detalhes
-        function openDetalhesModal(idcategoria, mes, tipo, categoriaPath, mesDisplay) {
+        function openDetalhesModal(idcategoria, mes, tipo, categoriaPath, mesDisplay, dataInicio = '', dataFim = '') {
             const modal = document.getElementById('modal-detalhes');
             const tbody = document.getElementById('detalhes-tbody');
             const titulo = document.getElementById('detalhes-titulo');
@@ -499,7 +521,11 @@ include 'header.php';
             modal.classList.remove('hidden');
 
             // Chamada API
-            fetch(`api_relatorio_detalhes.php?categoria=${idcategoria}&mes=${mes}&tipo=${tipo}&conta=${contaFiltro}`)
+            let url = `api_relatorio_detalhes.php?categoria=${idcategoria}&mes=${mes}&tipo=${tipo}&conta=${contaFiltro}`;
+            if (mes === 'total') {
+                url += `&inicio=${dataInicio}&fim=${dataFim}`;
+            }
+            fetch(url)
                 .then(r => r.json())
                 .then(data => {
                     loading.classList.add('hidden');
