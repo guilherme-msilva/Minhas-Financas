@@ -175,6 +175,9 @@ function getMacroColor(macroCat) {
 }
 
 const formatCurrency = (value, currency = 'BRL') => {
+    if (window.ocultarValores) {
+        return currency === 'BRL' ? 'R$ ••••' : 'US$ ••••';
+    }
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(value);
 };
 

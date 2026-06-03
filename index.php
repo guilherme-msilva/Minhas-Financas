@@ -222,6 +222,15 @@ include 'header.php';
                     <h1 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
                     <p class="text-slate-500 dark:text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro.</p>
                 </div>
+                <button onclick="toggleValores()" class="p-2 rounded-full bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-white/80 hover:bg-slate-300 dark:hover:bg-white/20 transition-colors shadow-sm ml-4" title="Ocultar/Exibir Valores">
+                    <?php if($ocultar_valores): ?>
+                        <!-- Olho Fechado -->
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0a10.05 10.05 0 015.71-1.581c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.564 3.029l-.24.3-3.29-3.29m-4.243-4.243a3 3 0 00-4.243 4.243"></path></svg>
+                    <?php else: ?>
+                        <!-- Olho Aberto -->
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    <?php endif; ?>
+                </button>
             </div>
             
             <form id="form-filtros" method="GET" class="flex flex-col sm:flex-row flex-wrap items-center gap-4 w-full md:w-auto relative z-40">
@@ -275,6 +284,16 @@ include 'header.php';
         <script>
             let anoDropdown = <?php echo $ano; ?>;
 
+            function toggleValores() {
+                fetch('toggle_valores.php')
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success) {
+                        window.location.reload();
+                    }
+                });
+            }
+
             function toggleDateSelect() {
                 const selector = document.getElementById('date-selector');
                 if (selector.classList.contains('hidden')) {
@@ -319,7 +338,7 @@ include 'header.php';
             <div class="flex items-end space-x-2 relative z-10">
                 <span class="text-slate-400 dark:text-white/60 text-3xl font-light pb-1 md:pb-2" id="saldo_total_currency">R$</span>
                 <span class="text-slate-800 dark:text-white text-5xl md:text-7xl font-bold tracking-tight" id="saldo_total_valor">
-                    <?php echo number_format($saldo_total, 2, ',', '.'); ?>
+                    <?php echo $ocultar_valores ? '&bull;&bull;&bull;&bull;' : number_format($saldo_total, 2, ',', '.'); ?>
                 </span>
             </div>
             
@@ -360,7 +379,7 @@ include 'header.php';
                 <div>
                     <h4 class="text-emerald-700 dark:text-emerald-100/70 text-sm font-medium mb-1">Entradas</h4>
                     <div class="text-emerald-600 dark:text-emerald-400 text-3xl font-bold leading-none">
-                        R$ <?php echo number_format($entradas_mes, 2, ',', '.'); ?>
+                        R$ <?php echo $ocultar_valores ? '&bull;&bull;&bull;&bull;' : number_format($entradas_mes, 2, ',', '.'); ?>
                     </div>
                 </div>
             </div>
@@ -373,7 +392,7 @@ include 'header.php';
                 <div>
                     <h4 class="text-red-700 dark:text-red-100/70 text-sm font-medium mb-1">Saídas</h4>
                     <div class="text-red-600 dark:text-red-400 text-3xl font-bold leading-none">
-                        R$ <?php echo number_format($saidas_mes, 2, ',', '.'); ?>
+                        R$ <?php echo $ocultar_valores ? '&bull;&bull;&bull;&bull;' : number_format($saidas_mes, 2, ',', '.'); ?>
                     </div>
                 </div>
             </div>
@@ -393,7 +412,7 @@ include 'header.php';
                 <div>
                     <h4 class="text-slate-600 dark:text-white/60 text-sm font-medium mb-1">Balanço do Mês</h4>
                     <div class="<?php echo $cor_text; ?> text-3xl font-bold flex flex-wrap items-baseline gap-1 leading-none">
-                        R$ <?php echo number_format(abs($resultado_mes), 2, ',', '.'); ?>
+                        R$ <?php echo $ocultar_valores ? '&bull;&bull;&bull;&bull;' : number_format(abs($resultado_mes), 2, ',', '.'); ?>
                         <?php if($resultado_mes < 0): ?>
                             <span class="text-sm font-medium text-red-500 dark:text-red-400/80 uppercase ml-1">(Negativo)</span>
                         <?php endif; ?>
@@ -421,7 +440,7 @@ include 'header.php';
                         <div>
                             <h4 class="text-slate-600 dark:text-white/70 text-sm font-medium mb-1"><?php echo htmlspecialchars($conta['nome']); ?></h4>
                             <div class="text-slate-800 dark:text-white text-xl font-bold">
-                                R$ <?php echo number_format($conta['saldo_atual'], 2, ',', '.'); ?>
+                                R$ <?php echo $ocultar_valores ? '&bull;&bull;&bull;&bull;' : number_format($conta['saldo_atual'], 2, ',', '.'); ?>
                             </div>
                         </div>
                     </a>
@@ -539,7 +558,7 @@ include 'header.php';
                                                     const formattedValue = value.toLocaleString('pt-BR', {minimumFractionDigits: 2});
                                                     
                                                     return {
-                                                        text: `${label} - R$ ${formattedValue} (${pct}%)`,
+                                                        text: window.ocultarValores ? `${label} - R$ •••• (${pct}%)` : `${label} - R$ ${formattedValue} (${pct}%)`,
                                                         fillStyle: style.backgroundColor,
                                                         strokeStyle: style.borderColor,
                                                         lineWidth: style.borderWidth,
@@ -569,7 +588,11 @@ include 'header.php';
                                             const valor = parseFloat(context.parsed || context.raw);
                                             const total = context.dataset.data.reduce((acc, val) => acc + parseFloat(val), 0);
                                             const pct = total > 0 ? ((valor * 100) / total).toFixed(1) : 0;
-                                            label += 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                            if (window.ocultarValores) {
+                                                label += 'R$ ••••';
+                                            } else {
+                                                label += 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                                            }
                                             label += ' (' + pct + '%)';
                                             return label;
                                         }
@@ -612,6 +635,9 @@ include 'header.php';
         <!-- Script de Integração do Portfólio no Dashboard -->
         <script>
             const formatCurrencyDash = (value, currency = 'BRL') => {
+                if (window.ocultarValores) {
+                    return currency === 'BRL' ? 'R$ ••••' : 'US$ ••••';
+                }
                 return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: currency }).format(value);
             };
 

@@ -1,6 +1,7 @@
 <?php
 // Determina se a classe dark será aplicada no html
 $tema_class = (isset($_SESSION['tema']) && $_SESSION['tema'] === 'CLARO') ? '' : 'dark';
+$ocultar_valores = isset($_SESSION['ocultar_valores']) && $_SESSION['ocultar_valores'];
 ?>
 <!DOCTYPE html>
 <html lang="pt-br" class="<?php echo $tema_class; ?>">
@@ -32,6 +33,7 @@ $tema_class = (isset($_SESSION['tema']) && $_SESSION['tema'] === 'CLARO') ? '' :
                 extend: {}
             }
         }
+        window.ocultarValores = <?php echo $ocultar_valores ? 'true' : 'false'; ?>;
     </script>
     
     <!-- Google Fonts -->
