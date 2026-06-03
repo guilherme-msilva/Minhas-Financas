@@ -254,7 +254,7 @@ $extra_head = '
         color: black !important;
     }
     
-    .max-w-6xl {
+    .max-w-\\[1800px\\] {
         max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -302,7 +302,7 @@ include 'header.php';
 
     <?php include 'menu.php'; ?>
 
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-[1800px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <h1 class="text-3xl font-bold text-slate-800 dark:text-white tracking-wide">Relatório Analítico</h1>
             
