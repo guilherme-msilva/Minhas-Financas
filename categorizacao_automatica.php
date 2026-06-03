@@ -261,7 +261,7 @@ include 'header.php';
     <div id="modal-regra" class="fixed inset-0 z-[100] hidden">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeModal()"></div>
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div class="relative bg-white dark:bg-slate-800 rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:max-w-lg w-full border border-gray-200 dark:border-white/10">
+            <div class="relative bg-white dark:bg-slate-800 rounded-3xl text-left overflow-visible shadow-2xl transform transition-all sm:my-8 sm:max-w-lg w-full border border-gray-200 dark:border-white/10">
                 <form method="POST" action="categorizacao_automatica.php">
                     <input type="hidden" name="action" value="save">
                     <input type="hidden" name="id" id="modal-id" value="0">
