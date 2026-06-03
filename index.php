@@ -222,15 +222,6 @@ include 'header.php';
                     <h1 class="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white tracking-wide">Olá, <?php echo htmlspecialchars(explode(' ', $user_nome)[0]); ?>!</h1>
                     <p class="text-slate-500 dark:text-white/60 mt-1 text-sm md:text-base">Aqui está o seu resumo financeiro.</p>
                 </div>
-                <button onclick="toggleValores()" class="p-2 rounded-full bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-white/80 hover:bg-slate-300 dark:hover:bg-white/20 transition-colors shadow-sm ml-4" title="Ocultar/Exibir Valores">
-                    <?php if($ocultar_valores): ?>
-                        <!-- Olho Fechado -->
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0a10.05 10.05 0 015.71-1.581c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.564 3.029l-.24.3-3.29-3.29m-4.243-4.243a3 3 0 00-4.243 4.243"></path></svg>
-                    <?php else: ?>
-                        <!-- Olho Aberto -->
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                    <?php endif; ?>
-                </button>
             </div>
             
             <form id="form-filtros" method="GET" class="flex flex-col md:flex-row flex-wrap lg:flex-nowrap items-center gap-3 w-full lg:w-auto relative z-40">
@@ -333,6 +324,14 @@ include 'header.php';
             <!-- Efeito de brilho hover -->
             <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400/0 to-blue-500/0 group-hover:from-cyan-400/5 group-hover:to-blue-500/5 transition-all duration-500"></div>
             
+            <button onclick="toggleValores()" class="absolute top-6 right-6 md:top-8 md:right-8 p-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/70 hover:bg-slate-200 dark:hover:bg-white/20 transition-all shadow-sm z-20" title="Ocultar/Exibir Valores">
+                <?php if($ocultar_valores): ?>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0a10.05 10.05 0 015.71-1.581c4.478 0 8.268 2.943 9.543 7a9.97 9.97 0 01-1.564 3.029l-.24.3-3.29-3.29m-4.243-4.243a3 3 0 00-4.243 4.243"></path></svg>
+                <?php else: ?>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                <?php endif; ?>
+            </button>
+
             <h2 class="text-slate-500 dark:text-white/70 text-lg font-medium mb-2 uppercase tracking-widest">Saldo Total Geral</h2>
             
             <div class="flex items-end space-x-2 relative z-10">
