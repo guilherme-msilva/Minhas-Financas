@@ -735,15 +735,15 @@ include 'header.php';
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <div class="bg-white/50 dark:bg-white/5 rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10">
+                <div class="space-y-2">
                     <?php foreach($contas as $conta): ?>
-                        <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-gray-200 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                        <button onclick="selectItem('conta', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors flex items-center space-x-4 border border-slate-100 dark:border-slate-800">
                             <?php if (!empty($conta['img'])): ?>
-                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-white/20 shrink-0">
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover shrink-0 shadow-sm">
                             <?php else: ?>
-                                <div class="w-4 h-4 rounded-full shrink-0" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                                <div class="w-8 h-8 rounded-full shrink-0 shadow-sm" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
                             <?php endif; ?>
-                            <span class="text-slate-800 dark:text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
+                            <span class="text-slate-800 dark:text-white font-medium text-lg"><?php echo htmlspecialchars($conta['nome']); ?></span>
                         </button>
                     <?php endforeach; ?>
                 </div>
@@ -760,15 +760,15 @@ include 'header.php';
                 <div class="w-16"></div>
             </div>
             <div class="flex-1 overflow-y-auto no-scrollbar p-4">
-                <div class="bg-white/50 dark:bg-white/5 rounded-3xl overflow-hidden border border-gray-200 dark:border-white/10">
+                <div class="space-y-2">
                     <?php foreach($contas as $conta): ?>
-                        <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 border-b border-gray-200 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 last:border-b-0">
+                        <button onclick="selectItem('conta-destino', '<?php echo $conta['id']; ?>', '<?php echo addslashes($conta['nome']); ?>')" class="w-full text-left p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-colors flex items-center space-x-4 border border-slate-100 dark:border-slate-800">
                             <?php if (!empty($conta['img'])): ?>
-                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-6 h-6 rounded-full object-cover border border-gray-200 dark:border-white/20 shrink-0">
+                                <img src="img/<?php echo htmlspecialchars($conta['img']); ?>" alt="Logo" class="w-8 h-8 rounded-full object-cover shrink-0 shadow-sm">
                             <?php else: ?>
-                                <div class="w-4 h-4 rounded-full shrink-0" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
+                                <div class="w-8 h-8 rounded-full shrink-0 shadow-sm" style="background-color: <?php echo $conta['cor'] ?: '#ccc'; ?>"></div>
                             <?php endif; ?>
-                            <span class="text-slate-800 dark:text-white font-medium"><?php echo htmlspecialchars($conta['nome']); ?></span>
+                            <span class="text-slate-800 dark:text-white font-medium text-lg"><?php echo htmlspecialchars($conta['nome']); ?></span>
                         </button>
                     <?php endforeach; ?>
                 </div>
