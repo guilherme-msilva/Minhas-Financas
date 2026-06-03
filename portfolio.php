@@ -433,8 +433,11 @@ function renderTotalsPanel() {
         let pct = globalData.total_brl > 0 ? ((node.value_brl / globalData.total_brl) * 100).toFixed(1) + '%' : '0%';
         let usdText = node.value_usd > 0 ? `<span class="text-xs text-gray-500">(${formatCurrency(node.value_usd, 'USD')})</span> ` : '';
         html += `<div class="flex justify-between items-end mt-2">
-                    <span class="font-bold text-slate-700 dark:text-gray-300 flex items-center">${macroCat} <span class="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold ml-2 bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded-md">${pct}</span></span>
-                    <span class="font-bold text-slate-800 dark:text-white">${usdText}${formatCurrency(node.value_brl)}</span>
+                    <span class="font-bold text-slate-700 dark:text-gray-300 flex items-center">${macroCat}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-800 dark:text-white">${usdText}${formatCurrency(node.value_brl)}</span>
+                        <span class="text-[10px] text-cyan-600 dark:text-cyan-400 font-semibold bg-cyan-50 dark:bg-cyan-900/30 px-1.5 py-0.5 rounded-md">${pct}</span>
+                    </div>
                  </div>`;
                  
         if (node.subs && Object.keys(node.subs).length > 0) {

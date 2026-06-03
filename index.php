@@ -672,15 +672,15 @@ include 'header.php';
                             <div class="flex justify-between items-center mb-3">
                                 <span class="font-medium text-slate-500 dark:text-gray-400">Total em Contas:</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-slate-500 font-semibold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded-md">${novoSaldoGeral > 0 ? ((saldoTotalContas / novoSaldoGeral) * 100).toFixed(1) + '%' : '0%'}</span>
                                     <span class="font-bold text-slate-700 dark:text-white">${formatCurrencyDash(saldoTotalContas)}</span>
+                                    <span class="text-[10px] text-slate-500 font-semibold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded-md">${novoSaldoGeral > 0 ? ((saldoTotalContas / novoSaldoGeral) * 100).toFixed(1) + '%' : '0%'}</span>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center mb-4">
                                 <span class="font-medium text-purple-500 dark:text-purple-400">Total Portfólio:</span>
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 rounded-md">${novoSaldoGeral > 0 ? ((saldoPortfolio / novoSaldoGeral) * 100).toFixed(1) + '%' : '0%'}</span>
                                     <span class="font-bold text-purple-600 dark:text-purple-300">${formatCurrencyDash(saldoPortfolio)}</span>
+                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-semibold bg-purple-50 dark:bg-purple-900/30 px-1.5 py-0.5 rounded-md">${novoSaldoGeral > 0 ? ((saldoPortfolio / novoSaldoGeral) * 100).toFixed(1) + '%' : '0%'}</span>
                                 </div>
                             </div>
                             <div class="pl-4 border-l-2 border-gray-200 dark:border-white/10 space-y-2">
