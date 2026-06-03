@@ -472,7 +472,7 @@ include 'header.php';
                             <option class="text-gray-900" value="pizza" <?php echo $tipo_grafico == 'pizza' ? 'selected' : ''; ?>>Despesas/Receitas (Pizza)</option>
                             <option class="text-gray-900" value="barra" <?php echo $tipo_grafico == 'barra' ? 'selected' : ''; ?>>Despesas/Receitas (Barra)</option>
                             <option class="text-gray-900" value="linha" <?php echo $tipo_grafico == 'linha' ? 'selected' : ''; ?>>Despesas/Receitas (Linha)</option>
-                            <option class="text-gray-900" value="comparacao" <?php echo $tipo_grafico == 'comparacao' ? 'selected' : ''; ?>>Receita x Despesa (Linha)</option>
+                            <option class="text-gray-900" value="comparacao" <?php echo $tipo_grafico == 'comparacao' ? 'selected' : ''; ?>>Receita x Despesa (Barra)</option>
                             <option class="text-gray-900" value="saldo" <?php echo $tipo_grafico == 'saldo' ? 'selected' : ''; ?>>Saldo em Contas (Linha)</option>
                         </select>
                     </div>
@@ -774,37 +774,25 @@ include 'header.php';
 
             } else if (tipoGrafico === 'comparacao') {
                 currentChart = new Chart(ctx, {
-                    type: 'line',
+                    type: 'bar',
                     data: {
                         labels: chartData.labels,
                         datasets: [
                             {
                                 label: 'Receitas',
                                 data: chartData.data_receitas,
-                                borderColor: '#10b981',
-                                backgroundColor: 'rgba(16,185,129,0.1)',
-                                borderWidth: 3,
-                                pointBackgroundColor: tooltipBg,
-                                pointBorderColor: '#10b981',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                fill: true,
-                                tension: 0.4
+                                backgroundColor: '#10b981',
+                                borderRadius: 4,
+                                barPercentage: 0.8,
+                                categoryPercentage: 0.8
                             },
                             {
                                 label: 'Despesas',
                                 data: chartData.data_despesas,
-                                borderColor: '#ef4444',
-                                backgroundColor: 'rgba(239,68,68,0.1)',
-                                borderWidth: 3,
-                                pointBackgroundColor: tooltipBg,
-                                pointBorderColor: '#ef4444',
-                                pointBorderWidth: 2,
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                fill: true,
-                                tension: 0.4
+                                backgroundColor: '#ef4444',
+                                borderRadius: 4,
+                                barPercentage: 0.8,
+                                categoryPercentage: 0.8
                             }
                         ]
                     },
