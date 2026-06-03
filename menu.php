@@ -10,8 +10,9 @@ $c_cat_inv  = in_array($current_page, ['categorias_investimento.php']) ? 'bg-sla
 $c_trans    = in_array($current_page, ['transacoes.php', 'transacao.php']) ? $active_class : $inactive_class;
 $c_orc      = in_array($current_page, ['orcamento.php']) ? $active_class : $inactive_class;
 $c_analise  = in_array($current_page, ['relatorio.php', 'graficos.php']) ? $active_class : $inactive_class;
-$c_cadastros = in_array($current_page, ['categorias.php', 'categoria.php', 'contas.php', 'conta.php', 'categorias_investimento.php']) ? $active_class : $inactive_class;
+$c_cadastros = in_array($current_page, ['categorias.php', 'categoria.php', 'contas.php', 'conta.php', 'categorias_investimento.php', 'categorizacao_automatica.php']) ? $active_class : $inactive_class;
 $c_imp      = in_array($current_page, ['importacoes.php']) ? 'bg-slate-100 dark:bg-white/10 font-semibold text-slate-900 dark:text-white' : 'text-slate-700 dark:text-gray-300';
+$c_cat_auto = in_array($current_page, ['categorizacao_automatica.php']) ? 'bg-slate-100 dark:bg-white/10 font-semibold text-slate-900 dark:text-white' : 'text-slate-700 dark:text-gray-300';
 $c_user     = in_array($current_page, ['userSettings.php']) ? $active_class : $inactive_class;
 $c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inactive_class;
 ?>
@@ -54,6 +55,7 @@ $c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inac
                             <a href="categorias.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_cat; ?>">Categorias Base</a>
                             <a href="contas.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_conta; ?>">Contas Báncarias</a>
                             <a href="categorias_investimento.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors <?php echo $c_cat_inv; ?>">Categ. Investimentos</a>
+                            <a href="categorizacao_automatica.php" class="block px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors border-t border-gray-100 dark:border-white/5 mt-1 pt-1 <?php echo $c_cat_auto; ?>">Categorização Auto</a>
                         </div>
                     </div>
                 </div>
@@ -103,6 +105,7 @@ $c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inac
                 <a href="categorias.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias</a>
                 <a href="contas.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Contas Báncarias</a>
                 <a href="categorias_investimento.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias de Investimentos</a>
+                <a href="categorizacao_automatica.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 border-t border-gray-100 dark:border-white/5 mt-1 pt-1">Categorização Auto</a>
             </div>
         </div>
     </div>

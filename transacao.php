@@ -592,6 +592,13 @@ include 'header.php';
                         <span class="text-slate-500 dark:text-gray-300 font-medium whitespace-nowrap mr-4">Descrição</span>
                         <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>">
                     </div>
+                    
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5 bg-cyan-50/50 dark:bg-cyan-900/10 rounded-xl my-1">
+                        <span class="text-cyan-700 dark:text-cyan-300 font-medium whitespace-nowrap mr-4">Categorização Automática</span>
+                        <button type="button" onclick="autoCategorize()" class="px-4 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-lg text-sm font-bold shadow-md transition-all whitespace-nowrap">
+                            Aplicar
+                        </button>
+                    </div>
 
                     <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
                         <div class="flex items-center space-x-2">
@@ -816,6 +823,24 @@ include 'header.php';
         </button>
     </div>
 
+        <!-- Modal Categorização Automática Múltipla -->
+        <div id="modal-auto-categorize" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl max-w-sm w-full max-h-[80vh] flex flex-col">
+                <h3 class="text-slate-800 dark:text-white font-medium text-lg mb-2">Múltiplas Regras Encontradas</h3>
+                <p class="text-slate-500 dark:text-white/60 text-sm mb-4">Escolha qual regra deseja aplicar para esta transação:</p>
+                
+                <div id="auto-categorize-list" class="overflow-y-auto no-scrollbar space-y-2 flex-1">
+                    <!-- Regras injetadas via JS -->
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
+                    <button type="button" onclick="document.getElementById('modal-auto-categorize').classList.add('hidden')" class="w-full py-3 text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white transition-colors font-medium text-sm">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal Edição Recorrência -->
         <div id="modal-edicao-recorrencia" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-3xl p-6 shadow-2xl max-w-sm w-full">
@@ -837,6 +862,74 @@ include 'header.php';
         </div>
 
     <script>
+        // Funções de Categorização Automática
+        function autoCategorize() {
+            const desc = document.getElementById('ui-descricao').value;
+            if (!desc) {
+                alert('Preencha a descrição primeiro.');
+                return;
+            }
+            
+            fetch('api_categorizacao.php?action=search&description=' + encodeURIComponent(desc))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.matches.length === 1) {
+                            applyAutoCategorizeRule(data.matches[0]);
+                        } else if (data.matches.length > 1) {
+                            showAutoCategorizeModal(data.matches);
+                        } else {
+                            alert('Nenhuma regra automática encontrada para essa descrição.');
+                        }
+                    } else {
+                        alert('Erro ao buscar regras automáticas.');
+                    }
+                });
+        }
+        
+        function showAutoCategorizeModal(matches) {
+            const list = document.getElementById('auto-categorize-list');
+            list.innerHTML = '';
+            
+            matches.forEach(m => {
+                const catNome = m.categoria_nome || '-';
+                const contaNome = m.conta_nome || '-';
+                
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'w-full text-left p-3 bg-slate-50 dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-white/10 rounded-xl border border-gray-200 dark:border-white/5 transition-colors flex flex-col';
+                btn.innerHTML = `
+                    <span class="font-bold text-slate-800 dark:text-white text-sm mb-1">Match: "${m.match_description}"</span>
+                    <span class="text-xs text-slate-600 dark:text-gray-300">Cat: ${catNome} | Conta: ${contaNome}</span>
+                `;
+                btn.onclick = () => {
+                    applyAutoCategorizeRule(m);
+                    document.getElementById('modal-auto-categorize').classList.add('hidden');
+                };
+                
+                list.appendChild(btn);
+            });
+            
+            document.getElementById('modal-auto-categorize').classList.remove('hidden');
+        }
+        
+        function applyAutoCategorizeRule(rule) {
+            if (rule.idcategoria) {
+                document.getElementById('ui-idcategoria').value = rule.idcategoria;
+                document.getElementById('display-categoria').innerText = rule.categoria_nome;
+            }
+            if (rule.idconta) {
+                document.getElementById('ui-idconta').value = rule.idconta;
+                document.getElementById('display-conta').innerText = rule.conta_nome;
+            }
+            
+            // Increment the count in backend
+            const formData = new FormData();
+            formData.append('action', 'increment');
+            formData.append('id', rule.id);
+            fetch('api_categorizacao.php', { method: 'POST', body: formData });
+        }
+
         // Inicializar Numpad com valor atual
         let valorAtual = "<?php echo number_format($valor * 100, 0, '', ''); ?>";
         if(valorAtual === "0") valorAtual = "000";
