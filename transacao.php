@@ -593,7 +593,7 @@ include 'header.php';
                         <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>" autocomplete="off">
                         
                         <!-- Autocomplete Dropdown -->
-                        <div id="autocomplete-dropdown" class="hidden absolute top-full right-0 mt-1 w-[120%] sm:w-80 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl p-2 z-[60] max-h-60 overflow-y-auto no-scrollbar">
+                        <div id="autocomplete-dropdown" class="hidden absolute top-full left-0 right-0 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl p-2 z-[60]">
                             <div class="text-xs text-slate-400 dark:text-white/40 px-2 pb-1 mb-1 border-b border-gray-100 dark:border-white/5">Sugestões do histórico</div>
                             <div id="autocomplete-list" class="space-y-1"></div>
                         </div>

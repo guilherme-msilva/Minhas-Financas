@@ -34,7 +34,6 @@ $sql = "SELECT
         LEFT JOIN categorias cat ON t.idcategoria = cat.id
         LEFT JOIN contas cont ON t.idconta = cont.id
         WHERE t.iduser = ? 
-          AND t.data >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
           AND t.descricao LIKE CONCAT('%', ?, '%')
         GROUP BY t.descricao, t.idcategoria, t.idconta
         ORDER BY 
