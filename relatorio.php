@@ -202,6 +202,7 @@ function buildPivotData($stmt_sql, $types, $params, $cats_map, $meses_colunas) {
         
         if (!isset($dados[$idcat])) {
             $dados[$idcat] = [
+                'idcategoria' => $idcat,
                 'path' => getCategoryPath($idcat, $cats_map),
                 'total_geral' => 0,
                 'mensal' => array_fill_keys(array_keys($meses_colunas), 0)
@@ -396,9 +397,13 @@ include 'header.php';
                                             <td class="px-5 py-3.5 font-medium text-slate-800 dark:text-white print:text-black"><?php echo htmlspecialchars($linha['path']); ?></td>
                                             <td class="px-5 py-3.5 text-right font-bold text-slate-800 dark:text-white border-r border-gray-200 dark:border-white/10">R$ <?php echo number_format($linha['total_geral'], 2, ',', '.'); ?></td>
                                             <?php foreach ($meses_colunas as $chave => $disp): ?>
-                                                <td class="px-5 py-3.5 text-right font-mono text-sm">
-                                                    <?php echo $linha['mensal'][$chave] > 0 ? 'R$ ' . number_format($linha['mensal'][$chave], 2, ',', '.') : '-'; ?>
-                                                </td>
+                                                <?php if ($linha['mensal'][$chave] > 0): ?>
+                                                    <td class="px-5 py-3.5 text-right font-mono text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 text-cyan-600 dark:text-cyan-400 hover:underline underline-offset-2 transition-colors print:text-black print:no-underline" onclick="openDetalhesModal(<?php echo $linha['idcategoria']; ?>, '<?php echo $chave; ?>', '<?php echo strtolower($titulo); ?>', '<?php echo addslashes($linha['path']); ?>', '<?php echo $disp; ?>')">
+                                                        R$ <?php echo number_format($linha['mensal'][$chave], 2, ',', '.'); ?>
+                                                    </td>
+                                                <?php else: ?>
+                                                    <td class="px-5 py-3.5 text-right font-mono text-sm text-slate-400 dark:text-white/40">-</td>
+                                                <?php endif; ?>
                                             <?php endforeach; ?>
                                         </tr>
                                     <?php endforeach; ?>
@@ -475,6 +480,108 @@ include 'header.php';
                 catDropdown.classList.add('hidden');
             }
         });
+
+        // Modal de Detalhes
+        function openDetalhesModal(idcategoria, mes, tipo, categoriaPath, mesDisplay) {
+            const modal = document.getElementById('modal-detalhes');
+            const tbody = document.getElementById('detalhes-tbody');
+            const titulo = document.getElementById('detalhes-titulo');
+            const totalE = document.getElementById('detalhes-total');
+            const loading = document.getElementById('detalhes-loading');
+            const contaFiltro = document.querySelector('select[name="conta"]').value;
+
+            // Prepara a tela
+            titulo.innerHTML = `<span class="text-slate-500 font-normal">Detalhes:</span> ${categoriaPath} <span class="text-xs ml-2 px-2 py-0.5 bg-slate-100 dark:bg-white/10 rounded-md text-slate-600 dark:text-gray-300 font-mono">${mesDisplay}</span>`;
+            tbody.innerHTML = '';
+            totalE.innerHTML = 'R$ 0,00';
+            loading.classList.remove('hidden');
+            document.getElementById('detalhes-table-container').classList.add('hidden');
+            modal.classList.remove('hidden');
+
+            // Chamada API
+            fetch(`api_relatorio_detalhes.php?categoria=${idcategoria}&mes=${mes}&tipo=${tipo}&conta=${contaFiltro}`)
+                .then(r => r.json())
+                .then(data => {
+                    loading.classList.add('hidden');
+                    document.getElementById('detalhes-table-container').classList.remove('hidden');
+                    
+                    if (data.success && data.transacoes.length > 0) {
+                        let html = '';
+                        data.transacoes.forEach(t => {
+                            html += `
+                                <tr class="hover:bg-slate-50 dark:hover:bg-white/5 border-b border-gray-100 dark:border-white/5 last:border-0 transition-colors">
+                                    <td class="px-4 py-3 text-sm text-slate-500 dark:text-gray-400 whitespace-nowrap">${t.data_formatada}</td>
+                                    <td class="px-4 py-3 text-sm font-medium text-slate-800 dark:text-white">${t.descricao}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-500 dark:text-gray-400 whitespace-nowrap text-right">
+                                        <div class="flex items-center justify-end gap-2">
+                                            ${t.conta_nome || '-'}
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm font-bold text-slate-800 dark:text-white text-right whitespace-nowrap">R$ ${parseFloat(t.valor_absoluto).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                </tr>
+                            `;
+                        });
+                        tbody.innerHTML = html;
+                        totalE.innerHTML = 'R$ ' + parseFloat(data.total_somado).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 dark:text-gray-400">Nenhuma transação encontrada ou erro ao carregar.</td></tr>`;
+                    }
+                })
+                .catch(err => {
+                    loading.classList.add('hidden');
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-red-500">Erro de comunicação com o servidor.</td></tr>`;
+                });
+        }
+
+        function closeDetalhesModal() {
+            document.getElementById('modal-detalhes').classList.add('hidden');
+        }
     </script>
+
+    <!-- Modal Detalhes HTML -->
+    <div id="modal-detalhes" class="fixed inset-0 z-[100] flex items-center justify-center hidden print:hidden">
+        <div class="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeDetalhesModal()"></div>
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-3xl m-4 shadow-2xl relative z-10 flex flex-col max-h-[90vh] overflow-hidden border border-gray-200 dark:border-white/10 animate-fade-in-up">
+            
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/10">
+                <h3 class="text-xl font-bold text-slate-800 dark:text-white truncate pr-4" id="detalhes-titulo">Detalhes</h3>
+                <button type="button" onclick="closeDetalhesModal()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 p-2 rounded-xl transition-colors shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                <div id="detalhes-loading" class="flex flex-col items-center justify-center py-12">
+                    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500 mb-4"></div>
+                    <p class="text-slate-500 dark:text-gray-400 text-sm">Carregando transações...</p>
+                </div>
+
+                <div id="detalhes-table-container" class="hidden">
+                    <div class="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-white/10">
+                                <tr>
+                                    <th class="px-4 py-3 font-medium w-24">Data</th>
+                                    <th class="px-4 py-3 font-medium">Descrição</th>
+                                    <th class="px-4 py-3 font-medium text-right">Conta</th>
+                                    <th class="px-4 py-3 font-medium text-right w-32">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detalhes-tbody" class="divide-y divide-gray-100 dark:divide-white/5 bg-white dark:bg-transparent">
+                                <!-- Preenchido via JS -->
+                            </tbody>
+                            <tfoot class="bg-slate-50 dark:bg-slate-800/80 border-t border-gray-200 dark:border-white/10">
+                                <tr>
+                                    <td colspan="3" class="px-4 py-4 text-right text-sm font-bold text-slate-700 dark:text-gray-300 uppercase">Soma Total</td>
+                                    <td class="px-4 py-4 text-right font-bold text-slate-800 dark:text-white" id="detalhes-total">R$ 0,00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
 </body>
 </html>
