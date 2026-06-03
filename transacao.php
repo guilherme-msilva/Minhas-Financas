@@ -593,9 +593,9 @@ include 'header.php';
                         <input type="text" class="bg-transparent text-right text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-white/40 focus:outline-none w-full" placeholder="Ex: Mercado" id="ui-descricao" value="<?php echo htmlspecialchars($descricao); ?>">
                     </div>
                     
-                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5 bg-cyan-50/50 dark:bg-cyan-900/10 rounded-xl my-1">
-                        <span class="text-cyan-700 dark:text-cyan-300 font-medium whitespace-nowrap mr-4">Categorização Automática</span>
-                        <button type="button" onclick="autoCategorize()" class="px-4 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-lg text-sm font-bold shadow-md transition-all whitespace-nowrap">
+                    <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-white/5">
+                        <span class="text-slate-500 dark:text-gray-300 font-medium whitespace-nowrap mr-4">Categorização Automática</span>
+                        <button type="button" onclick="autoCategorize()" class="px-3 py-1.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap border border-gray-200 dark:border-white/10 shadow-sm">
                             Aplicar
                         </button>
                     </div>
@@ -915,11 +915,11 @@ include 'header.php';
         
         function applyAutoCategorizeRule(rule) {
             if (rule.idcategoria) {
-                document.getElementById('ui-idcategoria').value = rule.idcategoria;
+                document.getElementById('input-categoria').value = rule.idcategoria;
                 document.getElementById('display-categoria').innerText = rule.categoria_nome;
             }
             if (rule.idconta) {
-                document.getElementById('ui-idconta').value = rule.idconta;
+                document.getElementById('input-conta').value = rule.idconta;
                 document.getElementById('display-conta').innerText = rule.conta_nome;
             }
             
