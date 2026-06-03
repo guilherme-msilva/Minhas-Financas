@@ -105,7 +105,7 @@ $c_port     = in_array($current_page, ['portfolio.php']) ? $active_class : $inac
                 <a href="categorias.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias</a>
                 <a href="contas.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Contas Báncarias</a>
                 <a href="categorias_investimento.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10">Categorias de Investimentos</a>
-                <a href="categorizacao_automatica.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 border-t border-gray-100 dark:border-white/5 mt-1 pt-1">Categorização Auto</a>
+                <a href="categorizacao_automatica.php" class="block px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/10 border-t border-gray-100 dark:border-white/5 mt-1 pt-1">Auto Categorização</a>
             </div>
         </div>
     </div>
